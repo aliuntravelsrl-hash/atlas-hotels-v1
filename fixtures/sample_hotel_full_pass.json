@@ -1,0 +1,45 @@
+{
+  "id": "htl-pc-001",
+  "name": "Grand Palladium Punta Cana Resort & Spa",
+  "slug": "grand-palladium-punta-cana",
+  "zone": "Punta Cana / Bávaro",
+  "stars": 5,
+  "is_active": true,
+  "base_price_usd": 240,
+  "has_default_season": true,
+  "seasons": [
+    {
+      "name": "Regular 2026",
+      "start": "2026-01-05",
+      "end": "2026-12-15",
+      "min_stay": 2
+    }
+  ],
+  "rooms": [
+    {
+      "room_id": "rm-dlx",
+      "name": "Deluxe Room Garden View",
+      "max_adults": 3,
+      "max_children": 2,
+      "price_per_night_usd": 240
+    },
+    {
+      "room_id": "rm-ste",
+      "name": "Junior Suite Pool Side",
+      "max_adults": 3,
+      "max_children": 2,
+      "price_per_night_usd": 290
+    }
+  ],
+  "photos": [
+    "https://images.aliuntravelsrl.com/hotels/grand-palladium/facade.jpg",
+    "https://images.aliuntravelsrl.com/hotels/grand-palladium/pool.jpg",
+    "https://images.aliuntravelsrl.com/hotels/grand-palladium/room.jpg",
+    "https://images.aliuntravelsrl.com/hotels/grand-palladium/beach.jpg"
+  ],
+  "policies": {
+    "check_in": "15:00",
+    "check_out": "12:00",
+    "cancellation": "Cancelación gratuita hasta 7 días antes del check-in."
+  }
+}

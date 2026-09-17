@@ -1,0 +1,20 @@
+{
+  "name": "atlas-hotels-v1",
+  "version": "1.0.0",
+  "description": "Repositorio Modelo de Producto Hotelero con Integrity Monitor Mirror Kernel como SSOT en el COS v3.5",
+  "main": "kernel/index.js",
+  "scripts": {
+    "test": "node tests/kernel_evaluation.test.js && node tests/variable_accumulation.test.js",
+    "audit:live": "node scripts/audit_live_supabase_hotels.js"
+  },
+  "keywords": [
+    "atlas",
+    "cos",
+    "hotels",
+    "mirror-kernel",
+    "integrity-monitor",
+    "ssot"
+  ],
+  "author": "Aliun Travel SRL · Director General Aldo Hilario · ATLAS-TECH",
+  "license": "UNLICENSED"
+}

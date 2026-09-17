@@ -1,0 +1,10 @@
+{
+  "bridge_name": "HOTELS_MIRROR_KERNEL_TO_ARIADNE",
+  "version": "1.0",
+  "target_agent": "ariadne-data",
+  "event_types": [
+    "HOTEL_INTEGRITY_AUDIT_PASS",
+    "HOTEL_INTEGRITY_DEGRADED_ALERT",
+    "HOTEL_INTEGRITY_BLOCKED_QUARANTINE"
+  ]
+}

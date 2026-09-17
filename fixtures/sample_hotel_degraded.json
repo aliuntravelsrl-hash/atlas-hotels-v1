@@ -1,0 +1,28 @@
+{
+  "id": "htl-by-002",
+  "name": "Bayahibe Sun Beach Resort",
+  "slug": "bayahibe-sun-beach",
+  "zone": "Bayahíbe",
+  "stars": 4,
+  "is_active": true,
+  "base_price_usd": 180,
+  "has_default_season": true,
+  "seasons": [],
+  "rooms": [
+    {
+      "room_id": "rm-std",
+      "name": "Standard Room",
+      "max_adults": 2,
+      "max_children": 1,
+      "price_per_night_usd": 180
+    }
+  ],
+  "photos": [
+    "https://images.aliuntravelsrl.com/hotels/bayahibe/facade.jpg"
+  ],
+  "policies": {
+    "check_in": "15:00",
+    "check_out": "12:00",
+    "cancellation": "Cancelación no reembolsable."
+  }
+}

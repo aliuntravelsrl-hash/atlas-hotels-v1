@@ -1,0 +1,9 @@
+{
+  "bridge_name": "HOTELS_MIRROR_KERNEL_TO_ATLAS_INTEL",
+  "version": "1.0",
+  "target_agent": "atlas-intel",
+  "event_types": [
+    "HOTEL_RATE_PARITY_REQUEST",
+    "HOTEL_MARKET_ARBITRAGE_SIGNAL"
+  ]
+}

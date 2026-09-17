@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HotelAccumulatedPayload",
+  "type": "object",
+  "required": [
+    "hotel_id",
+    "name",
+    "slug",
+    "zone",
+    "stars",
+    "health_score",
+    "health_verdict",
+    "route_status",
+    "financials",
+    "rooms",
+    "photos",
+    "policies"
+  ],
+  "properties": {
+    "hotel_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "zone": {
+      "type": "string"
+    },
+    "stars": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "health_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 7
+    },
+    "health_verdict": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "DEGRADED",
+        "FAIL"
+      ]
+    },
+    "route_status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "DEGRADED",
+        "BLOCKED"
+      ]
+    },
+    "financials": {
+      "type": "object",
+      "required": [
+        "base_rate_usd",
+        "rate_sell_dop",
+        "base_rate_dop",
+        "commercial_margin_pct"
+      ],
+      "properties": {
+        "base_rate_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rate_sell_dop": {
+          "type": "number",
+          "minimum": 1
+        },
+        "base_rate_dop": {
+          "type": "number",
+          "minimum": 0
+        },
+        "commercial_margin_pct": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "room_id",
+          "name",
+          "max_adults",
+          "max_children",
+          "price_per_night_usd"
+        ],
+        "properties": {
+          "room_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "max_adults": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "max_children": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "price_per_night_usd": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "policies": {
+      "type": "object",
+      "required": [
+        "check_in",
+        "check_out",
+        "cancellation"
+      ],
+      "properties": {
+        "check_in": {
+          "type": "string"
+        },
+        "check_out": {
+          "type": "string"
+        },
+        "cancellation": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
