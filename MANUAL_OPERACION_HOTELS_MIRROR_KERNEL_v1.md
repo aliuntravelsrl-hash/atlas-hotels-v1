@@ -28,3 +28,16 @@
 | **7/7 (PASS)** | `ACTIVE` | Habilitado para venta web, Hermes y OTAs. | Log INFO en EventBus |
 | **5/7 - 6/7** | `DEGRADED` | Disponible en cotizador interno con advertencia; oculto en web pública. | Alerta WARN a Ariadne Data |
 | **< 5/7** | `BLOCKED` | Cuarentena total. Ningún agente puede cotizar este hotel. | Alerta ERROR a War Room |
+
+---
+
+## 4. 🗄️ Protocolo Obligatorio de Conservación de Estado y Versionado
+
+1. **Repositorio Custodio (`atlas-hotels-v1`):** Es el cofre de preservación de estado (*State Vault*) del Integrity Monitor para la vertical de hoteles.
+2. **Registro Obligatorio:** Cualquier ajuste en:
+   - Umbrales de *Health Score* (e.g. número mínimo de fotos, campos requeridos de habitaciones).
+   - Lógica de margen comercial o reglas cambiarias (**FIN-ID-001**).
+   - Políticas de despacho de rutas (B2C, B2B, Hermes Swarm).
+   - Telemetría hacia Ariadne Data o Atlas Intel.
+   debe documentarse inmediatamente en `history/INTEGRITY-STATE-LOG.md` con su fecha, commit, justificación y resultado de auditoría.
+3. **Invariante de No-Regresión:** Ningún cambio en el Mirror Kernel puede desplegarse en producción sin que `npm test` pase al 100% y se conserve la copia histórica del estado previo.

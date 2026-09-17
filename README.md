@@ -27,6 +27,8 @@ atlas-hotels-v1/
 ├── ARCHITECTURE.md                            # Topología en Product Intelligence y COS
 ├── AGENTS.md                                  # Reglas y directivas de desarrollo
 ├── MANUAL_OPERACION_HOTELS_MIRROR_KERNEL_v1.md# Manual de operación y control de versiones
+├── history/                                   # BITÁCORA INMUTABLE DE ESTADOS
+│   └── INTEGRITY-STATE-LOG.md                 # Registro de versiones y cambios de integridad
 │
 ├── spec/                                      # ESPECIFICACIONES Y CONTRATOS
 │   ├── MIRROR-KERNEL-HOTEL-SPEC-v1.md         # Definición de los 7 Pilares del Kernel Espejo
