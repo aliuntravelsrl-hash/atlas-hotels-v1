@@ -49,6 +49,6 @@
 1. **Ubicación:** `core1-price/` (lógica versionada, contratos, vectores sintéticos, reglas del Director, prompts para el ejecutor). Ver `core1-price/README.md` y `core1-price/VERSION-MAP.md`.
 2. **Autoridad de reglas:** `core1-price/rules/DIRECTOR-RULES-CORE1-20261023.md`. Mandan sobre cualquier versión.
 3. **Versionado:** una versión publicada no se edita; un mecanismo modificado genera versión nueva, entrada en `VERSION-MAP.md` y entrada en `history/INTEGRITY-STATE-LOG.md`.
-4. **Verificación de custodia:** `sha256sum -c core1-price/MANIFEST.sha256` y `npm run test:core1` (coherencia modelo↔vectores sintéticos; no prueba SQL ni Admin ni web).
+4. **Verificación de custodia:** `sha256sum -c core1-price/MANIFEST.sha256` y `npm run test:core1:all` (modelos, adaptador simulado y 14 fallos inyectados del runner; código de salida real; no prueba SQL ni Admin ni web ni ejecuta audit:live).
 5. **Sin datos reales:** las tarifas viven en Supabase; este repositorio no guarda tarifas, secretos, JWT, IDs de chat ni PII.
 6. **Hallazgo abierto:** `core1-price/KERNEL-ALIGNMENT-FINDINGS.md` (el kernel actual completa datos con valores por defecto; decisión pendiente del Curador).

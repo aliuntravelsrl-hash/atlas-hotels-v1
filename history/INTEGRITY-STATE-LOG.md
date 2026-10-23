@@ -36,3 +36,12 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Resultado de auditoría:** v2.2.1 107/107 y v2.2 97/97 contra sus propios vectores sintéticos (solo modelo).
 * **Autor:** ATLAS-TECH (AP-03), a instrucción del Director General Aldo Hilario. Pendiente de revisión del Curator Constitucional.
 
+### 🛠️ Corrección aclaratoria — Alcance de "Versión 1.1.0-draft" (VLT-06)
+* **Fecha:** 23 de Octubre de 2026
+* **Naturaleza:** entrada correctiva; la entrada anterior no se reescribe.
+* **Aclaración:** "1.1.0-draft" designa el **candidato de custodia de mecanismos Core 1**, **no** una versión del kernel. El kernel permanece en v1.0.0 sin cambios (ver `core1-price/custody/KERNEL-V1-RECOVERY-MANIFEST.md`).
+* **Identificador reservado, no creado:** una futura alineación del kernel se llamará `HOTEL-INTEGRITY v2.0.0-candidate` (diseño en `core1-price/KERNEL-NEW-VERSION-DESIGN.md`, sin implementar).
+* **COS:** cualquier texto COS v3.5 presente en el repositorio no altera la línea base global COS-v3.4.
+* **Estado de integridad:** `KERNEL SIN CAMBIOS`; `npm test` y `npm run test:core1:all` (offline) pasan. Sin auditoría en vivo.
+* **Rastros añadidos:** runners con código de salida real y prueba de inyección de fallos (VLT-01/02), etiquetas de estado (VLT-03), aviso del prompt (VLT-04), procedencia literal (VLT-05), inventario y plantilla de custodia.
+* **Autor:** ATLAS-TECH (AP-03). Pendiente de revisión del Curator Constitucional; custodia no transferida.

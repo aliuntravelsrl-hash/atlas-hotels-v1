@@ -1,3 +1,5 @@
+> **AVISO (VLT-04):** este archivo es un documento guardado, **no un despacho operativo**. No lo convoca el Curador ni este repositorio: el Director lo entrega al ejecutor por su ventana (chat/DIR11). Los alcances aquí descritos se atribuyen a la conversación ATLAS-TECH–Director del 23-Oct-2026 (ver `../rules/PROVENANCE-DIRECTOR-INSTRUCTIONS-20261023.md`), no a una orden del Curador. Estado: NO adoptado, NO ejecutado.
+
 # PROMPT PARA EL EJECUTOR — Hotel Maestro: edades, ocupación, parámetros del cálculo y condiciones (Core 1)
 2026-10-23 · America/La_Paz · ATLAS-TECH (AP-03) · v1
 **Estado:** PROPUESTA LISTA PARA EJECUTOR. Nada de esto está aplicado. ATLAS-TECH no editó Admin, web, n8n ni Supabase.

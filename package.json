@@ -6,7 +6,9 @@
   "scripts": {
     "test": "node tests/kernel_evaluation.test.js && node tests/variable_accumulation.test.js",
     "audit:live": "node scripts/audit_live_supabase_hotels.js",
-    "test:core1": "python3 -I core1-price/versions/v2.2.1/core1_reference_model_v2_2_1.py.inert core1-price/versions/v2.2.1/CORE1-BASE-PRICE-REGRESSION-v2.2.1-ATLAS-TECH.json | tail -1 && python3 -I core1-price/versions/v2.2/core1_reference_model_v2_2.py.inert core1-price/versions/v2.2/CORE1-BASE-PRICE-REGRESSION-v2.2-ATLAS-TECH.json | tail -1"
+    "test:core1": "python3 -I core1-price/runners/run_core1_checks.py",
+    "test:core1:runner": "python3 -I core1-price/runners/test_runner_fault_injection.py",
+    "test:core1:all": "npm run -s test:core1 && npm run -s test:core1:runner"
   },
   "keywords": [
     "atlas",
