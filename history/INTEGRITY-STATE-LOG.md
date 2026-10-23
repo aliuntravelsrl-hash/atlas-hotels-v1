@@ -74,3 +74,8 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Versión nueva (no sustituye v1):** `kernel-v2/` = `HOTEL-INTEGRITY v2.0.0-candidate` con resultados A (contenido), B (precio por selección, consumiendo Core 1 v2.2.3 / adaptador v1.1.1) y C (propuesta sin conceder reserva/cobro). `kernel/`, `tests/`, `spec/`, `scripts/` y las versiones congeladas de Core 1 sin cambios; `main` del producto sigue en `kernel/index.js`.
 * **Pruebas offline:** `test:kernel2` 38/38 (incluye regresión v1 contra el manifiesto de recuperación); `test:kernel2:faults` 13/13 (12 mutaciones + control). Modelo/simulación; sin SQL, Supabase, n8n, apps, `audit:live`, producción. Sin adopción.
 
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-216 — kernel v2.0.1-candidate (correcciones K2-R1…R7), offline, NO desplegado
+* **Versión nueva (mecanismo modificado ⇒ versión nueva):** `kernel-v2.0.1/` = `HOTEL-INTEGRITY v2.0.1-candidate`. `kernel-v2/` (v2.0.0-candidate, snapshot `8c6f5b9`), `kernel/` v1 y las versiones Core 1 congeladas sin cambios; entrada del producto sigue en v1. Core 1 no se reabrió.
+* **Correcciones:** vínculo selección↔cotización, vigencia con reloj de servidor, aplicabilidad/evidencia FX ligada, esquema cerrado y proyección pública positiva, ocupación/capacidad efectivas, validación semántica de valores, propuesta C neutral. GAPs declarados en `kernel-v2.0.1/README.md`.
+* **Pruebas offline:** `test:kernel201` 61/61 (cotizaciones emparejadas genuinas; incluye regresión de v1 y de v2.0.0 38/38); `test:kernel201:faults` 21/21 (19 mutaciones + control + propagación de salida). Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción. Tag v1 sigue pendiente de publicación.
+

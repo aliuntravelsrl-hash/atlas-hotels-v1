@@ -17,3 +17,7 @@ Convención: **IMPLEMENTADO** = existe código/modelo probado offline en el vaul
 * Un subdominio sin inventario se marca `NO INVENTARIADO`; no se completa por analogía.
 * La extensión de la custodia al producto Hotel no certifica capacidades de subdominios no inspeccionados (acto de custodia).
 * Cambiar la estructura de carpetas del vault es un mandato aparte.
+
+
+## Nota fechada (2026-10-23, OBS-215/OBS-216) — sin reescribir el STOP histórico
+La frase «Fase A bloqueada / no iniciada» de este documento describe el estado a su fecha. La decisión del Director OBS-215 sustituyó la puerta del tag por la equivalencia de preservación (recuperación verificada de v1 desde `21dfd63`); el tag sigue pendiente de publicación. Implementaciones candidatas (offline, no desplegadas, no adoptadas): `kernel-v2/` (v2.0.0-candidate, snapshot `8c6f5b9`) y `kernel-v2.0.1/` (v2.0.1-candidate, correcciones K2-R1…R7). Esta matriz sigue siendo fuente **propuesta**; no certifica capacidades desplegadas.

@@ -56,3 +56,6 @@
 ## 6. 🧱 Kernel v2 aislado (candidato, offline)
 `kernel-v2/` contiene `HOTEL-INTEGRITY v2.0.0-candidate` (no desplegado, no adoptado; `kernel/` v1 intacto y es la entrada del producto). Verificación: `npm run test:kernel2:all` (38 pruebas + 12 mutaciones y control). Son pruebas del kernel sobre fixtures sintéticos y salidas simuladas de Core 1; no prueban SQL, Admin, portal ni producción. Preservación de v1: manifiesto de recuperación + `core1-price/evidence/V1-RECOVERY-EQUIVALENCE-GATE-20261023.md`; el tag v1 sigue pendiente de publicación.
 
+### 6.1 Kernel v2.0.1-candidate (correcciones OBS-216)
+`kernel-v2.0.1/` revisa v2.0.0-candidate sin editarlo. Verificación: `npm run test:kernel201:all` (61 pruebas + 19 mutaciones, control y propagación de salida). Modelo/simulación offline con fixtures sintéticos y cotizaciones emparejadas del candidato Core 1; no prueba SQL, Admin, portal, backend ni producción. Contrato de entrada y GAPs: `kernel-v2.0.1/README.md`.
+
