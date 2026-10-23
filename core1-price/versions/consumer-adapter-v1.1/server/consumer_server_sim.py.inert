@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+"""CORE1 price consumer v1.1 — SERVER-SIDE REFERENCE SIMULATION (INERTE). ATLAS-TECH (AP-03), 2026-10-23.
+Candidate for CORE1-PRICE-CONTEXT-v2.2.2 / CORE1-PRICE-ENGINE-v2.2.2 (model core1_reference_model_v2_2_2.py.inert as stand-in).
+NOT an endpoint, NOT deployed, NOT SQL, NOT adopted. Adapter v1 (simulation of v2.1) is preserved untouched.
+No network, DB, secrets, PII. Results are SIMULATED: they prove nothing about SQL, RPC, portal, Admin or production.
+
+Three kinds of amount are kept apart (OBS-207 §4.1):
+  1. reference_price       -> public DTO only, "reference subject to confirmation", never payable.
+  2. provider_amount       -> INTERNAL view only (operator / AI seller), labelled internal, not margin, not a client price.
+  3. final_price_confirmed -> never produced here (always None): a confirmed final price is a human/contract act.
+Enablement of booking/payment is NOT derived from a complete reference or from the engine's may_request_booking."""
+import copy, hashlib, json, os, re
+from datetime import datetime, timedelta, timezone
+from fractions import Fraction
+from math import floor
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+_MODEL = os.path.join(HERE, "..", "..", "v2.2.2", "core1_reference_model_v2_2_2.py.inert")
+_src = open(_MODEL).read()
+ENGINE = type(os)("engine"); exec(compile(_src, "engine", "exec"), ENGINE.__dict__)
+
+CONTRACT = "CORE1-PRICE-CONSUMER-ADAPTER-v1.1"
+DTO_VERSION = "CORE1-PRICE-PUBLIC-DTO-v1.1"
+CONTEXT_SCHEMA = "CORE1-PRICE-CONTEXT-v2.2.2"
+ENGINE_VERSION = "CORE1-PRICE-ENGINE-v2.2.2"
+MECHANISM = "core1_price_pure_v2_2_2"
+CLIENT_FIELDS = {"request_id", "contract_version", "channel", "hotel_ref", "provider_plan_ref", "rooms", "check_in", "check_out", "payment_currency"}
+ROOM_FIELDS = {"room_ref", "adults", "child_ages", "ages_confirmed"}
+INTERNAL_ACTORS = ("OPERATOR", "AI_SELLER")
+
+def _ts(s): return datetime.fromisoformat(s.replace("Z", "+00:00"))
+def _z(d): return d.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def _d(s): return datetime.fromisoformat(s).date()
+def reject(code, **kw): return {"ok": False, "code": code, **kw}
+def _is_int(x): return isinstance(x, int) and not isinstance(x, bool)
+
+def validate_client_request(req, state):
+    if not isinstance(req, dict): return reject("REQUEST_INVALID")
+    extra = sorted(k for k in req if k not in CLIENT_FIELDS)
+    if extra: return reject("FORBIDDEN_FIELD", fields=extra)        # client is never authority: no price, rate, fx, received_at, flags
+    if req.get("contract_version") != CONTRACT: return reject("CONTRACT_VERSION_UNSUPPORTED")   # v1 requests are not silently translated
+    if not req.get("request_id"): return reject("REQUEST_INVALID")
+    rooms = req.get("rooms")
+    if not isinstance(rooms, list) or not rooms: return reject("ROOM_NOT_SELECTED")
+    for r in rooms:
+        if not isinstance(r, dict) or set(r) - ROOM_FIELDS: return reject("FORBIDDEN_FIELD", fields=sorted(set(r) - ROOM_FIELDS) if isinstance(r, dict) else ["room"])
+        if not r.get("room_ref"): return reject("ROOM_NOT_SELECTED")
+        if not _is_int(r.get("adults")) or r["adults"] < 1: return reject("REQUEST_INVALID")
+        ages = r.get("child_ages") or []
+        if not isinstance(ages, list): return reject("REQUEST_INVALID")
+        if any(not _is_int(a) or a < 0 or a > 17 for a in ages): return reject("AGE_INVALID")      # integer ages 0..17 only (Director 23-Oct)
+        if ages and r.get("ages_confirmed") is not True: return reject("AGES_NOT_CONFIRMED")
+    if req.get("payment_currency") not in ("USD", "DOP"): return reject("REQUEST_INVALID")
+    return {"ok": True, "req": req}
+
+def _needs_fx(rates, pay, deposit):
+    ccys = {r["currency"] for r in rates}
+    if any(c != pay for c in ccys): return True
+    return deposit.get("type") != "FULL_PAYMENT" and deposit["minimum_per_room"]["currency"] != pay
+
+def build_context(req, state):
+    """Server-side constrained builder. Everything comes from `state`; nothing from the client except the allow-listed selection."""
+    now = _ts(state["now"])
+    if state.get("context_schema", CONTEXT_SCHEMA) != CONTEXT_SCHEMA: return reject("CONTEXT_VERSION_MISMATCH")
+    pp = state["provider_plans"].get(req.get("provider_plan_ref"))
+    if not pp or pp["hotel_ref"] != req.get("hotel_ref") or req["hotel_ref"] not in state["hotels"]: return reject("SELECTION_INVALID")
+    hotel_id = state["hotels"][req["hotel_ref"]]["hotel_id"]
+    rooms_out, room_types = [], set()
+    for r in req["rooms"]:
+        row = state["rooms"].get(r["room_ref"])
+        if not row or row["provider_plan_ref"] != req["provider_plan_ref"]: return reject("SELECTION_INVALID")
+        if row.get("product") != "CORE1": return reject("PRODUCT_NOT_SUPPORTED")
+        if row["room_row_hotel_id"] != row["map_hotel_id"] or row["map_hotel_id"] != hotel_id: return reject("SELECTION_INVALID")
+        rooms_out.append({"room_type_id": row["room_type_id"], "adults": r["adults"], "child_ages": list(r.get("child_ages") or [])})
+        room_types.add(row["room_type_id"])
+    internal_alerts = []
+    rates = []
+    for x in state["rates"]:
+        if not (x["hotel_id"] == hotel_id and x["provider_id"] == pp["provider_id"] and x["room_type_id"] in room_types): continue
+        ra = x.get("received_at")
+        if ra is not None:
+            try: future = _ts(ra) > now
+            except Exception: future = False
+            if future:                                   # OBS-207: a future ingestion instant never wins the tie-break; the revision is not eligible
+                internal_alerts.append({"code": "RECEIVED_AT_IN_FUTURE_ROW_IGNORED", "row_id": x["id"]})
+                continue
+        rates.append(copy.deepcopy(x))
+    deposit = copy.deepcopy(state["policy"]["deposit_policy"])
+    fx = []
+    if rates and _needs_fx(rates, req["payment_currency"], deposit):      # FX considered only when THIS selection needs a conversion; none is invented
+        for a in state["fx_approvals"]:
+            if not a["active"] or not (_ts(a["effective_from"]) <= now < _ts(a["effective_until_exclusive"])): continue
+            gov = state["fx_governed"].get(a["exchange_rate_ref"])
+            if not gov or gov["version"] != a["source_version"] or gov["rate_sell"] != a["rate_observed"]: return reject("FX_DRIFT")
+            fx.append({"id": a["id"], "pair": a["pair"], "direction": gov["direction"], "rate_sell": gov["rate_sell"], "active": True,
+                       "effective_from": a["effective_from"], "effective_until_exclusive": a["effective_until_exclusive"],
+                       "approved_by_ref": a["approved_by_ref"], "source_ref": a["source_ref"], "source_version": a["source_version"]})
+    ctx = {"schema_version": CONTEXT_SCHEMA, "rates": rates, "fx": fx, "source_document": copy.deepcopy(state.get("source_document") or {}),
+           "deposit_policy": deposit, "accepted_payment_currencies": list(state["policy"]["accepted_payment_currencies"])}
+    if state["policy"].get("review_notice_days") is not None: ctx["policy"] = {"review_notice_days": state["policy"]["review_notice_days"]}
+    engine_req = {"request_id": req["request_id"], "operation": "CALCULATE_REFERENCE", "hotel_id": hotel_id, "provider_id": pp["provider_id"],
+                  "check_in": req["check_in"], "check_out": req["check_out"], "rooms": rooms_out, "payment_currency": req["payment_currency"], "server_now": state["now"]}
+    if pp.get("plan"): engine_req["plan"] = pp["plan"]
+    return {"ok": True, "engine_req": engine_req, "ctx": ctx, "alerts": internal_alerts}
+
+# raw engine code -> safe public reason key (the raw code never reaches the public DTO)
+_NO_RATE = "NO_RATE_FOR_DATES"; _OCC = "OCCUPANCY_NOT_SUPPORTED"; _AGE = "AGE_PRICE_UNAVAILABLE"; _FX = "CURRENCY_CONVERSION_UNAVAILABLE"; _SEL = "SELECTION_UNAVAILABLE"
+SAFE_REASON = {
+    "ROOM_MAPPING_UNRESOLVED": _SEL, "UNIT_UNDEFINED": _SEL, "MIXED_SOURCE_CURRENCY": _SEL,
+    "RATE_COVERAGE_GAP": _NO_RATE, "RATE_AMBIGUOUS": _NO_RATE, "RATE_NOT_ACTIVE": _NO_RATE, "PLACEHOLDER_RATE": _NO_RATE,
+    "VERIFICATION_MISSING": _NO_RATE, "RATE_ORIGIN_NOT_VERIFIED": _NO_RATE,
+    "OCCUPANCY_PRICE_UNDEFINED": _OCC, "CAPACITY_UNKNOWN": _OCC, "CAPACITY_EXCEEDED": _OCC,
+    "AGE_POLICY_UNDEFINED": _AGE, "CHILD_AGE_MISSING": _AGE, "CHILD_BANDS_AMBIGUOUS": _AGE, "CHILD_PRICE_UNDEFINED": _AGE, "PRICE_ZERO_NOT_ACCEPTED": "PRICE_UNAVAILABLE",
+    "FX_MISSING": _FX, "FX_EXPIRED": _FX, "FX_NOT_EFFECTIVE": _FX, "FX_AMBIGUOUS": _FX, "FX_INVALID": _FX, "FX_UNAPPROVED": _FX, "FX_WINDOW_TOO_LONG": _FX, "FX_PAIR_UNSUPPORTED": _FX,
+    "PAYMENT_CURRENCY_NOT_ALLOWED": "CURRENCY_NOT_ALLOWED", "STAY_INVALID": "DATES_INVALID", "INPUT_INVALID": "REQUEST_INVALID"}
+REASON_ES = {"SELECTION_UNAVAILABLE": "Esta selección no está disponible para cotizar en línea.", "NO_RATE_FOR_DATES": "No hay tarifa vigente para esas fechas.",
+             "OCCUPANCY_NOT_SUPPORTED": "La ocupación elegida no se puede cotizar.", "AGE_PRICE_UNAVAILABLE": "No se puede cotizar con esas edades.",
+             "CURRENCY_CONVERSION_UNAVAILABLE": "No hay conversión de moneda vigente.", "CURRENCY_NOT_ALLOWED": "Esa moneda no está disponible.",
+             "DATES_INVALID": "Las fechas no son válidas.", "REQUEST_INVALID": "La solicitud no es válida.", "PRICE_UNAVAILABLE": "Precio no disponible por ahora; consulte.",
+             "SERVICE_PAUSED": "La cotización en línea está en pausa; consulte.", "PENDING_REVIEW": "Tarifa en revisión; consulte.",
+             "SELECTION_INVALID": "La selección no es válida.", "PRODUCT_NOT_SUPPORTED": "Este producto se cotiza por otro camino.",
+             "FX_DRIFT": "No hay conversión de moneda vigente.", "AGES_NOT_CONFIRMED": "Confirme las edades de los niños.", "AGE_INVALID": "Las edades deben ser números enteros de 0 a 17.",
+             "ROOM_NOT_SELECTED": "Elija una habitación.", "FORBIDDEN_FIELD": "La solicitud no es válida.", "CONTRACT_VERSION_UNSUPPORTED": "Versión no soportada.",
+             "VERSION_MISMATCH": "Precio no disponible por ahora; consulte."}
+PUBLIC_NOTES = {   # fixed public wording; no internal text, ids, amounts or document references
+    "TAX_NOTE": "Impuestos y cargos extra, si aplican, se indican en el voucher o la factura; este monto no certifica un total con impuestos.",
+    "SUPPLEMENT_NOTE": "Pueden aplicar suplementos; se indican en el voucher.",
+    "AGE_RECLASSIFIED_AS_ADULT": "Los menores desde la edad de adulto del hotel se cotizan como adultos.",
+    "REFERENCE_SUBJECT_TO_CONFIRMATION": "Referencia sujeta a confirmación. No es una reserva ni un cobro."}
+
+def _status_dto(req_id, status, reason, now_iso):
+    return {"dto_version": DTO_VERSION, "mechanism_version": MECHANISM, "request_id": req_id, "status": status, "reason": reason, "message_es": REASON_ES[reason],
+            "computed_at": now_iso, "price": None, "conditions": [], "channel": None, "booking_enablement": {"derived_from_reference": False, "status": "REQUIRES_OPERATOR"},
+            "collection_allowed": False}
+
+def _avg(total, n):
+    v = Fraction(total) / n; c = floor(v * 100 + Fraction(1, 2)); return f"{c // 100}.{c % 100:02d}"
+
+def _billing(result):
+    """adults/children actually billed per room (first night), from the engine breakdown; used for the public selection echo."""
+    out = []
+    for room in result.get("room_breakdown", []):
+        n0 = room["nights"][0]
+        out.append({"adults_billed": n0["adults_effective"], "children_billed": len(n0["children"]), "reclassified": bool(n0["reclassified_ages"])})
+    return out
+
+def to_public_dto(result, req, ctx, state):
+    now = _ts(state["now"]); now_iso = _z(now); rid = req["request_id"]
+    if result.get("engine_version") != ENGINE_VERSION: return _status_dto(rid, "CONSULT", "VERSION_MISMATCH", now_iso)     # incompatible engine: refuse, never translate
+    st = result.get("calculation_status")
+    if st == "SOURCE_SUBTOTAL_ONLY": return _status_dto(rid, "CONSULT", "PENDING_REVIEW", now_iso)     # NET / unknown basis: provider amount stays internal
+    if st in ("INCOMPLETE", "INVALID"):
+        return _status_dto(rid, "CONSULT" if st == "INCOMPLETE" else "REQUEST_INVALID", SAFE_REASON.get(result.get("error_code"), "PRICE_UNAVAILABLE"), now_iso)
+    if st != "COMPLETE" or result.get("client_price_exposable") is not True: return _status_dto(rid, "CONSULT", "PRICE_UNAVAILABLE", now_iso)
+    pay = result["payment_currency"]
+    ends = [now + timedelta(minutes=int(state["policy"]["quote_ttl_minutes"]))]
+    if pay != result["source_currency"]: ends += [_ts(f["effective_until_exclusive"]) for f in ctx["fx"]]
+    nights = (_d(req["check_out"]) - _d(req["check_in"])).days
+    total = result["payment_total"]
+    fp = hashlib.sha256(json.dumps({"req": {k: req[k] for k in sorted(req) if k != "request_id"}, "mech": MECHANISM,
+         "rates": sorted(r["id"] + ":" + str(r["revision"]) + ":" + str(r.get("received_at")) + ":" + hashlib.sha256(json.dumps(r, sort_keys=True).encode()).hexdigest()[:12] for r in ctx["rates"]),
+         "fx": sorted(f["id"] + ":" + f["source_version"] + ":" + f["rate_sell"] for f in ctx["fx"])}, sort_keys=True).encode()).hexdigest()[:24]
+    bill = _billing(result)
+    conds = [{"code": "REFERENCE_SUBJECT_TO_CONFIRMATION", "message_es": PUBLIC_NOTES["REFERENCE_SUBJECT_TO_CONFIRMATION"]}]
+    w = result.get("warnings", [])
+    if "TAX_NOTE_SEE_INVOICE" in w: conds.append({"code": "TAX_NOTE", "message_es": PUBLIC_NOTES["TAX_NOTE"]})
+    if result.get("supplement_notes"): conds.append({"code": "SUPPLEMENT_NOTE", "message_es": PUBLIC_NOTES["SUPPLEMENT_NOTE"]})
+    if any(b["reclassified"] for b in bill): conds.append({"code": "AGE_RECLASSIFIED_AS_ADULT", "message_es": PUBLIC_NOTES["AGE_RECLASSIFIED_AS_ADULT"]})
+    return {"dto_version": DTO_VERSION, "mechanism_version": MECHANISM, "request_id": rid, "fingerprint": fp, "status": "PRICE_REFERENCE", "reason": None,
+            "message_es": PUBLIC_NOTES["REFERENCE_SUBJECT_TO_CONFIRMATION"], "computed_at": now_iso, "valid_until": _z(min(ends)),
+            "selection": {"hotel_ref": req["hotel_ref"], "provider_plan_ref": req["provider_plan_ref"], "check_in": req["check_in"], "check_out": req["check_out"],
+                          "rooms": [{"room_ref": r["room_ref"], "adults_requested": r["adults"], "child_count": len(r.get("child_ages") or []),
+                                     "adults_billed": b["adults_billed"], "children_billed": b["children_billed"]} for r, b in zip(req["rooms"], bill)]},
+            "price": {"reference_total": {"amount": total, "currency": pay}, "unit": "STAY_TOTAL", "nights": nights, "payable": False, "total_certified": False,
+                      "derived_average_per_night": {"amount": _avg(total, nights), "currency": pay, "is_rate": False}},
+            "conditions": conds, "channel": {"mode": "ASSISTED", "status": "ACCREDITED"} if state["capabilities"]["assisted_channel_accredited"] else {"mode": "NONE", "status": "PENDING_NOT_ACCREDITED"},
+            "booking_enablement": {"derived_from_reference": False, "status": "REQUIRES_OPERATOR"}, "collection_allowed": False}
+
+def to_internal_view(result, req, ctx, state, alerts):
+    """Operator / AI-seller view. Never reachable from the public path. Carries provider amount, notes, expirations and traceability."""
+    st = result.get("calculation_status")
+    view = {"view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1", "request_id": req["request_id"], "engine_version": result.get("engine_version"),
+            "calculation_status": st, "error_code": result.get("error_code"), "warnings": list(result.get("warnings", [])), "internal_alerts": list(alerts),
+            "provider_amount": None, "final_price_confirmed": None, "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+            "conditions": [], "supplement_notes": [], "superseded_rates": [], "traceability": [], "operator_alerts": [], "collection_allowed": False}
+    if "source_subtotal" in result:
+        view["provider_amount"] = {"amount": result["source_subtotal"], "currency": result["source_currency"], "label": "INTERNAL_PROVIDER_AMOUNT_NOT_CLIENT_PRICE",
+                                   "basis_warning": "NET_BASIS_NOT_CLIENT_PRICE" if "NET_BASIS_NOT_CLIENT_PRICE" in result.get("warnings", []) else None}
+    for c in result.get("conditions", []):
+        view["conditions"].append(dict(c))
+        if c["status"] in ("VENCIDA", "POR_VENCER"):
+            view["operator_alerts"].append({"code": "CONSULT_PROVIDER_ABOUT_CONDITION", "condition_id": c["id"], "status": c["status"], "expires_on": c["expires_on"]})
+    view["supplement_notes"] = copy.deepcopy(result.get("supplement_notes", []))
+    view["superseded_rates"] = copy.deepcopy(result.get("superseded_rates", []))
+    view["traceability"] = copy.deepcopy(result.get("sources_used", []))
+    view["reclassified"] = [{"room_index": r["room_index"], "ages": n["reclassified_ages"]} for r in result.get("room_breakdown", []) for n in r["nights"][:1] if n["reclassified_ages"]]
+    return view
+
+def _run(req, state, engine=None):
+    engine = engine or ENGINE
+    rid = req.get("request_id", "UNKNOWN") if isinstance(req, dict) else "UNKNOWN"
+    now_iso = state["now"]
+    if not state.get("consumer_enabled", True): return {"pre": _status_dto(rid, "CONSULT", "SERVICE_PAUSED", now_iso)}
+    v = validate_client_request(req, state)
+    if not v["ok"]: return {"pre": _status_dto(rid, "REQUEST_INVALID", v["code"], now_iso)}
+    b = build_context(req, state)
+    if not b["ok"]:
+        code = b["code"]
+        return {"pre": _status_dto(rid, "REQUEST_INVALID" if code in ("SELECTION_INVALID", "PRODUCT_NOT_SUPPORTED") else "CONSULT", code if code in REASON_ES else "PRICE_UNAVAILABLE", now_iso)}
+    try:
+        if state.get("rpc_fail"): raise RuntimeError("simulated RPC failure")
+        result = engine.evaluate({"request": b["engine_req"], "context": b["ctx"]})
+    except Exception:
+        return {"pre": _status_dto(rid, "CONSULT", "PRICE_UNAVAILABLE", now_iso)}
+    return {"result": result, "b": b}
+
+def quote_public(req, state, engine=None):
+    """Public path. Never falls back to legacy tariffs, 58.5, 50% child, min-room deposit or any default."""
+    r = _run(req, state, engine)
+    if "pre" in r: return r["pre"]
+    return to_public_dto(r["result"], req, r["b"]["ctx"], state)
+
+def quote_internal(req, state, actor, engine=None):
+    """Operator / AI seller path. Refuses any other actor; the public path never calls this."""
+    if actor not in INTERNAL_ACTORS: return {"ok": False, "code": "FORBIDDEN_ACTOR"}
+    r = _run(req, state, engine)
+    if "pre" in r: return {"ok": True, "view": {"view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1", "pre_engine_status": r["pre"]["reason"], "provider_amount": None,
+                                               "final_price_confirmed": None, "collection_allowed": False}}
+    return {"ok": True, "view": to_internal_view(r["result"], req, r["b"]["ctx"], state, r["b"]["alerts"])}
+
+def reaccept_snapshot(snapshot, req, state):
+    """An expired or changed snapshot is never reused; the server re-quotes."""
+    if _ts(snapshot["valid_until"]) <= _ts(state["now"]): return {"action": "REQUOTE_REQUIRED", "dto": quote_public(req, state)}
+    d = quote_public(req, state)
+    if d.get("fingerprint") != snapshot.get("fingerprint"): return {"action": "REQUOTE_REQUIRED", "dto": d}
+    return {"action": "SNAPSHOT_STILL_VALID", "dto": d}

@@ -1,0 +1,96 @@
+// CORE1 price consumer v1.1 — CLIENT ADAPTERS (INERT, pure functions, no fetch, no storage, no globals). ATLAS-TECH (AP-03) 2026-10-23.
+// Candidate; NOT applied to any app, not adopted. Input is ONLY the public DTO (CORE1-PRICE-PUBLIC-DTO-v1.1) from the server. The browser never
+// computes a price, holds a rate, builds p_ctx or sees provider amounts, internal notes, expirations or traceability (those exist only in the
+// server's internal view for operator / AI seller). Adapter v1 (simulation of engine v2.1) is preserved untouched.
+// Forbidden here by design (lint-tested): 58.5, 0.5 child default, free_7d/"cancelacion gratuita", `|| 0` price fallbacks, base_price/min_price, MOCK_.
+
+export const CONTRACT = "CORE1-PRICE-CONSUMER-ADAPTER-v1.1";
+export const DTO_VERSION = "CORE1-PRICE-PUBLIC-DTO-v1.1";
+
+const isAge = (a) => Number.isInteger(a) && a >= 0 && a <= 17;
+
+export function buildQuoteRequest({ requestId, hotelRef, providerPlanRef, rooms, checkIn, checkOut, currency }) {
+  if (!requestId) return { error: "REQUEST_INVALID" };
+  if (!Array.isArray(rooms) || rooms.length === 0) return { error: "ROOM_NOT_SELECTED" };
+  const out = [];
+  for (const r of rooms) {
+    if (!r || !r.roomRef) return { error: "ROOM_NOT_SELECTED" };
+    if (!Number.isInteger(r.adults) || r.adults < 1) return { error: "REQUEST_INVALID" };
+    const ages = Array.isArray(r.childAges) ? r.childAges : [];
+    if (!ages.every(isAge)) return { error: "AGE_INVALID" };                                   // integer ages 0..17 only (Director 23-Oct)
+    if (ages.length > 0 && r.agesConfirmed !== true) return { error: "AGES_NOT_CONFIRMED" };    // UI default is not a confirmation
+    out.push(ages.length > 0 ? { room_ref: r.roomRef, adults: r.adults, child_ages: ages, ages_confirmed: true } : { room_ref: r.roomRef, adults: r.adults, child_ages: [] });
+  }
+  return { request: { request_id: requestId, contract_version: CONTRACT, channel: "PORTAL", hotel_ref: hotelRef, provider_plan_ref: providerPlanRef,
+                      rooms: out, check_in: checkIn, check_out: checkOut, payment_currency: currency } };   // no total / rate / margin / nights / flags / ingestion time
+}
+
+export function createTracker() {
+  let latest = null; let current = null;
+  return {
+    begin(requestId) { latest = requestId; current = null; return requestId; },
+    accept(dto) { if (!dto || dto.dto_version !== DTO_VERSION || dto.request_id !== latest) return false; current = dto; return true; },   // other DTO versions are refused, not translated
+    invalidate() { latest = null; current = null; },
+    get current() { return current; },
+  };
+}
+
+const isPrice = (d) => d && d.dto_version === DTO_VERSION && d.status === "PRICE_REFERENCE" && d.price && d.price.reference_total;
+const noPrice = (d) => ({ hasPrice: false, status: d ? d.status : "CONSULT", reason: d ? d.reason : "PRICE_UNAVAILABLE", message: d ? d.message_es : "Precio no disponible por ahora; consulte.",
+                          payable: false, bookingEnabled: false });
+
+// Shared base view (booking form / search bar / unified engine / admin quotation). A reference is never payable and never enables booking by itself.
+export function toQuoteView(dto) {
+  if (!isPrice(dto)) return noPrice(dto);
+  const rooms = dto.selection.rooms;
+  return { hasPrice: true, status: dto.status, referenceTotal: dto.price.reference_total.amount, currency: dto.price.reference_total.currency, unit: dto.price.unit, nights: dto.price.nights,
+           derivedAveragePerNight: dto.price.derived_average_per_night.amount, averageIsRate: false, payable: false, totalCertified: false,
+           adultsBilled: rooms.map((r) => r.adults_billed), childrenBilled: rooms.map((r) => r.children_billed),
+           notes: dto.conditions.map((c) => ({ code: c.code, message: c.message_es })), validUntil: dto.valid_until, channel: dto.channel,
+           bookingEnabled: false, bookingNeedsOperator: dto.booking_enablement.status === "REQUIRES_OPERATOR", collectionAllowed: false,
+           requestId: dto.request_id, fingerprint: dto.fingerprint, cancellationPolicy: null /* never default to a free-cancellation promise */ };
+}
+
+export function toRoomPricingLegacyShape(dto, roomRef) {
+  const v = toQuoteView(dto);
+  if (!v.hasPrice) return { success: false, room_id: roomRef, total_usd: null, total_dop: null, price_per_night: null, reason: v.reason };
+  return { success: true, room_id: roomRef, total_usd: v.currency === "USD" ? v.referenceTotal : null, total_dop: v.currency === "DOP" ? v.referenceTotal : null,
+           price_per_night: v.derivedAveragePerNight, price_per_night_is_average: true, reference_only: true };
+}
+
+export function toHotelPricingView(dto) {
+  const v = toQuoteView(dto);
+  if (!v.hasPrice) return { priceRange: null, error: v.reason };
+  return { priceRange: { currency: v.currency, total: v.referenceTotal, derivedAveragePerNight: v.derivedAveragePerNight }, error: null };
+}
+
+export function toUnifiedEngineView(dto) {
+  const v = toQuoteView(dto);
+  return { ...v, ratePlans: v.hasPrice ? [{ planRef: dto.selection.provider_plan_ref, total: v.referenceTotal, currency: v.currency }] : [], mocksIncluded: false };
+}
+
+export const toAdminQuotationView = (dto) => ({ ...toQuoteView(dto), adminOverride: false });
+
+// Operator / AI-seller view of the SERVER internal view (never built from the public DTO; the browser public path never receives it).
+export function toOperatorView(internalView) {
+  if (!internalView || internalView.view_version !== "CORE1-PRICE-INTERNAL-VIEW-v1.1") return { available: false };
+  return { available: true, providerAmount: internalView.provider_amount, providerAmountIsClientPrice: false, finalPriceConfirmed: internalView.final_price_confirmed,
+           alerts: internalView.operator_alerts, conditions: internalView.conditions, supplementNotes: internalView.supplement_notes,
+           supersededRates: internalView.superseded_rates, traceability: internalView.traceability, internalAlerts: internalView.internal_alerts,
+           mustConsultProvider: internalView.operator_alerts.length > 0, collectionAllowed: false };
+}
+
+export function toCardView(catalogEntry, dto) {
+  if (isPrice(dto)) return { kind: "QUOTE", ...toQuoteView(dto) };
+  const g = catalogEntry && catalogEntry.governed === true && catalogEntry.from_amount != null && catalogEntry.currency && catalogEntry.unit_label;
+  if (!g) return { kind: "CONSULT", hasPrice: false, label: "Consultar" };
+  return { kind: "CATALOG_REFERENCE", hasPrice: true, purchasable: false, fromAmount: catalogEntry.from_amount, currency: catalogEntry.currency, unitLabel: catalogEntry.unit_label };
+}
+
+export function toComparatorEntry(selection, dto) {
+  if (!isPrice(dto)) return { selection, price: null, snapshot: null, cancellation: null };
+  return { selection, price: { amount: dto.price.reference_total.amount, currency: dto.price.reference_total.currency, unit: dto.price.unit, referenceOnly: true },
+           snapshot: { fingerprint: dto.fingerprint, request_id: dto.request_id, valid_until: dto.valid_until, computed_at: dto.computed_at, mechanism_version: dto.mechanism_version },
+           notes: dto.conditions.map((c) => c.code), cancellation: null };
+}
+export function comparatorEntryExpired(entry, nowIso) { return !entry.snapshot || Date.parse(entry.snapshot.valid_until) <= Date.parse(nowIso); }

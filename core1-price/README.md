@@ -18,6 +18,8 @@ Cotización **de consulta** (no pagable, manual/asíncrona) del precio de un hot
 | `runners/` | Ejecutor offline con código de salida real y su prueba de inyección de fallos. |
 | `custody/` | Inventario de copias, plantilla del acto de transferencia y manifiesto de recuperación del kernel v1. |
 | `KERNEL-NEW-VERSION-DESIGN.md` | Diseño (no implementado) de una versión nueva del kernel. |
+| `RECEIVED-AT-MAPPING-DESIGN.md` | Diseño del mapeo de `received_at` y evidencias mínimas antes de cualquier SQL (`rates.created_at` = UNK). |
+| `versions/consumer-adapter-v1.1` | Adaptador inerte para contexto/motor v2.2.2 (30 + 24 pruebas simuladas). El v1 se conserva. |
 | `KERNEL-ALIGNMENT-FINDINGS.md` | Hallazgo **separado**: desalineaciones entre el Mirror Kernel actual y las reglas del Director. No modifica el kernel. |
 | `MANIFEST.sha256` | Hash de cada archivo copiado, para verificar que la custodia no se altera. |
 
@@ -26,12 +28,12 @@ Calcula solo habitación, personas, ocupación, precio por persona y noche, y ni
 
 ## Qué prueba y qué no
 - Los vectores de cada versión son **sintéticos** y prueban coherencia modelo↔oráculo.
-- **No** prueban SQL (nunca ejecutado), Admin, web ni adaptador. La ejecución aislada con PostgreSQL queda para Antigravity (no disponible hasta el 29-Oct) bajo convocatoria del Curador.
+- **No** prueban SQL (nunca ejecutado), Admin, web ni adaptador. La ejecución aislada con PostgreSQL queda para Antigravity (no disponible hasta el 29-Oct) bajo convocatoria del Director por chat/DIR11 (el Curador publica prompts preparados; publicar no convoca).
 
 ## Comprobar
 ```bash
 npm test                 # kernel existente (sin cambios en este aporte)
-npm run test:core1:all   # modelos v2.2.2 (115), v2.2.1 (107) y v2.2 (97), adaptador simulado, + 14 fallos inyectados; falla con código != 0
+npm run test:core1:all   # modelos v2.2.2 (115), v2.2.1 (107) y v2.2 (97), adaptador simulado, + adaptador v1.1 (30 + 24) + 21 comprobaciones del runner (19 negativas, la reproducción del defecto original `python | tail -1` y 1 control positivo); falla con código != 0
 sha256sum -c core1-price/MANIFEST.sha256
 ```
 

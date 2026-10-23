@@ -34,7 +34,7 @@ def record(name, ok, detail=""):
 def fresh_root():
     t = tempfile.mkdtemp(prefix="core1-fault-")
     os.makedirs(os.path.join(t, "versions"))
-    for d in ("v2.2.2", "v2.2.1", "v2.2", "v2.1", "consumer-adapter-v1"):
+    for d in ("v2.2.2", "v2.2.1", "v2.2", "v2.1", "consumer-adapter-v1", "consumer-adapter-v1.1"):
         shutil.copytree(os.path.join(ROOT, "versions", d), os.path.join(t, "versions", d))
     return t
 
@@ -67,7 +67,7 @@ record("EVIDENCIA VLT-01: 'python | tail -1' devuelve 0 aunque python salga con 
 
 # 1. Control positivo: layout intacto => el runner debe pasar
 root = fresh_root()
-probs = R.check_models(root) + R.check_adapter(root)
+probs = R.check_models(root) + R.check_adapter(root) + R.check_adapter11(root)
 shutil.rmtree(root, ignore_errors=True)
 record("CONTROL: layout intacto pasa", not probs, "; ".join(probs))
 
@@ -152,6 +152,46 @@ probs = R.check_adapter(frozen_alt)
 shutil.rmtree(frozen_alt, ignore_errors=True)
 record("fixture congelado alterado se detecta", any("difieren" in x for x in probs), probs[0] if probs else "NO DETECTADO")
 
+# 14-19. Adapter v1.1: cada fallo inyectado debe detectarse
+def a11(root, rel):
+    return os.path.join(root, "versions", "consumer-adapter-v1.1", *rel.split("/"))
+
+root = fresh_root()
+os.remove(a11(root, "tests/run_server_scenarios.py.inert"))
+expect_detected("adapter v1.1: falta el script de servidor", root, R.check_adapter11)
+
+root = fresh_root()
+p_ = a11(root, "server/consumer_server_sim.py.inert")
+t_ = open(p_).read(); needle = '"channel": None, "booking_enablement": {"derived_from_reference": False'
+assert needle in t_, "mutation target missing"
+t_ = t_.replace(needle, '"channel": None, "booking_enablement": {"derived_from_reference": True')
+open(p_, "w").write(t_)
+expect_detected("adapter v1.1: habilitación derivada solo en DTO sin precio (mutación) se detecta", root, R.check_adapter11)
+
+root = fresh_root()
+p_ = a11(root, "server/consumer_server_sim.py.inert")
+open(p_, "w").write(open(p_).read().replace('"derived_from_reference": False', '"derived_from_reference": True'))
+expect_detected("adapter v1.1: habilitación derivada de la referencia en todos los DTO (mutación) se detecta", root, R.check_adapter11)
+
+root = fresh_root()
+p_ = a11(root, "server/consumer_server_sim.py.inert")
+open(p_, "w").write(open(p_).read().replace('"provider_amount": None, "final_price_confirmed": None, "final_price_note"', '"provider_amount": None, "final_price_confirmed": "0.00", "final_price_note"'))
+expect_detected("adapter v1.1: precio final confirmado inventado (mutación) se detecta", root, R.check_adapter11)
+
+root = fresh_root()
+p_ = a11(root, "server/consumer_server_sim.py.inert")
+open(p_, "w").write(open(p_).read().replace('if future:', 'if False:'))
+expect_detected("adapter v1.1: instante futuro aceptado (mutación) se detecta", root, R.check_adapter11)
+
+root = fresh_root()
+p_ = a11(root, "tests/run_client_tests.mjs.inert")
+open(p_, "w").write("console.log('CLIENT TESTS v1.1 (simulated DTOs): 24/24 PASS; failing=[]');\nprocess.exit(3);\n")
+expect_detected("adapter v1.1: cliente sale con 3 pese al resumen", root, R.check_adapter11)
+
+root = fresh_root()
+shutil.rmtree(os.path.join(root, "versions", "v2.2.2"))
+expect_detected("adapter v1.1: falta el motor v2.2.2 en el layout", root, R.check_adapter11)
+
 bad = [r for r in results if not r[1]]
-print(f"\nINYECCIÓN DE FALLOS: {len(results) - len(bad)}/{len(results)} comportamientos esperados")
+print(f"\nINYECCIÓN DE FALLOS: {len(results) - len(bad)}/{len(results)} comportamientos esperados (19 negativos + reproducción del defecto + control positivo)")
 sys.exit(1 if bad else 0)

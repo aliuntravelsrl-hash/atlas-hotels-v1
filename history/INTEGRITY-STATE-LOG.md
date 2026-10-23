@@ -52,3 +52,10 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Pruebas:** 115/115 vectores sintéticos del modelo; mutación (min en vez de max) detectada 110/115. `test:core1:all` actualizado. Sin SQL, sin Supabase, sin cambios en el kernel.
 * **Estado:** candidata, NO adoptada, NO desplegada. Autor: ATLAS-TECH (AP-03). Pendiente de revisión del Curator.
 
+### 🛠️ Cierre de OBS-207 — erratas documentales y adaptador v1.1 (candidato)
+* **Fecha:** 23 de Octubre de 2026 · **Naturaleza:** mecanismo nuevo ⇒ versión nueva (`core1-price/versions/consumer-adapter-v1.1`); adaptador v1 y versiones congeladas intactas.
+* **Documentación corregida:** convocatoria del Director por chat/DIR11 (no del Curador); conteo del runner (12→19 negativas + reproducción + control); "sin SQL v2.2.2"; actualización fechada de procedencia; plantilla de custodia (3 conjuntos, canon COS en `atlas-cos-v1`, commits completos, custodia solo propuesta); manifiesto de recuperación del kernel con baseline `21dfd63a9edbdf76962cb4170f3177de2c6176df`, blobs y SHA256 completos (tag solo propuesto, no creado).
+* **Diseño:** `KERNEL-NEW-VERSION-DESIGN.md` refinado (datos por selección, tasa por autoridad/dirección/vigencia, margen fuera del kernel, el kernel propone y no cobra); `RECEIVED-AT-MAPPING-DESIGN.md` (evidencias E1–E7 antes de cualquier SQL; `rates.created_at` sigue UNK).
+* **Pruebas (offline):** adaptador v1.1 servidor 30/30 y cliente 24/24 simulados; runner con 21 comprobaciones propias; v2.2.2 115/115, v2.2.1 107/107, v2.2 97/97; `npm test` sin cambios. Sin SQL, Supabase, red, audit:live ni apps.
+* **Estado:** candidato, NO adoptado, NO desplegado; custodia no transferida; kernel v1 sin cambios. Autor: ATLAS-TECH (AP-03). Pendiente de revisión del Curator.
+

@@ -1,0 +1,25 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "CORE1-PRICE-PUBLIC-DTO-v1.1 (INERT candidate)",
+ "description": "Only this shape may reach the browser. Never present: provider_amount, source_subtotal/total/currency, NET or tax warnings by name, raw engine error codes, internal condition texts or expirations, supplement ids/amounts, row ids, document ids, evidence refs, ingestion instants, margin, p_ctx. The reference is never payable and booking enablement is never derived from it.",
+ "type": "object", "additionalProperties": false,
+ "required": ["dto_version", "mechanism_version", "request_id", "status", "message_es", "computed_at", "price", "conditions", "channel", "booking_enablement", "collection_allowed"],
+ "properties": {
+  "dto_version": {"const": "CORE1-PRICE-PUBLIC-DTO-v1.1"},
+  "mechanism_version": {"const": "core1_price_pure_v2_2_2"},
+  "request_id": {"type": "string"},
+  "fingerprint": {"type": "string"},
+  "status": {"enum": ["PRICE_REFERENCE", "CONSULT", "REQUEST_INVALID"]},
+  "reason": {"type": ["string", "null"]},
+  "message_es": {"type": "string"},
+  "computed_at": {"type": "string", "format": "date-time"},
+  "valid_until": {"type": "string", "format": "date-time"},
+  "selection": {"type": "object", "description": "echo of the selection plus adults_billed / children_billed per room (after reclassification)"},
+  "price": {"type": ["object", "null"], "properties": {"reference_total": {"type": "object"}, "unit": {"const": "STAY_TOTAL"}, "nights": {"type": "integer"}, "payable": {"const": false}, "total_certified": {"const": false}, "derived_average_per_night": {"type": "object", "properties": {"is_rate": {"const": false}}}}},
+  "conditions": {"type": "array", "description": "fixed public wording only: REFERENCE_SUBJECT_TO_CONFIRMATION, TAX_NOTE, SUPPLEMENT_NOTE, AGE_RECLASSIFIED_AS_ADULT"},
+  "channel": {"type": ["object", "null"]},
+  "booking_enablement": {"type": "object", "properties": {"derived_from_reference": {"const": false}, "status": {"const": "REQUIRES_OPERATOR"}}},
+  "collection_allowed": {"const": false}
+ },
+ "allOf": [{"if": {"properties": {"status": {"const": "PRICE_REFERENCE"}}}, "then": {"required": ["price", "valid_until", "fingerprint", "selection"], "properties": {"price": {"type": "object"}}}, "else": {"properties": {"price": {"type": "null"}}}}]
+}
