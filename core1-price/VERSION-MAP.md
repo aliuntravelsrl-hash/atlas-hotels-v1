@@ -22,12 +22,12 @@ Una versión publicada **no se edita**. Mecanismo modificado => versión nueva. 
 - El **SQL v2.1** no está homologado con el modelo v2.2.1 (107 vectores). No existe SQL v2.2, v2.2.1 ni v2.2.2, y el SQL v2.1 nunca se ejecutó.
 
 ## Contratos de contexto
-`CORE1-PRICE-CONTEXT-v2` → `…-v2.1`(compat. legacy) → `…-v2.2` → `…-v2.2.1` → `…-v2.2.2` (v2.2.3 conserva el contexto v2.2.2). Cada contexto nuevo **no** es retrocompatible con el anterior.
+`CORE1-PRICE-CONTEXT-v2` → `…-v2.1`(compat. legacy) → `…-v2.2` → `…-v2.2.1` → `…-v2.2.2` → `…-v2.2.3` (el modelo v2.2.3 y el servidor del adaptador v1.1.1 exigen `CORE1-PRICE-CONTEXT-v2.2.3`; un contexto v2.2.2 se rechaza con `CONTEXT_VERSION_MISMATCH`, igual que v1.1 rechaza contextos de otras versiones). Cada contexto nuevo **no** es retrocompatible con el anterior.
 
 ## Notas de la última versión
 - v2.2.3 no cambia contrato de contexto ni precio base; solo la rama NET deja de perder metadatos (V11-R1). 120 vectores.
 - v2.2.2 desempata por `received_at` (instante UTC; candidato `rates.created_at`). Un empate exacto o la ausencia del instante responde "Consultar". El campo de base de datos definitivo y su mapeo los fija quien implemente el SQL (no existe aún).
-- No existe versión SQL de v2.2/v2.2.1/v2.2.2/v2.2.3: depende de la dictamen técnico del Curator y convocatoria del Director sobre fuente única (extender tablas existentes con procedencia vs. tablas cerradas).
+- No existe versión SQL de v2.2/v2.2.1/v2.2.2/v2.2.3: depende del dictamen técnico del Curator y convocatoria del Director sobre fuente única (extender tablas existentes con procedencia vs. tablas cerradas).
 
 ## Procedencia
 Copias exactas (hash en `../MANIFEST.sha256`) de `atlas-curator-office`, rama `atlas-tech/core1-price-changeset-v2`, commit `74c7262`. Los informes y dictámenes (Curador y ATLAS-TECH) permanecen en `atlas-curator-office/reports` y `specs`.
