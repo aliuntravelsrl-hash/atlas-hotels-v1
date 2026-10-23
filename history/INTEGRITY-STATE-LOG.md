@@ -69,3 +69,8 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Fase A:** tag anotado `hotel-integrity-kernel-v1.0.0` → `21dfd63a9edbdf76962cb4170f3177de2c6176df` existe solo localmente (objeto `24cfeb0eb027770193ca706e1ea0c3a65031e045`); el push falló (desconexión del remoto) en dos intentos y la API de refs está denegada. **TAG REMOTO NO PUBLICADO.** No se usaron credenciales alternativas, force ni recreación.
 * **Fase B:** no iniciada (puerta no satisfecha). Se entregó solo `core1-price/hotel-domain/HOTEL-DOMAIN-MATRIX-20261023.md` y `KERNEL-V2-SPEC-DRAFT-20261023.md` (documentales). Kernel v1, versiones congeladas y `main` sin cambios.
 
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-215 — kernel v2 aislado (candidato, offline, NO desplegado)
+* **Puerta sustitutiva satisfecha:** recuperación de v1 desde `21dfd63` en directorio temporal, 10/10 rutas con blob y SHA-256 idénticos al manifiesto (`core1-price/evidence/V1-RECOVERY-EQUIVALENCE-GATE-20261023.md`). **Deuda visible:** tag `hotel-integrity-kernel-v1.0.0` sigue sin publicar en el remoto.
+* **Versión nueva (no sustituye v1):** `kernel-v2/` = `HOTEL-INTEGRITY v2.0.0-candidate` con resultados A (contenido), B (precio por selección, consumiendo Core 1 v2.2.3 / adaptador v1.1.1) y C (propuesta sin conceder reserva/cobro). `kernel/`, `tests/`, `spec/`, `scripts/` y las versiones congeladas de Core 1 sin cambios; `main` del producto sigue en `kernel/index.js`.
+* **Pruebas offline:** `test:kernel2` 38/38 (incluye regresión v1 contra el manifiesto de recuperación); `test:kernel2:faults` 13/13 (12 mutaciones + control). Modelo/simulación; sin SQL, Supabase, n8n, apps, `audit:live`, producción. Sin adopción.
+

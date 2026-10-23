@@ -52,3 +52,7 @@
 4. **Verificación de custodia:** `sha256sum -c core1-price/MANIFEST.sha256` y `npm run test:core1:all` (modelos, adaptador simulado y 30 comprobaciones del runner: 28 negativas, 1 reproducción del defecto y 1 control positivo (más adaptadores simulados v1.1 30+24 y v1.1.1 43+27; modelos hasta v2.2.3 con 120 vectores); código de salida real; no prueba SQL ni Admin ni web ni ejecuta audit:live).
 5. **Sin datos reales:** las tarifas viven en Supabase; este repositorio no guarda tarifas, secretos, JWT, IDs de chat ni PII.
 6. **Hallazgo abierto:** `core1-price/KERNEL-ALIGNMENT-FINDINGS.md` (el kernel actual completa datos con valores por defecto; decisión pendiente del Curador).
+
+## 6. 🧱 Kernel v2 aislado (candidato, offline)
+`kernel-v2/` contiene `HOTEL-INTEGRITY v2.0.0-candidate` (no desplegado, no adoptado; `kernel/` v1 intacto y es la entrada del producto). Verificación: `npm run test:kernel2:all` (38 pruebas + 12 mutaciones y control). Son pruebas del kernel sobre fixtures sintéticos y salidas simuladas de Core 1; no prueban SQL, Admin, portal ni producción. Preservación de v1: manifiesto de recuperación + `core1-price/evidence/V1-RECOVERY-EQUIVALENCE-GATE-20261023.md`; el tag v1 sigue pendiente de publicación.
+

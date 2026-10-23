@@ -8,7 +8,10 @@
     "audit:live": "node scripts/audit_live_supabase_hotels.js",
     "test:core1": "python3 -I core1-price/runners/run_core1_checks.py",
     "test:core1:runner": "python3 -I core1-price/runners/test_runner_fault_injection.py",
-    "test:core1:all": "npm run -s test:core1 && npm run -s test:core1:runner"
+    "test:core1:all": "npm run -s test:core1 && npm run -s test:core1:runner",
+    "test:kernel2": "node kernel-v2/tests/run_kernel_v2_tests.js",
+    "test:kernel2:faults": "node kernel-v2/tests/run_fault_injection.js",
+    "test:kernel2:all": "npm run -s test:kernel2 && npm run -s test:kernel2:faults"
   },
   "keywords": [
     "atlas",
