@@ -72,3 +72,13 @@ Fuentes de Office consultadas por ATLAS-TECH (lectura; el Curador debe confirmar
 - **SQL v2.1** no se homologa con el modelo v2.2.1 (107 vectores). No existe SQL v2.2/v2.2.1.
 - Las cifras 100/150/50 % son del ejemplo del Director (M12); el resto de los vectores es sintético. No son tarifas reales.
 - Las reglas se atribuyen al Director a partir del chat; su adopción como decisión (§) corresponde al Curador.
+
+## 5. Decisiones posteriores del Director (23-Oct, 11:33) — cierran reservas S2 y S3
+**M22 (extracto fiel de la instrucción, sin el voucher pegado):** "considero podemos usar edades enteras , impuesto tenemos si toca como agregar , pero los impuestos o extra cargos llegan en nota en voucher , en la factura del cliente , nosotros seguimos con el monto a pagar al proveedor , cargos extras o daños hechos a la propiedad corren por el usuario  nosotros nos regimos por estas reglas que aporta el proveedor por lo general es un standard"
+Adjuntó como ejemplo un voucher de proveedor (reglas del hotel, horarios, tarifas opcionales, calendario de cancelación). Se trata como **muestra de notas de voucher**, no como tarifa ni como fuente de cálculo.
+| Reserva | Resultado |
+|---|---|
+| S3 edades enteras vs decimales | **Cerrada por el Director:** enteras (0–17). Coincide con v2.2/v2.2.1; no requiere versión nueva. |
+| S2 impuestos | **Cerrada en lo esencial:** impuestos y cargos extra viajan como nota de voucher/factura; el monto de Core 1 es el que se paga al proveedor. Un impuesto desconocido no bloquea; se conserva `TAX_NOTE_SEE_INVOICE`. El bloqueo por base NET/comisión es otro concepto y sigue. Si hace falta, el impuesto se agrega como dato declarado en una versión posterior. |
+| Cargos extra y daños | Responsabilidad del usuario según las reglas del proveedor; pertenece a políticas por propiedad (tramo posterior), no al cálculo. |
+Reservas S1, S6, S7, S9, S11 siguen como estaban. La adopción formal sigue siendo del Curador.
