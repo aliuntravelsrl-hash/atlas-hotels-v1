@@ -65,3 +65,7 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Documentación:** K3 ahora "tasa por selección, solo si se usa"; diseño del kernel §4/§5 con "dictamen técnico del Curator + convocatoria del Director"; mapa de versiones, README y manual §5 actualizados (30 comprobaciones del runner: 28 negativas + reproducción + control).
 * **Estado:** candidatos, NO adoptados, NO desplegados; sin SQL, sin acto de custodia firmado, sin tag, sin implementación de kernel. A/B §253 y F-SEC-01 siguen abiertos; la custodia es un acto independiente que requiere decisión del DG.
 
+## 2026-10-23 — ATLAS-TECH (AP-03): convocatoria OBS-213 — Fase A bloqueada; matriz y especificación documental
+* **Fase A:** tag anotado `hotel-integrity-kernel-v1.0.0` → `21dfd63a9edbdf76962cb4170f3177de2c6176df` existe solo localmente (objeto `24cfeb0eb027770193ca706e1ea0c3a65031e045`); el push falló (desconexión del remoto) en dos intentos y la API de refs está denegada. **TAG REMOTO NO PUBLICADO.** No se usaron credenciales alternativas, force ni recreación.
+* **Fase B:** no iniciada (puerta no satisfecha). Se entregó solo `core1-price/hotel-domain/HOTEL-DOMAIN-MATRIX-20261023.md` y `KERNEL-V2-SPEC-DRAFT-20261023.md` (documentales). Kernel v1, versiones congeladas y `main` sin cambios.
+
