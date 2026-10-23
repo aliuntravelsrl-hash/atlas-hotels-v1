@@ -1,0 +1,329 @@
+-- INERT / NOT APPLIED / NOT EXECUTED AGAINST ANY DATABASE.
+-- Author: ATLAS-TECH (AP-03) · 2026-10-22 · Prompt: PROMPT-ATLAS-TECH-CORE1-MAPPING-AND-PRICE-CHANGESET-v1 (OBS199)
+-- Status: PROPOSED. Syntax parsed offline with pglast (libpg_query); semantics checked only through the offline
+-- Python reference model (core1_reference_model.py) that mirrors this logic. A real engine run in an isolated
+-- database is still required before any application (see 06-isolated-test-plan.md).
+--
+-- Purpose: pure, deterministic Core 1 base-price calculation over a JSON request + JSON context.
+-- It reads NO table, writes NO table, calls NO other business function and uses NO secret. The same JSON shape
+-- as fixtures/CORE1-BASE-PRICE-v1-20261022.json is accepted so the 36 vectors (+ regression vectors) can be
+-- replayed in an isolated database without any data load.
+-- Contract: specs/SPEC-CORE1-BASE-PRICE-CONTRACT-v1-20261022.md (candidate, not adopted).
+-- Version: core1_price_pure_v1 · contract CORE1-BASE-PRICE-CONTRACT-v1 · replaces nothing (new names only).
+
+BEGIN;
+
+-- Adult price per night (or per stay) for the number of adults. Raises on undefined occupancy.
+CREATE OR REPLACE FUNCTION public.core1_adult_amount_v1(p_ap jsonb, p_adults int, p_max int)
+RETURNS numeric
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_tier text;
+  v_base int;
+BEGIN
+  IF p_ap IS NULL OR p_max IS NULL OR p_adults > p_max OR p_adults < 1 THEN
+    RAISE EXCEPTION 'OCCUPANCY_PRICE_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+  END IF;
+  IF p_ap->>'mode' = 'TIER_PER_ADULT' THEN
+    v_tier := p_ap->'tier_by_adult_count'->>(p_adults::text);
+    IF v_tier IS NULL THEN
+      RAISE EXCEPTION 'OCCUPANCY_PRICE_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+    END IF;
+    RETURN v_tier::numeric * p_adults;
+  ELSIF p_ap->>'mode' = 'BASE_PLUS_EXTRA' THEN
+    v_base := (p_ap->>'base_adults')::int;
+    RETURN (p_ap->>'base_amount_per_adult')::numeric * least(p_adults, v_base)
+         + (p_ap->>'extra_adult_amount')::numeric * greatest(0, p_adults - v_base);
+  END IF;
+  RAISE EXCEPTION 'OCCUPANCY_PRICE_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+END;
+$fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_price_pure_v1(p_req jsonb, p_ctx jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_ci date := (p_req->>'check_in')::date;
+  v_co date := (p_req->>'check_out')::date;
+  v_now timestamptz := (p_req->>'server_now')::timestamptz;
+  v_pay text := p_req->>'payment_currency';
+  v_rooms int := jsonb_array_length(p_req->'rooms');
+  v_dep jsonb := p_ctx->'deposit_policy';
+  v_sdoc jsonb := p_ctx->'source_document';
+  v_first_ccy text := p_ctx->'rates'->0->>'currency';
+
+  v_room jsonb; v_rate jsonb; v_cand jsonb; v_app jsonb; v_r0 jsonb; v_sup jsonb; v_band jsonb; v_fx jsonb;
+  v_n date;
+  v_adults int; v_ages jsonb; v_age numeric; v_mx int; v_unit text;
+  v_night numeric; v_room_total numeric; v_exact numeric := 0; v_partial numeric;
+  v_src_ccy text;
+  v_nightly numeric[] := '{}';
+  v_idx int; v_len int;
+  v_found boolean; v_sd date; v_amt numeric; v_gm int;
+  v_fx_all int; v_fx_valid int; v_rate_fx numeric;
+  v_needs_fx boolean;
+  v_src_total numeric; v_pay_total numeric; v_dep_prev numeric; v_pct numeric; v_min numeric; v_min_room numeric;
+  v_warnings jsonb := '[]'::jsonb; v_may boolean := true;
+  v_shown numeric[] := '{}'; v_sum_shown numeric := 0; v_adjust numeric; v_all_night boolean := true;
+  v_msg text; v_detail text; v_hint text;
+  v_out jsonb;
+BEGIN
+  IF v_co <= v_ci THEN
+    RAISE EXCEPTION 'STAY_INVALID' USING DETAIL = 'INVALID';
+  END IF;
+  v_len := v_co - v_ci;
+  v_nightly := array_fill(0::numeric, ARRAY[v_len]);
+
+  FOR v_room IN SELECT * FROM jsonb_array_elements(p_req->'rooms') LOOP
+    SELECT coalesce(jsonb_agg(r), '[]'::jsonb) INTO v_cand
+      FROM jsonb_array_elements(p_ctx->'rates') r
+     WHERE r->>'room_type_id' = v_room->>'room_type_id';
+    IF jsonb_array_length(v_cand) = 0 THEN
+      RAISE EXCEPTION 'ROOM_MAPPING_UNRESOLVED' USING DETAIL = 'INCOMPLETE';
+    END IF;
+
+    v_adults := (v_room->>'adults')::int;
+    v_ages := coalesce(v_room->'child_ages', '[]'::jsonb);
+    v_room_total := 0;
+
+    FOR v_n IN SELECT d::date FROM generate_series(v_ci::timestamp, (v_co - 1)::timestamp, interval '1 day') d LOOP
+      SELECT coalesce(jsonb_agg(r), '[]'::jsonb) INTO v_app
+        FROM jsonb_array_elements(v_cand) r
+       WHERE (r->>'stay_from')::date <= v_n AND v_n < (r->>'stay_until_exclusive')::date;
+      IF jsonb_array_length(v_app) = 0 THEN
+        RAISE EXCEPTION 'RATE_COVERAGE_GAP' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      IF jsonb_array_length(v_app) > 1 THEN
+        RAISE EXCEPTION 'RATE_AMBIGUOUS' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      v_rate := v_app->0;
+      IF coalesce((v_rate->>'placeholder')::boolean, false) THEN
+        RAISE EXCEPTION 'PLACEHOLDER_RATE' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      IF coalesce(v_rate->>'verification_status', 'VERIFIED') <> 'VERIFIED' THEN
+        RAISE EXCEPTION 'RATE_ORIGIN_NOT_VERIFIED' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      v_unit := v_rate->>'unit';
+      IF v_unit IS NULL THEN
+        RAISE EXCEPTION 'UNIT_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      IF v_rate->>'sale_until_exclusive' IS NOT NULL AND v_now >= (v_rate->>'sale_until_exclusive')::timestamptz THEN
+        RAISE EXCEPTION 'SALE_WINDOW_CLOSED' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      IF v_src_ccy IS NULL THEN
+        v_src_ccy := v_rate->>'currency';
+      ELSIF v_src_ccy <> v_rate->>'currency' THEN
+        RAISE EXCEPTION 'MIXED_SOURCE_CURRENCY' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      v_mx := coalesce((v_rate->'occupancy_included'->>'max_adults')::int, (v_rate->>'max_adults')::int);
+      IF v_mx IS NULL THEN
+        RAISE EXCEPTION 'CAPACITY_UNKNOWN' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      IF v_adults > v_mx THEN
+        RAISE EXCEPTION 'OCCUPANCY_PRICE_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+      END IF;
+
+      v_night := 0;
+      IF v_unit = 'PERSON_NIGHT' THEN
+        v_night := public.core1_adult_amount_v1(v_rate->'adult_pricing', v_adults, v_mx);
+        FOR v_age IN SELECT (a)::numeric FROM jsonb_array_elements_text(v_ages) a LOOP
+          v_found := false;
+          FOR v_band IN SELECT * FROM jsonb_array_elements(coalesce(v_rate->'child_pricing'->'bands', '[]'::jsonb)) LOOP
+            IF (v_band->>'from_inclusive')::numeric <= v_age AND v_age < (v_band->>'to_exclusive')::numeric THEN
+              IF v_adults < coalesce((v_band->>'min_adults')::int, 0) THEN
+                RAISE EXCEPTION 'AGE_PRICE_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+              END IF;
+              v_night := v_night + (v_band->>'amount')::numeric;
+              v_found := true;
+            END IF;
+          END LOOP;
+          IF NOT v_found THEN
+            RAISE EXCEPTION 'AGE_PRICE_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+          END IF;
+        END LOOP;
+      ELSIF v_unit = 'ROOM_NIGHT' THEN
+        IF jsonb_array_length(v_ages) > 0 THEN
+          RAISE EXCEPTION 'AGE_PRICE_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+        END IF;
+        v_night := (v_rate->>'amount')::numeric;
+      ELSIF v_unit IN ('PERSON_STAY', 'ROOM_STAY') THEN
+        v_night := 0; -- charged once after the night loop
+      ELSE
+        RAISE EXCEPTION 'UNIT_UNDEFINED' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      IF v_unit NOT IN ('PERSON_NIGHT', 'ROOM_NIGHT') THEN
+        v_all_night := false;
+      END IF;
+
+      v_room_total := v_room_total + v_night;
+      v_idx := (v_n - v_ci) + 1;
+      v_nightly[v_idx] := v_nightly[v_idx] + v_night;
+    END LOOP;
+
+    -- stay-based units need one rate that covers the whole stay
+    SELECT r INTO v_r0 FROM jsonb_array_elements(v_cand) r
+     WHERE (r->>'stay_from')::date <= v_ci AND v_ci < (r->>'stay_until_exclusive')::date LIMIT 1;
+    IF v_r0->>'unit' IN ('PERSON_STAY', 'ROOM_STAY') THEN
+      IF (v_r0->>'stay_until_exclusive')::date < v_co THEN
+        RAISE EXCEPTION 'STAY_UNIT_RANGE_INCOMPLETE' USING DETAIL = 'INCOMPLETE';
+      END IF;
+      IF v_r0->>'unit' = 'PERSON_STAY' THEN
+        v_room_total := v_room_total + public.core1_adult_amount_v1(
+          v_r0->'adult_pricing', v_adults,
+          coalesce((v_r0->'occupancy_included'->>'max_adults')::int, (v_r0->>'max_adults')::int));
+      ELSE
+        v_room_total := v_room_total + (v_r0->>'amount')::numeric;
+      END IF;
+    END IF;
+
+    -- mandatory supplements (never assumed)
+    FOR v_rate IN SELECT * FROM jsonb_array_elements(v_cand) LOOP
+      FOR v_sup IN SELECT * FROM jsonb_array_elements(coalesce(v_rate->'mandatory_supplements', '[]'::jsonb)) LOOP
+        v_sd := (v_sup->>'date')::date;
+        IF v_sup->>'applicability' = 'UNKNOWN' AND v_sd BETWEEN v_ci AND v_co THEN
+          RAISE EXCEPTION 'SUPPLEMENT_RULE_UNVERIFIED' USING DETAIL = 'INCOMPLETE',
+            HINT = round(v_exact + v_room_total, 2)::text;
+        END IF;
+        IF v_sup->>'applicability' = 'NIGHT_IN_STAY_EXPLICIT' AND v_sd >= v_ci AND v_sd < v_co THEN
+          v_amt := (v_sup->>'adult_amount')::numeric * v_adults;
+          IF jsonb_array_length(v_ages) > 0 THEN
+            IF v_sup->>'child_amount' IS NULL THEN
+              RAISE EXCEPTION 'SUPPLEMENT_RULE_UNVERIFIED' USING DETAIL = 'INCOMPLETE';
+            END IF;
+            v_amt := v_amt + (v_sup->>'child_amount')::numeric * jsonb_array_length(v_ages);
+          END IF;
+          v_room_total := v_room_total + v_amt;
+        END IF;
+      END LOOP;
+    END LOOP;
+
+    v_exact := v_exact + v_room_total;
+  END LOOP;
+
+  -- group minimum and signature travel as restrictions (they do not hide the reference price)
+  FOR v_rate IN SELECT * FROM jsonb_array_elements(p_ctx->'rates') LOOP
+    v_gm := (v_rate->>'group_min_rooms')::int;
+    IF v_gm IS NOT NULL AND v_rooms < v_gm
+       AND EXISTS (SELECT 1 FROM jsonb_array_elements(p_req->'rooms') q WHERE q->>'room_type_id' = v_rate->>'room_type_id') THEN
+      v_may := false;
+      IF NOT v_warnings ? 'GROUP_MINIMUM_NOT_MET' THEN
+        v_warnings := v_warnings || to_jsonb('GROUP_MINIMUM_NOT_MET'::text);
+      END IF;
+    END IF;
+  END LOOP;
+  IF coalesce((v_sdoc->>'signature_required_for_sale')::boolean, false)
+     AND coalesce(v_sdoc->>'signature_status', 'UNKNOWN') <> 'SIGNED' THEN
+    v_may := false;
+    v_warnings := v_warnings || to_jsonb('SIGNATURE_CONDITION_FOR_SALE_UNVERIFIED'::text);
+  END IF;
+
+  -- payment currency and exchange rate (no fallback rate, ever)
+  IF NOT (p_ctx->'accepted_payment_currencies') ? v_pay THEN
+    RAISE EXCEPTION 'PAYMENT_CURRENCY_NOT_ALLOWED' USING DETAIL = 'INCOMPLETE';
+  END IF;
+  v_needs_fx := v_pay <> v_src_ccy
+             OR (v_dep->>'type' <> 'FULL_PAYMENT' AND v_dep->'minimum_per_room'->>'currency' <> v_pay);
+  IF v_needs_fx THEN
+    SELECT count(*) INTO v_fx_all FROM jsonb_array_elements(p_ctx->'fx') f WHERE f->>'pair' = 'USD_DOP';
+    IF v_fx_all = 0 THEN
+      RAISE EXCEPTION 'FX_MISSING' USING DETAIL = 'INCOMPLETE';
+    END IF;
+    SELECT count(*) INTO v_fx_valid FROM jsonb_array_elements(p_ctx->'fx') f
+     WHERE f->>'pair' = 'USD_DOP' AND (f->>'active')::boolean
+       AND (f->>'effective_from')::timestamptz <= v_now AND v_now < (f->>'effective_until_exclusive')::timestamptz
+       AND (f->>'rate_sell')::numeric > 0;
+    IF v_fx_valid = 0 THEN
+      RAISE EXCEPTION 'FX_EXPIRED' USING DETAIL = 'INCOMPLETE';
+    ELSIF v_fx_valid > 1 THEN
+      RAISE EXCEPTION 'FX_AMBIGUOUS' USING DETAIL = 'INCOMPLETE';
+    END IF;
+    SELECT (f->>'rate_sell')::numeric INTO v_rate_fx FROM jsonb_array_elements(p_ctx->'fx') f
+     WHERE f->>'pair' = 'USD_DOP' AND (f->>'active')::boolean
+       AND (f->>'effective_from')::timestamptz <= v_now AND v_now < (f->>'effective_until_exclusive')::timestamptz;
+  END IF;
+
+  -- totals: exact arithmetic, HALF_UP to 2 decimals at the currency boundary only
+  v_src_total := round(v_exact, 2);
+  IF v_pay = v_src_ccy THEN
+    v_pay_total := v_src_total;
+  ELSIF v_src_ccy = 'USD' AND v_pay = 'DOP' THEN
+    v_pay_total := round(v_exact * v_rate_fx, 2);
+  ELSIF v_src_ccy = 'DOP' AND v_pay = 'USD' THEN
+    v_pay_total := round(v_exact / v_rate_fx, 2);
+  ELSE
+    RAISE EXCEPTION 'FX_PAIR_UNSUPPORTED' USING DETAIL = 'INCOMPLETE';
+  END IF;
+
+  -- deposit preview (not a charge): product policy first, DG fallback otherwise
+  IF v_dep->>'type' = 'FULL_PAYMENT' THEN
+    v_dep_prev := v_pay_total;
+  ELSE
+    v_pct := ceil(v_pay_total * (v_dep->>'percentage')::numeric * 100) / 100;
+    v_min_room := (v_dep->'minimum_per_room'->>'amount')::numeric;
+    IF v_dep->'minimum_per_room'->>'currency' = 'DOP' AND v_pay = 'USD' THEN
+      v_min_room := v_min_room / v_rate_fx;
+    ELSIF v_dep->'minimum_per_room'->>'currency' = 'USD' AND v_pay = 'DOP' THEN
+      v_min_room := v_min_room * v_rate_fx;
+    END IF;
+    v_min := ceil(v_min_room * v_rooms * 100) / 100;
+    v_dep_prev := least(v_pay_total, greatest(v_pct, v_min));
+  END IF;
+
+  v_out := jsonb_build_object(
+    'collection_allowed', false,
+    'calculation_status', 'COMPLETE',
+    'commercial_use', 'REFERENCE_ONLY',
+    'source_currency', v_src_ccy,
+    'payment_currency', v_pay,
+    'source_total', to_char(v_src_total, 'FM999999999990.00'),
+    'payment_total', to_char(v_pay_total, 'FM999999999990.00'),
+    'deposit_preview', to_char(v_dep_prev, 'FM999999999990.00'));
+  IF jsonb_array_length(v_warnings) > 0 THEN
+    v_out := v_out || jsonb_build_object('warnings', v_warnings, 'may_request_booking', v_may);
+  END IF;
+  IF v_all_night THEN
+    FOR v_idx IN 1 .. v_len LOOP
+      v_shown[v_idx] := round(v_nightly[v_idx], 2);
+      v_sum_shown := v_sum_shown + v_shown[v_idx];
+    END LOOP;
+    v_adjust := v_src_total - v_sum_shown;
+    IF v_adjust <> 0 THEN
+      v_out := v_out || jsonb_build_object(
+        'exact_source_total', to_char(v_exact, 'FM999999999990.0000'),
+        'displayed_nightly_amounts', (SELECT jsonb_agg(to_char(x, 'FM999999999990.00')) FROM unnest(v_shown) x),
+        'rounding_adjustment', to_char(v_adjust, 'FM990.00'));
+    END IF;
+  END IF;
+  RETURN v_out;
+
+EXCEPTION WHEN raise_exception THEN
+  GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT, v_detail = PG_EXCEPTION_DETAIL, v_hint = PG_EXCEPTION_HINT;
+  v_out := jsonb_build_object(
+    'collection_allowed', false,
+    'calculation_status', coalesce(v_detail, 'INCOMPLETE'),
+    'commercial_use', 'NO_COMPLETE_QUOTE',
+    'payment_total', NULL,
+    'deposit_preview', NULL,
+    'error_code', v_msg,
+    'source_currency', v_first_ccy);
+  IF v_hint IS NOT NULL THEN
+    v_out := v_out || jsonb_build_object('source_subtotal_without_unverified_supplements', to_char(v_hint::numeric, 'FM999999999990.00'));
+  END IF;
+  RETURN v_out;
+END;
+$fn$;
+
+COMMENT ON FUNCTION public.core1_price_pure_v1(jsonb, jsonb) IS
+  'CORE1-BASE-PRICE-CONTRACT-v1 pure calculation (PROPOSED). Reads no table. Version core1_price_pure_v1.';
+
+-- Never callable by clients: only the server-side wrapper (SECURITY DEFINER, separate changeset) may call it.
+REVOKE ALL ON FUNCTION public.core1_adult_amount_v1(jsonb, int, int) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_price_pure_v1(jsonb, jsonb) FROM PUBLIC, anon, authenticated;
+
+COMMIT;

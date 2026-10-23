@@ -1,0 +1,90 @@
+-- INERT / NOT APPLIED / NO DDL EXECUTED. Author: ATLAS-TECH (AP-03) · 2026-10-22 · OBS199 prompt.
+-- Status: PROPOSED (design). Syntax parsed offline only (pglast).
+-- Why new tables instead of extending public.rates (evidence OBS-AT 2026-10-22, read-only catalog queries):
+--  * public.rates has 'Anon Write Access Rates' (cmd ALL, qual true) and full table grants to anon; rooms the same.
+--  * rates.adult_rate is NOT NULL DEFAULT 0 and rates.year DEFAULT 2026; a loaded row with season_id NULL is visible
+--    to the 6- and 7-argument calcular_precio_paquete overloads (they accept s.start_date IS NULL, no source filter,
+--    no date filter) and to calcular_cotizacion (no source filter), which read dbl_rate/adult_rate as a ROOM price.
+--    Per-person nightly source values would therefore be under-quoted at once.
+--  * rates has no unit, no sale window, no group/signature/cut-off, no age bands, no extra-pax, no supplements.
+-- Result: a separate, locked table carries the full-fidelity source. public.rates / public.rooms keep their rows
+-- (no delete, no merge, no deactivation). Legacy readers never see these rows. This is a SUCCESSOR table for Core 1
+-- base tariffs, not a second engine: the only reader is core1_price_*_v1.
+-- Alternative (Option A) is described in the report §6 and needs guards in >= 10 legacy readers first.
+
+BEGIN;
+
+CREATE TABLE public.core1_source_documents (
+  id                               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_code                    text NOT NULL,
+  form_code                        text,
+  revision                         text NOT NULL,
+  sha256                           text NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$'),
+  size_bytes                       bigint NOT NULL CHECK (size_bytes > 0),
+  signature_status                 text NOT NULL DEFAULT 'UNKNOWN' CHECK (signature_status IN ('UNKNOWN','UNSIGNED','SIGNED')),
+  signature_required_for_reference boolean NOT NULL DEFAULT false,
+  signature_required_for_sale      boolean NOT NULL DEFAULT true,
+  captured_at                      timestamptz NOT NULL DEFAULT now(),
+  notes                            text,  -- no names, e-mails, phones or signatures of people
+  UNIQUE (contract_code, revision, sha256)
+);
+
+CREATE TABLE public.core1_base_rates (
+  id                       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  revision                 integer NOT NULL DEFAULT 1 CHECK (revision >= 1),
+  supersedes_id            uuid REFERENCES public.core1_base_rates(id) ON DELETE RESTRICT,
+  hotel_id                 uuid NOT NULL REFERENCES public.hotels_master(id) ON DELETE RESTRICT,
+  provider_ref             text,
+  room_id                  uuid NOT NULL REFERENCES public.rooms(id) ON DELETE RESTRICT,
+  -- stay range normalised to [from, until) ; the literal source text and convention are kept
+  stay_from                date NOT NULL,
+  stay_until_exclusive     date NOT NULL,
+  source_range_text        text NOT NULL,
+  source_range_end_inclusive boolean NOT NULL,
+  CHECK (stay_until_exclusive > stay_from),
+  unit                     text NOT NULL CHECK (unit IN ('PERSON_NIGHT','ROOM_NIGHT','PERSON_STAY','ROOM_STAY')),
+  currency                 text NOT NULL CHECK (currency IN ('USD','DOP')),
+  adult_pricing            jsonb,          -- {"mode":"TIER_PER_ADULT","tier_by_adult_count":{"1":"..","2":".."}} | BASE_PLUS_EXTRA
+  amount                   numeric CHECK (amount >= 0),
+  child_pricing            jsonb,          -- {"age_evaluation":"CHECK_IN","bands":[{from_inclusive,to_exclusive,amount,min_adults}]}
+  mandatory_supplements    jsonb NOT NULL DEFAULT '[]'::jsonb,
+  extra_pax_literal        jsonb,          -- literal source figure, preserved, NEVER interpreted as triple (UNK)
+  max_adults               integer CHECK (max_adults IS NULL OR max_adults >= 1),   -- NULL = capacity not accredited
+  max_children             integer CHECK (max_children IS NULL OR max_children >= 0),
+  occupancy_included       jsonb,
+  taxes_included           boolean,        -- NULL = UNK
+  sale_until_exclusive     timestamptz,
+  property_timezone        text NOT NULL DEFAULT 'America/Santo_Domingo',
+  group_min_rooms          integer CHECK (group_min_rooms IS NULL OR group_min_rooms >= 1),
+  cutoff_policy            text,
+  provenance_kind          text NOT NULL,  -- e.g. SUPPLIER_OFFICIAL_PDF (provenance != verification)
+  verification_status      text NOT NULL DEFAULT 'PENDING_REVIEW' CHECK (verification_status IN ('PENDING_REVIEW','VERIFIED','REJECTED')),
+  captured_by              text,
+  captured_at              timestamptz NOT NULL DEFAULT now(),
+  reviewed_by              text,
+  reviewed_at              timestamptz,
+  review_evidence_ref      text,
+  is_placeholder           boolean NOT NULL DEFAULT false,
+  source_document_id       uuid NOT NULL REFERENCES public.core1_source_documents(id) ON DELETE RESTRICT,
+  source_ref               text NOT NULL,  -- page / table / row of the source
+  is_active                boolean NOT NULL DEFAULT false,  -- loaded inactive; activation is a separate, authorised step
+  created_at               timestamptz NOT NULL DEFAULT now(),
+  CHECK ((unit IN ('PERSON_NIGHT','PERSON_STAY') AND adult_pricing IS NOT NULL)
+      OR (unit IN ('ROOM_NIGHT','ROOM_STAY') AND amount IS NOT NULL)),
+  CHECK (verification_status <> 'VERIFIED'
+      OR (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND review_evidence_ref IS NOT NULL)),
+  UNIQUE (room_id, stay_from, stay_until_exclusive, source_document_id, revision)
+);
+
+CREATE INDEX core1_base_rates_lookup_idx ON public.core1_base_rates (hotel_id, room_id, stay_from, stay_until_exclusive) WHERE is_active;
+
+-- Born locked: RLS on, no policy for anon/authenticated, no grants except service_role.
+ALTER TABLE public.core1_source_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.core1_base_rates       ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.core1_source_documents FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.core1_base_rates       FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.core1_source_documents TO service_role;
+GRANT SELECT, INSERT, UPDATE ON public.core1_base_rates       TO service_role;
+-- No DELETE grant: corrections create a new revision (supersedes_id). Net values never leave through a public DTO.
+
+COMMIT;

@@ -1,0 +1,52 @@
+{
+ "schema_version": "CORE1-V2.1-OPERATOR-MANIFEST-1",
+ "status": "PROPOSED_NOT_EXECUTED",
+ "prepared_by": "ATLAS-TECH (AP-03)",
+ "date": "2026-10-23",
+ "operator": "Antigravity (sovereign), only when convened by the Director",
+ "credentials": "NONE. No production, no Supabase/VPS/cloud, no real data, no real role names",
+ "environment": {
+  "required": "fresh local PostgreSQL cluster (initdb) on the operator workstation, major version OBSERVED and recorded (not assumed), contrib btree_gist and pgcrypto available",
+  "creation": [
+   "initdb into a new empty directory",
+   "start the cluster listening on a unix socket / loopback only",
+   "CREATE DATABASE c1_disposable_<id> OWNER <local owner>",
+   "COMMENT ON DATABASE c1_disposable_<id> IS 'C1-DISPOSABLE-FIXTURE:<id>'"
+  ],
+  "connection": "C1_LOCAL_DSN (socket or loopback; never committed or printed) and C1_MARKER=<id>",
+  "teardown": "stop and delete the cluster directory afterwards"
+ },
+ "apply_order": [
+  "01-schema-core1-base-rates-v2_1.sql.inert",
+  "02-core1-price-pure-v2_1.sql.inert"
+ ],
+ "note_apply_order": "The harness creates stubs hotels_master/rooms and simulated roles anon/authenticated/service_role INSIDE the test transaction before applying; 04 rollback is exercised only through its gate probe.",
+ "case_sets": [
+  {
+   "file": "CORE1-BASE-PRICE-REGRESSION-v2.1-ATLAS-TECH.json",
+   "expected_count": 61
+  },
+  {
+   "file": "tests/legacy-fixtures-v1.json",
+   "upgrade_legacy": true,
+   "expected_count": 36
+  }
+ ],
+ "expected_total_function_cases": 97,
+ "evidence_to_return": [
+  "full JSON printed by the harness (no DSN)",
+  "observed server major version",
+  "sha256 of every file below (this manifest)",
+  "operator, date, whether the cluster was destroyed"
+ ],
+ "files_sha256": {
+  "02-core1-price-pure-v2_1.sql.inert": "348b0fdc01ced8b138ac74556beae15044817e0017105a2084c04ca053efa767",
+  "01-schema-core1-base-rates-v2_1.sql.inert": "e5a49b3debb36dde696babfa5ae13400da6953ff0a8543c41d1ff98f61c680fd",
+  "04-rollback-v2_1.sql.inert": "0873c0ca145594880ae608a585f9aaf8bab85232cd39ae01e5f92a4fb30e55d8",
+  "core1_reference_model_v2_1.py.inert": "bd36a2f40fef9ae568d15bbe8fcdbcdd8f67bd2ff0b8b2cf16f4b1111e09ad21",
+  "CORE1-BASE-PRICE-REGRESSION-v2.1-ATLAS-TECH.json": "751bdeb5b1ae822e7bc8a81537746dda00043e372e7c18a7bcee90b3aabad945",
+  "tests/legacy-fixtures-v1.json": "f681e8c15f7791d74cd0f4ffac55e2127245fa4494e6853530db00f7e8151b07",
+  "tests/schema_acl_probes_v2_1.py.inert": "c7350a8145a8a6035d4d0ec5664a615368b920e87882d8d2905c3bf23891b984",
+  "tests/run_disposable_db_v2_1.py.inert": "08934a33f1c9b322cd9aca2cc501db8d1614ccab3228ade50eb0ba159edfd0c4"
+ }
+}

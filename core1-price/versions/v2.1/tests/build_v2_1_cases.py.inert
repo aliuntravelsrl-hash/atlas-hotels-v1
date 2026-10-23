@@ -1,0 +1,119 @@
+import json, copy
+base = [c for c in json.load(open('legacy-fixtures-v1.json'))['cases'] if c['id'] == 'C1P01'][0]
+def mk(id_, title, mut, exp):
+    c = copy.deepcopy(base)
+    c['id'] = id_; c['title'] = title; c['schema_version'] = 'CORE1-PRICE-ACCEPTANCE-v2'
+    c['request']['request_id'] = id_
+    cx = c['context']; cx['schema_version'] = 'CORE1-PRICE-CONTEXT-v2'
+    r = cx['rates'][0]
+    r.update(is_active=True, verification_status='VERIFIED', review_evidence_ref='SYNTH-REVIEW', source_document_id='SYNTH-DOC', price_basis='CLIENT_FINAL')
+    cx['fx'][0].update(approved_by_ref='SYNTH-APPROVER', source_ref='SYNTH-SRC', source_version='SYNTH-V1')
+    mut(c['request'], cx, r)
+    c.pop('expected'); c['expected'] = exp
+    return c
+INC = lambda code: {'calculation_status': 'INCOMPLETE', 'commercial_use': 'NO_COMPLETE_QUOTE', 'payment_total': None, 'deposit_preview': None, 'error_code': code, 'collection_allowed': False}
+INV = {'calculation_status': 'INVALID', 'commercial_use': 'NO_COMPLETE_QUOTE', 'payment_total': None, 'deposit_preview': None, 'error_code': 'INPUT_INVALID', 'collection_allowed': False}
+OK = {'calculation_status': 'COMPLETE', 'payment_total': '200.00', 'deposit_preview': '60.00', 'collection_allowed': False}
+cases = []
+def add(*a): cases.append(mk(*a))
+add('V2-00', 'baseline v2 completo', lambda q,x,r: None, OK)
+# 7 sondas del Curator (pasaban indebidamente)
+add('V2-P1', 'tarifa de otro hotel no se usa', lambda q,x,r: r.update(hotel_id='OTHER-HOTEL'), INC('ROOM_MAPPING_UNRESOLVED'))
+add('V2-P2', 'tarifa de otro proveedor no se usa', lambda q,x,r: r.update(provider_id='OTHER-PROV'), INC('ROOM_MAPPING_UNRESOLVED'))
+add('V2-P3', 'verification_status ausente falla cerrado', lambda q,x,r: r.pop('verification_status'), INC('VERIFICATION_MISSING'))
+def dup(q,x,r):
+    s = {'date':'2027-03-29','unit':'PERSON_EVENT','currency':'USD','applicability':'NIGHT_IN_STAY_EXPLICIT','obligation_id':'OB-GALA-A','adult_amount':'10.00','child_amount':'0.00','child_age_rule':{'from_inclusive':0,'to_exclusive':18}}
+    r['mandatory_supplements']=[s]; r2=copy.deepcopy(r); r2['id']='SYNTH-RATE-2'; r2['stay_from']='2027-03-29'; r2['stay_until_exclusive']='2027-03-30'
+    r['stay_until_exclusive']='2027-03-29'; r['stay_from']='2026-12-24'; x['rates'].append(r2)
+add('V2-P4', 'suplemento declarado en dos tarifas se cuenta una vez (solo tarifas usadas)', dup, {'calculation_status':'COMPLETE','payment_total':'220.00'})
+add('V2-P5', 'adultos sobre max_adults', lambda q,x,r: q['rooms'][0].update(adults=3), INC('OCCUPANCY_PRICE_UNDEFINED'))
+add('V2-P6', 'ninos sobre max_children', lambda q,x,r: q['rooms'][0].update(child_ages=[4,5,6]), INC('CAPACITY_EXCEEDED'))
+add('V2-P7', 'tarifa placeholder', lambda q,x,r: r.update(placeholder=True), INC('PLACEHOLDER_RATE'))
+# activacion / procedencia
+add('V2-H01', 'tarifa inactiva', lambda q,x,r: r.update(is_active=False), INC('RATE_NOT_ACTIVE'))
+add('V2-H02', 'verificacion PENDING', lambda q,x,r: r.update(verification_status='PENDING'), INC('RATE_ORIGIN_NOT_VERIFIED'))
+add('V2-H03', 'VERIFIED sin evidencia de revision', lambda q,x,r: r.pop('review_evidence_ref'), INC('RATE_ORIGIN_NOT_VERIFIED'))
+add('V2-H04', 'VERIFIED sin documento fuente', lambda q,x,r: r.pop('source_document_id'), INC('RATE_ORIGIN_NOT_VERIFIED'))
+add('V2-H05', 'base neta no es precio cliente', lambda q,x,r: r.update(price_basis='NET_PROVIDER'), {'calculation_status':'SOURCE_SUBTOTAL_ONLY','client_price_exposable':False,'payment_total':None,'deposit_preview':None,'may_request_booking':False})
+add('V2-H06', 'impuestos desconocidos => solo subtotal', lambda q,x,r: r.update(taxes_included=None), {'calculation_status':'SOURCE_SUBTOTAL_ONLY','client_price_exposable':False,'payment_total':None})
+add('V2-H07', 'venta cerrada', lambda q,x,r: r.update(sale_until_exclusive='2026-10-22T00:00:00Z'), INC('SALE_WINDOW_CLOSED'))
+# bandas y ninos
+def ov(q,x,r):
+    q['rooms'][0]['child_ages']=[4]; r['child_pricing']['bands'][1]['from_inclusive']=2
+add('V2-H08', 'bandas de ninos superpuestas', ov, INC('CHILD_BANDS_AMBIGUOUS'))
+add('V2-H09', 'nino 4 anos con 2 adultos banda 55', lambda q,x,r: q['rooms'][0].update(child_ages=[4]), {'calculation_status':'COMPLETE','payment_total':'255.00'})
+add('V2-H10', 'nino 4 anos con 1 adulto (min_adults=2)', lambda q,x,r: (q['rooms'][0].update(adults=1, child_ages=[4])), INC('AGE_PRICE_UNDEFINED'))
+add('V2-H11', 'edad de 18 invalida', lambda q,x,r: q['rooms'][0].update(child_ages=[18]), INV)
+# entradas invalidas
+add('V2-H12', 'sin adultos', lambda q,x,r: q['rooms'][0].update(adults=0), INV)
+add('V2-H13', 'sin habitaciones', lambda q,x,r: q.update(rooms=[]), INV)
+add('V2-H14', 'fecha invalida', lambda q,x,r: q.update(check_in='2027-02-30'), INV)
+add('V2-H15', 'salida igual a entrada', lambda q,x,r: q.update(check_out=q['check_in']), {'calculation_status':'INVALID'})
+add('V2-H16', 'importe negativo', lambda q,x,r: r['adult_pricing']['tier_by_adult_count'].update({'2':'-1.00'}), INV)
+add('V2-H17', 'importe float JSON rechazado', lambda q,x,r: r['adult_pricing']['tier_by_adult_count'].update({'2':100.5}), INV)
+add('V2-H18', 'moneda de pago invalida', lambda q,x,r: q.update(payment_currency='EUR'), INV)
+add('V2-H19', 'hotel_id ausente', lambda q,x,r: q.pop('hotel_id'), INV)
+# FX
+add('V2-F1', 'FX ventana 48h rechazada (>24h)', lambda q,x,r: (q.update(payment_currency='DOP'), x['fx'][0].update(effective_until_exclusive='2026-10-24T00:00:00Z')), INC('FX_WINDOW_TOO_LONG'))
+add('V2-F2', 'FX sin aprobador', lambda q,x,r: (q.update(payment_currency='DOP'), x['fx'][0].pop('approved_by_ref')), INC('FX_UNAPPROVED'))
+add('V2-F3', 'FX vencida', lambda q,x,r: (q.update(payment_currency='DOP'), x['fx'][0].update(effective_until_exclusive='2026-10-22T06:00:00Z')), INC('FX_EXPIRED'))
+add('V2-F4', 'FX futura', lambda q,x,r: (q.update(payment_currency='DOP'), x['fx'][0].update(effective_from='2026-10-22T18:00:00Z', effective_until_exclusive='2026-10-23T00:00:00Z')), INC('FX_NOT_EFFECTIVE'))
+def two(q,x,r):
+    q.update(payment_currency='DOP'); f=copy.deepcopy(x['fx'][0]); f['id']='FX2'; f['rate_sell']='63.00'; x['fx'].append(f)
+add('V2-F5', 'FX ambigua (dos vigentes)', two, INC('FX_AMBIGUOUS'))
+add('V2-F6', 'FX rate_sell 0 invalida', lambda q,x,r: (q.update(payment_currency='DOP'), x['fx'][0].update(rate_sell='0')), INC('FX_INVALID'))
+add('V2-F7', 'pago DOP con FX valida 62', lambda q,x,r: q.update(payment_currency='DOP'), {'calculation_status':'COMPLETE','payment_total':'12400.00','deposit_preview':'3720.00'})
+add('V2-F8', 'sin FX y se requiere', lambda q,x,r: (q.update(payment_currency='DOP'), x.update(fx=[])), INC('FX_MISSING'))
+# suplementos
+def sup_unit(q,x,r):
+    r['mandatory_supplements']=[{'obligation_id':'OB1','date':'2027-03-29','unit':'ROOM_EVENT','currency':'USD','applicability':'NIGHT_IN_STAY_EXPLICIT','adult_amount':'10.00'}]
+add('V2-S1', 'suplemento unidad invalida', sup_unit, INC('SUPPLEMENT_RULE_UNVERIFIED'))
+def sup_ccy(q,x,r):
+    r['mandatory_supplements']=[{'obligation_id':'OB1','date':'2027-03-29','unit':'PERSON_EVENT','currency':'DOP','applicability':'NIGHT_IN_STAY_EXPLICIT','adult_amount':'10.00'}]
+add('V2-S2', 'suplemento en otra moneda', sup_ccy, INC('SUPPLEMENT_RULE_UNVERIFIED'))
+def sup_unk(q,x,r):
+    r['mandatory_supplements']=[{'obligation_id':'OB1','date':'2027-03-30','unit':'PERSON_EVENT','currency':'USD','applicability':'UNKNOWN','adult_amount':'10.00'}]
+add('V2-S3', 'gala aplicabilidad UNKNOWN en rango => subtotal sin suplementos', sup_unk, INC('SUPPLEMENT_RULE_UNVERIFIED'))
+def sup_child(q,x,r):
+    q['rooms'][0]['child_ages']=[4]
+    r['mandatory_supplements']=[{'obligation_id':'OB1','date':'2027-03-29','unit':'PERSON_EVENT','currency':'USD','applicability':'NIGHT_IN_STAY_EXPLICIT','adult_amount':'10.00','child_amount':'5.00','child_age_rule':{'from_inclusive':3,'to_exclusive':12}}]
+add('V2-S4', 'suplemento con nino en regla de edad', sup_child, {'calculation_status':'COMPLETE','payment_total':'280.00'})
+# mapeo / cobertura
+add('V2-M1', 'habitacion sin mapeo', lambda q,x,r: q['rooms'][0].update(room_type_id='UNMAPPED'), INC('ROOM_MAPPING_UNRESOLVED'))
+def gap(q,x,r): q.update(check_out='2027-03-31'); r.update(stay_until_exclusive='2027-03-30')
+add('V2-M2', 'noche sin cobertura', gap, INC('RATE_COVERAGE_GAP'))
+def amb(q,x,r):
+    r2=copy.deepcopy(r); r2['id']='R2'; x['rates'].append(r2)
+add('V2-M3', 'dos tarifas solapadas', amb, INC('RATE_AMBIGUOUS'))
+def nocap(q,x,r): r.pop('max_adults')
+add('V2-M4', 'capacidad desconocida', nocap, INC('CAPACITY_UNKNOWN'))
+
+# ---- v2.1 (OBS-203 V2-T4/T5)
+add('V2-X1', 'politica 48h no ensancha el tope fijo de 24h', lambda q,x,r: (q.update(payment_currency='DOP'), x.update(policy={'max_fx_window_hours':48}), x['fx'][0].update(effective_until_exclusive='2026-10-24T00:00:00Z')), INV)
+add('V2-X2', 'politica 12h puede estrechar', lambda q,x,r: (q.update(payment_currency='DOP'), x.update(policy={'max_fx_window_hours':12})), INC('FX_WINDOW_TOO_LONG'))
+add('V2-X3', 'FX sin source_version', lambda q,x,r: (q.update(payment_currency='DOP'), x['fx'][0].pop('source_version')), INC('FX_UNAPPROVED'))
+def two_ob(q,x,r):
+    r['mandatory_supplements']=[{'obligation_id':'OB-A','date':'2027-03-29','unit':'PERSON_EVENT','currency':'USD','applicability':'NIGHT_IN_STAY_EXPLICIT','adult_amount':'10.00'},{'obligation_id':'OB-B','date':'2027-03-29','unit':'PERSON_EVENT','currency':'USD','applicability':'NIGHT_IN_STAY_EXPLICIT','adult_amount':'10.00'}]
+add('V2-X4', 'dos obligaciones distintas mismo dia/unidad/importe suman 240 y no son ajuste de redondeo', two_ob, {'calculation_status':'COMPLETE','payment_total':'240.00','supplement_charges':[{'obligation_id':'OB-A','date':'2027-03-29','room_index':0,'amount':'20.00'},{'obligation_id':'OB-B','date':'2027-03-29','room_index':0,'amount':'20.00'}],'displayed_nightly_amounts':['200.00']})
+def no_ob(q,x,r):
+    r['mandatory_supplements']=[{'date':'2027-03-29','unit':'PERSON_EVENT','currency':'USD','applicability':'NIGHT_IN_STAY_EXPLICIT','adult_amount':'10.00'}]
+add('V2-X5', 'suplemento sin obligation_id', no_ob, INC('SUPPLEMENT_RULE_UNVERIFIED'))
+def same_id_conflict(q,x,r):
+    a={'obligation_id':'OB-A','date':'2027-03-29','unit':'PERSON_EVENT','currency':'USD','applicability':'NIGHT_IN_STAY_EXPLICIT','adult_amount':'10.00'}
+    r['mandatory_supplements']=[a, dict(a, adult_amount='12.00')]
+add('V2-X6', 'mismo obligation_id con importes distintos', same_id_conflict, INC('SUPPLEMENT_RULE_UNVERIFIED'))
+add('V2-X7', 'edad decimal 11.5 en banda [3,12)', lambda q,x,r: q['rooms'][0].update(child_ages=[11.5]), {'calculation_status':'COMPLETE','payment_total':'255.00'})
+add('V2-X8', 'edad 12.0 sale de la banda', lambda q,x,r: q['rooms'][0].update(child_ages=[12]), INC('AGE_PRICE_UNDEFINED'))
+add('V2-X9', 'accepted_payment_currencies ausente', lambda q,x,r: x.pop('accepted_payment_currencies'), INV)
+add('V2-X10', 'schema_version de contexto distinta', lambda q,x,r: x.update(schema_version='X'), INV)
+add('V2-X11', 'schema_version de contexto ausente', lambda q,x,r: x.pop('schema_version'), INV)
+add('V2-X12', 'deposit_policy ausente', lambda q,x,r: x.pop('deposit_policy'), INV)
+add('V2-X13', 'min_adults no entero', lambda q,x,r: (q['rooms'][0].update(child_ages=[4]), r['child_pricing']['bands'][1].update(min_adults='dos')), INV)
+add('V2-X14', 'base_adults nulo en BASE_PLUS_EXTRA', lambda q,x,r: r.update(adult_pricing={'mode':'BASE_PLUS_EXTRA','base_adults':None,'base_amount_per_adult':'100.00','extra_adult_amount':'50.00'}), INV)
+add('V2-X15', 'tarifa con hotel_id ausente invalida el contexto', lambda q,x,r: r.pop('hotel_id'), INV)
+add('V2-X16', 'room_type_id de tarifa ausente', lambda q,x,r: r.pop('room_type_id'), INV)
+add('V2-X17', 'edad negativa', lambda q,x,r: q['rooms'][0].update(child_ages=[-1]), INV)
+add('V2-X18', 'edad como texto', lambda q,x,r: q['rooms'][0].update(child_ages=['4']), INV)
+d = {'schema_version':'CORE1-BASE-PRICE-REGRESSION-v2.1-ATLAS-TECH','status':'SPECIFIED_NOT_EXECUTED_AGAINST_SQL','synthetic':True,'scope':'Model-level oracle vectors; SQL not executed.','cases':cases}
+json.dump(d, open('CORE1-BASE-PRICE-REGRESSION-v2.1-ATLAS-TECH.json','w'), indent=1, ensure_ascii=False)
+print(len(cases))

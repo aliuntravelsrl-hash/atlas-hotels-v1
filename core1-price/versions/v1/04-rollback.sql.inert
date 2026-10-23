@@ -1,0 +1,14 @@
+-- INERT / NOT APPLIED. Author: ATLAS-TECH (AP-03) · 2026-10-22.
+-- Rollback of the additive objects only. It never re-enables an invalid price, never touches public.rates /
+-- public.rooms / legacy functions, and never reopens an anonymous write path.
+-- Order: stop consumers (none exist until a separate changeset) -> drop functions -> drop tables.
+-- Pre-condition: the new tables hold no row referenced by any quote snapshot; check first (read-only):
+--   SELECT count(*) FROM public.core1_base_rates;  -- if > 0 export/restrict the batch before dropping
+BEGIN;
+DROP FUNCTION IF EXISTS public.core1_price_pure_v1(jsonb, jsonb);
+DROP FUNCTION IF EXISTS public.core1_adult_amount_v1(jsonb, int, int);
+DROP TABLE IF EXISTS public.core1_base_rates;
+DROP TABLE IF EXISTS public.core1_source_documents;
+COMMIT;
+-- Fail-closed note: after rollback Core 1 for Viva Miches shows "price not available - consult" (no rate row),
+-- never a 100/0 fallback. Legacy objects were never changed, so there is nothing to restore there.

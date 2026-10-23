@@ -1,0 +1,26 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "CORE1-PRICE-PUBLIC-DTO-v1 (INERT candidate)",
+ "description": "Only this shape may reach the browser. Never present: source_subtotal, source_total, source_currency, exact_source_total, raw engine error codes, warnings NET/TAXES, margin, source documents, hashes, p_ctx, external identifiers.",
+ "type": "object", "additionalProperties": false,
+ "required": ["dto_version", "mechanism_version", "request_id", "status", "message_es", "computed_at", "price", "deposit_preview", "conditions", "channel", "collection_allowed"],
+ "properties": {
+  "dto_version": {"const": "CORE1-PRICE-PUBLIC-DTO-v1"},
+  "mechanism_version": {"type": "string"},
+  "request_id": {"type": "string"},
+  "fingerprint": {"type": "string", "description": "server-issued opaque identity of selection+rate versions+FX version"},
+  "status": {"enum": ["PRICE_REFERENCE", "CONSULT", "REQUEST_INVALID"]},
+  "reason": {"enum": [null, "SELECTION_UNAVAILABLE", "NO_RATE_FOR_DATES", "SALE_CLOSED", "OCCUPANCY_NOT_SUPPORTED", "AGE_PRICE_UNAVAILABLE", "CURRENCY_CONVERSION_UNAVAILABLE", "CONDITIONS_PENDING", "CURRENCY_NOT_ALLOWED", "DATES_INVALID", "REQUEST_INVALID", "PRICE_UNAVAILABLE", "SERVICE_PAUSED", "PENDING_REVIEW", "SELECTION_INVALID", "PRODUCT_NOT_SUPPORTED", "AGES_NOT_CONFIRMED", "ROOM_NOT_SELECTED", "FORBIDDEN_FIELD", "CONTRACT_VERSION_UNSUPPORTED", "FX_DRIFT"]},
+  "message_es": {"type": "string"},
+  "computed_at": {"type": "string", "format": "date-time"},
+  "valid_until": {"type": "string", "format": "date-time", "description": "min(quote TTL [candidate parameter], FX window end if FX used, sale_until)"},
+  "selection": {"type": "object"},
+  "price": {"type": ["object", "null"], "properties": {"total": {"type": "object"}, "unit": {"const": "STAY_TOTAL"}, "nights": {"type": "integer"}, "derived_average_per_night": {"type": "object", "properties": {"is_rate": {"const": false}}}, "supplement_charges": {"type": "array"}, "displayed_nightly_amounts": {"type": "array"}, "rounding_adjustment": {"type": "object", "properties": {"kind": {"const": "ROUNDING_ONLY"}}}}},
+  "deposit_preview": {"type": ["object", "null"], "properties": {"is_preview": {"const": true}}},
+  "conditions": {"type": "array"},
+  "may_request_booking": {"type": "boolean"},
+  "channel": {"type": ["object", "null"]},
+  "collection_allowed": {"const": false}
+ },
+ "allOf": [{"if": {"properties": {"status": {"const": "PRICE_REFERENCE"}}}, "then": {"required": ["price", "valid_until", "fingerprint"], "properties": {"price": {"type": "object"}}}, "else": {"properties": {"price": {"type": "null"}, "deposit_preview": {"type": "null"}}}}]
+}

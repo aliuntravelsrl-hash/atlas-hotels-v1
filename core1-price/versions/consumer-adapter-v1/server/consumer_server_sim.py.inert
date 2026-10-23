@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+"""CORE1 price consumer — SERVER-SIDE REFERENCE SIMULATION (INERTE). ATLAS-TECH (AP-03), 2026-10-23.
+Design artefact for specs/SPEC-CORE1-PRICE-CONSUMER-ADAPTER-v1 (candidate). It is NOT an endpoint, NOT deployed, NOT SQL.
+The pure engine is the model core1_reference_model_v2_1.py.inert (a stand-in for core1_price_pure_v2_1); results here are
+SIMULATED and prove nothing about SQL, RPC, portal or production. No network, DB, secrets or PII.
+
+Pipeline: client request -> validate_client_request (client is never authority) -> build_context (only from server_state reads)
+-> engine -> to_public_dto (minimal; NET/subtotal never leaves) ."""
+import copy, hashlib, json, os
+from datetime import datetime, timedelta, timezone
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+_src = open(os.path.join(HERE, "..", "..", "core1-price-v2.1", "core1_reference_model_v2_1.py.inert")).read()
+ENGINE = type(os)("engine"); exec(compile(_src, "engine", "exec"), ENGINE.__dict__)
+
+DTO_VERSION = "CORE1-PRICE-PUBLIC-DTO-v1"
+MECHANISM = "core1_price_pure_v2_1"
+CONTRACT = "CORE1-PRICE-CONSUMER-ADAPTER-v1"
+CLIENT_FIELDS = {"request_id", "contract_version", "channel", "hotel_ref", "provider_plan_ref", "rooms", "check_in", "check_out", "payment_currency"}
+ROOM_FIELDS = {"room_ref", "adults", "child_ages", "ages_confirmed"}
+# anything the client may try to impose as authority (checked by name, case-insensitive); the list is illustrative, the allow-list above is normative
+FORBIDDEN_HINTS = ("total", "price", "amount", "rate", "fx", "margin", "markup", "discount", "verification", "source", "document", "signature",
+                   "condition", "p_ctx", "ctx", "role", "service", "nights", "tax", "net", "deposit", "flag")
+
+def _ts(s): return datetime.fromisoformat(s.replace("Z", "+00:00"))
+def _z(d): return d.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def reject(code, **kw): return {"ok": False, "code": code, **kw}
+
+def validate_client_request(req, state):
+    if not isinstance(req, dict): return reject("REQUEST_INVALID")
+    extra = sorted(k for k in req if k not in CLIENT_FIELDS)
+    if extra: return reject("FORBIDDEN_FIELD", fields=extra)   # explicit contract: reject, never overlay on source state
+    if req.get("contract_version") != CONTRACT: return reject("CONTRACT_VERSION_UNSUPPORTED")
+    if not req.get("request_id"): return reject("REQUEST_INVALID")
+    rooms = req.get("rooms")
+    if not isinstance(rooms, list) or not rooms: return reject("ROOM_NOT_SELECTED")   # never pick the cheapest room
+    for r in rooms:
+        if not isinstance(r, dict) or set(r) - ROOM_FIELDS: return reject("FORBIDDEN_FIELD", fields=sorted(set(r) - ROOM_FIELDS) if isinstance(r, dict) else ["room"])
+        if not r.get("room_ref"): return reject("ROOM_NOT_SELECTED")
+        ages = r.get("child_ages") or []
+        if ages and r.get("ages_confirmed") is not True: return reject("AGES_NOT_CONFIRMED")   # UI default 5 / infant 0 never counts
+    if req.get("payment_currency") not in ("USD", "DOP"): return reject("REQUEST_INVALID")
+    return {"ok": True, "req": req}
+
+def build_context(req, state):
+    """Server-side constrained builder. Everything comes from `state` reads, never from the client."""
+    now = _ts(state["now"])
+    pp = state["provider_plans"].get(req.get("provider_plan_ref"))
+    if not pp or pp["hotel_ref"] != req.get("hotel_ref") or req["hotel_ref"] not in state["hotels"]:
+        return reject("SELECTION_INVALID")
+    hotel_id = state["hotels"][req["hotel_ref"]]["hotel_id"]
+    rooms_out, room_types = [], set()
+    for r in req["rooms"]:
+        row = state["rooms"].get(r["room_ref"])
+        if not row or row["provider_plan_ref"] != req["provider_plan_ref"]: return reject("SELECTION_INVALID")
+        if row.get("product") != "CORE1": return reject("PRODUCT_NOT_SUPPORTED")          # Core2 blocks/offers: other path
+        # re-verify AT SERVING TIME that the room still belongs to the mapped hotel (history/trigger is not enough)
+        if row["room_row_hotel_id"] != row["map_hotel_id"] or row["map_hotel_id"] != hotel_id: return reject("SELECTION_INVALID")
+        rooms_out.append({"room_type_id": row["room_type_id"], "adults": r["adults"], "child_ages": r.get("child_ages") or []})
+        room_types.add(row["room_type_id"])
+    rates = [x for x in state["rates"] if x["hotel_id"] == hotel_id and x["provider_id"] == pp["provider_id"] and x["room_type_id"] in room_types]
+    fx = []
+    for a in state["fx_approvals"]:
+        if not a["active"] or not (_ts(a["effective_from"]) <= now < _ts(a["effective_until_exclusive"])): continue
+        gov = state["fx_governed"].get(a["exchange_rate_ref"])
+        if not gov or gov["version"] != a["source_version"] or gov["rate_sell"] != a["rate_observed"]:
+            return reject("FX_DRIFT")                       # governed source moved after approval: do not price
+        fx.append({"id": a["id"], "pair": a["pair"], "direction": gov["direction"], "rate_sell": gov["rate_sell"], "active": True,
+                   "effective_from": a["effective_from"], "effective_until_exclusive": a["effective_until_exclusive"],
+                   "approved_by_ref": a["approved_by_ref"], "source_ref": a["source_ref"], "source_version": a["source_version"]})
+    ctx = {"schema_version": "CORE1-PRICE-CONTEXT-v2", "rates": copy.deepcopy(rates), "fx": fx, "source_document": copy.deepcopy(state["source_document"]),
+           "deposit_policy": copy.deepcopy(state["policy"]["deposit_policy"]), "accepted_payment_currencies": list(state["policy"]["accepted_payment_currencies"])}
+    engine_req = {"request_id": req["request_id"], "operation": "CALCULATE_REFERENCE", "hotel_id": hotel_id, "provider_id": pp["provider_id"],
+                  "check_in": req["check_in"], "check_out": req["check_out"], "rooms": rooms_out, "payment_currency": req["payment_currency"], "server_now": state["now"]}
+    if pp.get("plan"): engine_req["plan"] = pp["plan"]
+    return {"ok": True, "engine_req": engine_req, "ctx": ctx}
+
+SAFE_REASON = {   # raw engine code -> safe public reason key (never the raw code)
+    "ROOM_MAPPING_UNRESOLVED": "SELECTION_UNAVAILABLE", "RATE_COVERAGE_GAP": "NO_RATE_FOR_DATES", "RATE_AMBIGUOUS": "NO_RATE_FOR_DATES",
+    "RATE_NOT_ACTIVE": "NO_RATE_FOR_DATES", "PLACEHOLDER_RATE": "NO_RATE_FOR_DATES", "VERIFICATION_MISSING": "NO_RATE_FOR_DATES",
+    "RATE_ORIGIN_NOT_VERIFIED": "NO_RATE_FOR_DATES", "SALE_WINDOW_CLOSED": "SALE_CLOSED", "OCCUPANCY_PRICE_UNDEFINED": "OCCUPANCY_NOT_SUPPORTED",
+    "CAPACITY_UNKNOWN": "OCCUPANCY_NOT_SUPPORTED", "CAPACITY_EXCEEDED": "OCCUPANCY_NOT_SUPPORTED", "AGE_PRICE_UNDEFINED": "AGE_PRICE_UNAVAILABLE",
+    "CHILD_BANDS_AMBIGUOUS": "AGE_PRICE_UNAVAILABLE", "FX_MISSING": "CURRENCY_CONVERSION_UNAVAILABLE", "FX_EXPIRED": "CURRENCY_CONVERSION_UNAVAILABLE",
+    "FX_NOT_EFFECTIVE": "CURRENCY_CONVERSION_UNAVAILABLE", "FX_AMBIGUOUS": "CURRENCY_CONVERSION_UNAVAILABLE", "FX_INVALID": "CURRENCY_CONVERSION_UNAVAILABLE",
+    "FX_UNAPPROVED": "CURRENCY_CONVERSION_UNAVAILABLE", "FX_WINDOW_TOO_LONG": "CURRENCY_CONVERSION_UNAVAILABLE", "SUPPLEMENT_RULE_UNVERIFIED": "CONDITIONS_PENDING",
+    "MIXED_SOURCE_CURRENCY": "SELECTION_UNAVAILABLE", "STAY_UNIT_RANGE_INCOMPLETE": "SELECTION_UNAVAILABLE", "PAYMENT_CURRENCY_NOT_ALLOWED": "CURRENCY_NOT_ALLOWED",
+    "STAY_INVALID": "DATES_INVALID", "INPUT_INVALID": "REQUEST_INVALID", "UNIT_UNDEFINED": "SELECTION_UNAVAILABLE"}
+REASON_ES = {"SELECTION_UNAVAILABLE": "Esta selección no está disponible para cotizar en línea.", "NO_RATE_FOR_DATES": "No hay tarifa vigente para esas fechas.",
+             "SALE_CLOSED": "La venta para esas fechas está cerrada.", "OCCUPANCY_NOT_SUPPORTED": "La ocupación elegida no se puede cotizar.",
+             "AGE_PRICE_UNAVAILABLE": "No se puede cotizar con esas edades.", "CURRENCY_CONVERSION_UNAVAILABLE": "No hay conversión de moneda vigente.",
+             "CONDITIONS_PENDING": "Hay condiciones por confirmar; consulte.", "CURRENCY_NOT_ALLOWED": "Esa moneda no está disponible.",
+             "DATES_INVALID": "Las fechas no son válidas.", "REQUEST_INVALID": "La solicitud no es válida.", "PRICE_UNAVAILABLE": "Precio no disponible por ahora; consulte.",
+             "SERVICE_PAUSED": "La cotización en línea está en pausa; consulte.", "PENDING_REVIEW": "Tarifa en revisión; consulte.",
+             "SELECTION_INVALID": "La selección no es válida.", "PRODUCT_NOT_SUPPORTED": "Este producto se cotiza por otro camino.",
+             "FX_DRIFT": "No hay conversión de moneda vigente.", "AGES_NOT_CONFIRMED": "Confirme las edades de los niños.", "ROOM_NOT_SELECTED": "Elija una habitación.",
+             "FORBIDDEN_FIELD": "La solicitud no es válida.", "CONTRACT_VERSION_UNSUPPORTED": "Versión no soportada."}
+
+def _status_dto(req_id, status, reason, now_iso):
+    return {"dto_version": DTO_VERSION, "mechanism_version": MECHANISM, "request_id": req_id, "status": status, "reason": reason,
+            "message_es": REASON_ES[reason], "computed_at": now_iso, "price": None, "deposit_preview": None, "conditions": [], "channel": None,
+            "collection_allowed": False}
+
+def to_public_dto(result, req, engine_req, ctx, state):
+    now = _ts(state["now"]); now_iso = _z(now)
+    st = result.get("calculation_status")
+    if st == "SOURCE_SUBTOTAL_ONLY": return _status_dto(req["request_id"], "CONSULT", "PENDING_REVIEW", now_iso)   # NET / unknown taxes: source amount stays internal
+    if st == "INCOMPLETE" or st == "INVALID":
+        reason = SAFE_REASON.get(result.get("error_code"), "PRICE_UNAVAILABLE")
+        return _status_dto(req["request_id"], "CONSULT" if st == "INCOMPLETE" else "REQUEST_INVALID", reason, now_iso)
+    if st != "COMPLETE": return _status_dto(req["request_id"], "CONSULT", "PRICE_UNAVAILABLE", now_iso)
+    ends = [now + timedelta(minutes=int(state["policy"]["quote_ttl_minutes"]))]
+    pay, src = result["payment_currency"], result["source_currency"]
+    dep = ctx["deposit_policy"]
+    if pay != src or (dep["type"] != "FULL_PAYMENT" and dep["minimum_per_room"]["currency"] != pay):
+        ends += [_ts(f["effective_until_exclusive"]) for f in ctx["fx"]]
+    ends += [_ts(r["sale_until_exclusive"]) for r in ctx["rates"] if r.get("sale_until_exclusive")]
+    nights = (_d(req["check_out"]) - _d(req["check_in"])).days
+    fp = hashlib.sha256(json.dumps({"req": {k: req[k] for k in sorted(req) if k != "request_id"}, "mech": MECHANISM,
+         "rates": sorted(r["id"] + ":" + str(r["revision"]) + ":" + hashlib.sha256(json.dumps(r, sort_keys=True).encode()).hexdigest()[:12] for r in ctx["rates"]),
+         "fx": sorted(f["id"] + ":" + f["source_version"] + ":" + f["rate_sell"] for f in ctx["fx"])}, sort_keys=True).encode()).hexdigest()[:24]
+    total = result["payment_total"]
+    price = {"total": {"amount": total, "currency": pay}, "unit": "STAY_TOTAL", "nights": nights,
+             "derived_average_per_night": {"amount": _avg(total, nights), "currency": pay, "is_rate": False}}   # derived, labelled, never a rate to recalculate with
+    if "supplement_charges" in result: price["supplement_charges"] = result["supplement_charges"]
+    if "displayed_nightly_amounts" in result: price["displayed_nightly_amounts"] = result["displayed_nightly_amounts"]
+    if "rounding_adjustment" in result: price["rounding_adjustment"] = {"amount": result["rounding_adjustment"], "currency": pay, "kind": "ROUNDING_ONLY"}
+    conds = []
+    for w in result.get("warnings", []):
+        if w == "GROUP_MINIMUM_NOT_MET": conds.append({"code": "GROUP_MINIMUM_NOT_MET", "message_es": "Requiere un mínimo de habitaciones para grupo."})
+        if w == "SIGNATURE_CONDITION_FOR_SALE_UNVERIFIED": conds.append({"code": "SALE_CONDITIONS_PENDING", "message_es": "Condiciones de venta por confirmar."})
+    dto = {"dto_version": DTO_VERSION, "mechanism_version": MECHANISM, "request_id": req["request_id"], "fingerprint": fp, "status": "PRICE_REFERENCE",
+           "reason": None, "message_es": "Precio de referencia. No es una reserva ni un cobro.", "computed_at": now_iso, "valid_until": _z(min(ends)),
+           "selection": {"hotel_ref": req["hotel_ref"], "provider_plan_ref": req["provider_plan_ref"], "check_in": req["check_in"], "check_out": req["check_out"],
+                         "rooms": [{"room_ref": r["room_ref"], "adults": r["adults"], "child_count": len(r.get("child_ages") or [])} for r in req["rooms"]]},
+           "price": price, "deposit_preview": None, "conditions": conds, "may_request_booking": result.get("may_request_booking", True),
+           "channel": {"mode": "ASSISTED", "status": "ACCREDITED"} if state["capabilities"]["assisted_channel_accredited"] else {"mode": "NONE", "status": "PENDING_NOT_ACCREDITED"},
+           "collection_allowed": False}
+    if state["policy"].get("deposit_preview_exposable") and "deposit_preview" in result:
+        dto["deposit_preview"] = {"amount": result["deposit_preview"], "currency": pay, "is_preview": True}
+    return dto
+
+def _d(s): return datetime.fromisoformat(s).date()
+def _avg(total, n):
+    from fractions import Fraction
+    from math import floor
+    v = Fraction(total) / n; c = floor(v * 100 + Fraction(1, 2)); return f"{c // 100}.{c % 100:02d}"
+
+def quote(req, state):
+    """Full path. Never falls back to legacy tariffs, 58.5, 50% child or min-room deposit when anything fails."""
+    rid = req.get("request_id", "UNKNOWN") if isinstance(req, dict) else "UNKNOWN"
+    now_iso = state["now"]
+    if not state.get("consumer_enabled", True): return _status_dto(rid, "CONSULT", "SERVICE_PAUSED", now_iso)
+    v = validate_client_request(req, state)
+    if not v["ok"]: return _status_dto(rid, "REQUEST_INVALID", v["code"], now_iso)
+    b = build_context(req, state)
+    if not b["ok"]: return _status_dto(rid, "REQUEST_INVALID" if b["code"] in ("SELECTION_INVALID", "PRODUCT_NOT_SUPPORTED") else "CONSULT", b["code"] if b["code"] in REASON_ES else "PRICE_UNAVAILABLE", now_iso)
+    try:
+        if state.get("rpc_fail"): raise RuntimeError("simulated RPC failure")
+        result = ENGINE.evaluate({"request": b["engine_req"], "context": b["ctx"]})
+    except Exception:
+        return _status_dto(rid, "CONSULT", "PRICE_UNAVAILABLE", now_iso)
+    return to_public_dto(result, req, b["engine_req"], b["ctx"], state)
+
+def reaccept_snapshot(snapshot, req, state):
+    """A10: an expired or changed snapshot is never reused; the server re-quotes and the caller must show the new price."""
+    if _ts(snapshot["valid_until"]) <= _ts(state["now"]): return {"action": "REQUOTE_REQUIRED", "dto": quote(req, state)}
+    d = quote(req, state)
+    if d.get("fingerprint") != snapshot.get("fingerprint"): return {"action": "REQUOTE_REQUIRED", "dto": d}
+    return {"action": "SNAPSHOT_STILL_VALID", "dto": d}

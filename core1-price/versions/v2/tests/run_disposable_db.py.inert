@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""Harness for a DISPOSABLE PostgreSQL database ONLY. NOT executed by ATLAS-TECH (no DB, no credentials available).
+Usage: C1_DISPOSABLE_DSN='postgresql://.../c1_disposable_xxx' python3 -I run_disposable_db.py CASES.json [--upgrade-legacy]
+Safety: refuses unless the database name starts with 'c1_disposable_' and the host is local or explicitly listed in
+C1_ALLOWED_HOST. Never accepts the production project. Applies 02 inside ONE transaction and always ROLLBACKs.
+Compares every expected field (not a global OK) and prints per-case diffs. The DSN is never printed."""
+import json, os, sys, copy, urllib.parse
+try:
+    import psycopg
+except ImportError:
+    sys.exit("psycopg required (pip install psycopg[binary]) - run in the test environment")
+HERE = os.path.dirname(os.path.abspath(__file__))
+dsn = os.environ.get("C1_DISPOSABLE_DSN", "")
+u = urllib.parse.urlparse(dsn)
+if not u.path.lstrip("/").startswith("c1_disposable_"):
+    sys.exit("REFUSED: database name must start with c1_disposable_")
+if u.hostname not in ("localhost", "127.0.0.1", "::1") and u.hostname != os.environ.get("C1_ALLOWED_HOST"):
+    sys.exit("REFUSED: host not local/allowed")
+sys.path.insert(0, os.path.join(HERE, ".."))
+import importlib.util
+spec = importlib.util.spec_from_loader("m2", loader=None)
+src = open(os.path.join(HERE, "..", "core1_reference_model_v2.py.inert")).read()
+m2 = type(sys)("m2"); exec(compile(src, "m2", "exec"), m2.__dict__)
+cases = json.load(open(sys.argv[1]))["cases"]
+legacy = "--upgrade-legacy" in sys.argv
+fails = 0
+with psycopg.connect(dsn) as cx:
+    cx.execute("BEGIN")
+    # 02 starts with BEGIN/COMMIT: strip them so the outer transaction can roll back
+    sql = open(os.path.join(HERE, "..", "02-core1-price-pure-v2.sql.inert")).read().replace("\nBEGIN;\n", "\n").replace("\nCOMMIT;\n", "\n")
+    cx.execute(sql)
+    for c in cases:
+        cc = m2.upgrade_legacy(c) if legacy else c
+        got = cx.execute("SELECT public.core1_price_pure_v2(%s::jsonb,%s::jsonb)", (json.dumps(cc["request"]), json.dumps(cc["context"]))).fetchone()[0]
+        model = m2.evaluate(cc)
+        d_sql = m2.compare(c["expected"], got)
+        d_model = m2.compare(model, got)
+        status = "PASS" if not d_sql and not d_model else "FAIL"
+        fails += status == "FAIL"
+        print(c["id"], status, json.dumps({"vs_expected": d_sql, "vs_model": d_model}, ensure_ascii=False) if status == "FAIL" else "")
+    cx.execute("ROLLBACK")
+print(f"SQL cases failing: {fails}/{len(cases)} (each compares expected fields AND model output); nothing was committed")
+sys.exit(1 if fails else 0)

@@ -1,0 +1,61 @@
+// Client adapter contract tests (SIMULATED server DTOs from fixtures/generated-dtos.json; no network, no SQL, no app).
+// Run through run_all.sh.inert, which copies the adapter/test to a temp dir with .mjs names. usage: node run_client_tests.mjs <dtos.json> <adapter-dir>
+import fs from "node:fs";
+import * as A from "./core1PriceAdapter.mjs";
+const fx = JSON.parse(fs.readFileSync(process.argv[2], "utf8")).dtos;
+const results = {};
+const check = (n, ok, d = "") => { results[n] = { status: ok ? "PASS" : "FAIL", detail: ok ? "" : String(d), simulated: true }; };
+const base = fx.base;
+
+// A02 client: unconfirmed ages never leave the browser; default 5 / infant 0 not a confirmation
+check("A02c_unconfirmed_ages_blocked_before_request", A.buildQuoteRequest({ requestId: "r", hotelRef: "H", providerPlanRef: "P", rooms: [{ roomRef: "R", adults: 2, childAges: [5] }], checkIn: "2027-01-01", checkOut: "2027-01-02", currency: "USD" }).error === "AGES_NOT_CONFIRMED");
+const okReq = A.buildQuoteRequest({ requestId: "r", hotelRef: "H", providerPlanRef: "P", rooms: [{ roomRef: "R", adults: 2, childAges: [5], agesConfirmed: true }], checkIn: "2027-01-01", checkOut: "2027-01-02", currency: "USD" });
+check("A02c_confirmed_ages_request_built", !!okReq.request && okReq.request.rooms[0].ages_confirmed === true);
+check("A01c_no_room_no_request_and_no_cheapest_pick", A.buildQuoteRequest({ requestId: "r", hotelRef: "H", providerPlanRef: "P", rooms: [], checkIn: "a", checkOut: "b", currency: "USD" }).error === "ROOM_NOT_SELECTED");
+// A09 client: request never carries authority fields
+const keys = Object.keys(okReq.request).concat(Object.keys(okReq.request.rooms[0]));
+check("A09c_request_has_no_authority_fields", !keys.some((k) => /total|price|rate|margin|nights|ctx|fx|deposit|flag/.test(k)), keys.join(","));
+// A06 stale response ignored
+let t = A.createTracker(); t.begin("REQ-OLD"); t.begin("REQ-NEW");
+check("A06_old_response_ignored", t.accept({ ...base, request_id: "REQ-OLD" }) === false && t.current === null);
+check("A06_latest_response_accepted", t.accept({ ...base, request_id: "REQ-NEW" }) === true && t.current.request_id === "REQ-NEW");
+// A08 change invalidates result and actions
+t.invalidate(); check("A08_input_change_clears_result", t.current === null && t.accept({ ...base, request_id: "REQ-NEW" }) === false);
+// views: price
+const v = A.toQuoteView(base);
+check("VIEW_price_from_dto_only", v.hasPrice && v.total === "200.00" && v.currency === "USD" && v.collectionAllowed === false && v.averageIsRate === false);
+check("VIEW_no_default_cancellation_policy", v.cancellationPolicy === null);
+// hooks
+const rp = A.toRoomPricingLegacyShape(base, "R-A");
+check("HOOK_room_pricing_maps_explicitly_no_other_currency_computed", rp.success && rp.total_usd === "200.00" && rp.total_dop === null && rp.price_per_night_is_average === true);
+const rpd = A.toRoomPricingLegacyShape(fx.A03_fx_ok_dop, "R-A");
+check("HOOK_room_pricing_dop_only", rpd.total_dop === "12400.00" && rpd.total_usd === null);
+// A05 error => no price, no fallback, previous price not kept
+for (const k of ["A05_rpc_fail", "A03_fx_missing", "A04_net", "A04_taxes_unknown", "A12_paused", "A01_room_other_hotel", "A02_ages_unconfirmed", "A11_core2_room"]) {
+  const q = A.toQuoteView(fx[k]); const h = A.toHotelPricingView(fx[k]); const r = A.toRoomPricingLegacyShape(fx[k], "R");
+  const e = A.toUnifiedEngineView(fx[k]);
+  check("A05_" + k + "_views_have_no_price_and_no_fallback", !q.hasPrice && h.priceRange === null && r.success === false && r.price_per_night === null && e.ratePlans.length === 0 && e.mocksIncluded === false, JSON.stringify({ q, h, r }));
+}
+// A07 comparator: never 0, never inferred cancellation
+const ce = A.toComparatorEntry({ hotel: "H" }, fx.A05_rpc_fail);
+check("A07_comparator_without_price_is_null_not_zero", ce.price === null && ce.snapshot === null && ce.cancellation === null);
+const cp = A.toComparatorEntry({ hotel: "H" }, base);
+check("A07_comparator_keeps_snapshot_unit_validity", cp.price.amount === "200.00" && cp.price.unit === "STAY_TOTAL" && !!cp.snapshot.valid_until && !!cp.snapshot.fingerprint && cp.cancellation === null);
+// A10 expiry
+check("A10_comparator_expired_snapshot_detected", A.comparatorEntryExpired(cp, "2026-10-23T12:20:00Z") === true && A.comparatorEntryExpired(cp, "2026-10-23T12:05:00Z") === false);
+// listing / card
+check("CARD_no_selection_no_governed_reference_is_consult", A.toCardView({ governed: false, from_amount: "50" }, null).kind === "CONSULT");
+check("CARD_governed_reference_is_labelled_not_purchasable", (() => { const c = A.toCardView({ governed: true, from_amount: "90.00", currency: "USD", unit_label: "PER_PERSON_NIGHT_FROM" }, null); return c.kind === "CATALOG_REFERENCE" && c.purchasable === false; })());
+check("CARD_quote_overrides_catalog", A.toCardView({ governed: true, from_amount: "90.00", currency: "USD", unit_label: "x" }, base).kind === "QUOTE");
+// admin
+check("ADMIN_same_view_no_override", A.toAdminQuotationView(base).adminOverride === false && A.toAdminQuotationView(base).total === "200.00");
+// supplements remain charges
+check("VIEW_supplement_charge_kept_separate_from_rounding", (() => { const s = A.toQuoteView(fx.SUP_charge); return s.total === "220.00" && s.supplementCharges.length === 1 && s.roundingAdjustment === null; })());
+// lint: the adapter must not contain legacy computation / defaults (A-lint)
+const code = fs.readFileSync(new URL("./core1PriceAdapter.mjs", import.meta.url), "utf8").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+const banned = [/58\.5/, /\b0\.5\b/, /free_7d/, /cancelaci[oó]n gratuita/i, /\|\|\s*0\b/, /base_price/, /min_price/, /MOCK_/, /service_role/, /parseFloat|Number\(/, /\*\s*[0-9]/];
+check("LINT_adapter_has_no_legacy_computation_or_defaults", banned.every((r) => !r.test(code)), banned.filter((r) => r.test(code)).join(" "));
+const bad = Object.entries(results).filter(([, x]) => x.status === "FAIL").map(([k]) => k);
+for (const [k, x] of Object.entries(results)) console.log(k, x.status, x.detail);
+console.log(`CLIENT TESTS (simulated DTOs): ${Object.keys(results).length - bad.length}/${Object.keys(results).length} PASS; failing=${JSON.stringify(bad)}`);
+process.exit(bad.length ? 1 : 0);

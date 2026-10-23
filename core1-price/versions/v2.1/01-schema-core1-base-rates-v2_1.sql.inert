@@ -1,0 +1,144 @@
+-- INERT / NOT APPLIED / NO DDL EXECUTED. ATLAS-TECH (AP-03) · 2026-10-23 · v2.1 over v2 (OBS-203 V2-T2, V2-T3, V2-T5, V2-T6). v1 and v2 kept intact.
+-- No BEGIN/COMMIT: transaction control belongs to the operator/harness.
+-- Candidate direction only (Curator: Option B closed tables as candidate; no DDL authorised). v1 file kept in ../core1-price-v1.
+-- Server authority: no client payload is ever stored or read as a rate. Only service_role writes, via a future server function.
+CREATE TABLE public.core1_source_documents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_code text NOT NULL, form_code text, revision text NOT NULL,
+  sha256 text NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$'),
+  size_bytes bigint NOT NULL CHECK (size_bytes > 0),
+  signature_status text NOT NULL DEFAULT 'UNKNOWN' CHECK (signature_status IN ('UNKNOWN','UNSIGNED','SIGNED')),
+  signature_required_for_reference boolean NOT NULL DEFAULT false,
+  signature_required_for_sale boolean NOT NULL DEFAULT true,
+  captured_at timestamptz NOT NULL DEFAULT now(),
+  notes text,  -- no names, e-mails, phones, signatures
+  UNIQUE (contract_code, revision, sha256)
+);
+
+-- Explicit map room (legacy public.rooms) <-> hotel <-> provider <-> plan. A rate cannot reference a room of another hotel.
+CREATE TABLE public.core1_room_map (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id uuid NOT NULL REFERENCES public.hotels_master(id) ON DELETE RESTRICT,
+  provider_id text NOT NULL,
+  plan text,
+  room_id uuid NOT NULL REFERENCES public.rooms(id) ON DELETE RESTRICT,
+  source_room_label text NOT NULL,
+  mapping_status text NOT NULL DEFAULT 'UNKNOWN' CHECK (mapping_status IN ('UNKNOWN','CANDIDATE','CONFIRMED')),
+  confirmed_by_ref text, confirmed_evidence_ref text,
+  max_adults int CHECK (max_adults IS NULL OR max_adults >= 1),
+  max_children int CHECK (max_children IS NULL OR max_children >= 0),
+  CHECK (mapping_status <> 'CONFIRMED' OR (confirmed_by_ref IS NOT NULL AND confirmed_evidence_ref IS NOT NULL)),
+  UNIQUE (hotel_id, provider_id, plan, room_id),
+  UNIQUE (id, hotel_id, provider_id)
+);
+
+-- V2-T2: independent FKs (hotel_id -> hotels_master, room_id -> rooms) do NOT prove that rooms.hotel_id = map.hotel_id.
+-- Effective validator: trigger that reads public.rooms (read-only; rooms is NOT modified). It runs on every INSERT/UPDATE of the map.
+-- Limit (honest): public.rooms is writable by anon today (OBS-AT), so a room could be re-pointed AFTER mapping. Therefore the
+-- server-side context builder MUST re-run core1_room_map_mismatches_v2_1() at serving time and fail closed on any row.
+CREATE OR REPLACE FUNCTION public.core1_room_map_check_v2_1() RETURNS trigger
+LANGUAGE plpgsql SET search_path = pg_catalog, public AS $fn$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.rooms rm WHERE rm.id = NEW.room_id AND rm.hotel_id = NEW.hotel_id) THEN
+    RAISE EXCEPTION 'CORE1_ROOM_HOTEL_MISMATCH' USING DETAIL = 'room does not belong to the mapped hotel';
+  END IF;
+  RETURN NEW;
+END $fn$;
+CREATE TRIGGER core1_room_map_check BEFORE INSERT OR UPDATE OF hotel_id, room_id ON public.core1_room_map
+  FOR EACH ROW EXECUTE FUNCTION public.core1_room_map_check_v2_1();
+
+CREATE OR REPLACE FUNCTION public.core1_room_map_mismatches_v2_1() RETURNS TABLE (room_map_id uuid, hotel_id uuid, room_id uuid)
+LANGUAGE sql STABLE SET search_path = pg_catalog, public AS $fn$
+  SELECT m.id, m.hotel_id, m.room_id FROM public.core1_room_map m
+   WHERE NOT EXISTS (SELECT 1 FROM public.rooms rm WHERE rm.id = m.room_id AND rm.hotel_id = m.hotel_id)
+$fn$;
+
+CREATE TABLE public.core1_base_rates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  revision integer NOT NULL DEFAULT 1 CHECK (revision >= 1),
+  supersedes_id uuid REFERENCES public.core1_base_rates(id) ON DELETE RESTRICT,
+  hotel_id uuid NOT NULL,
+  provider_id text NOT NULL,
+  room_map_id uuid NOT NULL,
+  plan text,
+  FOREIGN KEY (room_map_id, hotel_id, provider_id) REFERENCES public.core1_room_map(id, hotel_id, provider_id) ON DELETE RESTRICT,
+  stay_from date NOT NULL, stay_until_exclusive date NOT NULL,
+  source_range_text text NOT NULL, source_range_end_inclusive boolean NOT NULL,
+  CHECK (stay_until_exclusive > stay_from),
+  unit text NOT NULL CHECK (unit IN ('PERSON_NIGHT','ROOM_NIGHT','PERSON_STAY','ROOM_STAY')),
+  currency text NOT NULL CHECK (currency IN ('USD','DOP')),
+  adult_pricing jsonb, amount numeric CHECK (amount >= 0),
+  child_pricing jsonb, mandatory_supplements jsonb NOT NULL DEFAULT '[]'::jsonb,
+  extra_pax_literal jsonb,  -- literal source figure, never read as triple (triple blocked, UNK)
+  max_adults int CHECK (max_adults IS NULL OR max_adults >= 1),
+  max_children int CHECK (max_children IS NULL OR max_children >= 0),
+  occupancy_included jsonb,
+  -- net vs client basis is a first-class column (CS-R6): taxes_included NULL = UNK
+  price_basis text NOT NULL DEFAULT 'UNKNOWN' CHECK (price_basis IN ('UNKNOWN','NET_PROVIDER','CLIENT_FINAL')),
+  taxes_included boolean,
+  sale_until_exclusive timestamptz,
+  property_timezone text NOT NULL DEFAULT 'America/Santo_Domingo',
+  group_min_rooms int CHECK (group_min_rooms IS NULL OR group_min_rooms >= 1),
+  cutoff_policy text,
+  provenance_kind text NOT NULL,
+  -- verification missing/unknown never prices: default is NOT verified (CS-R3)
+  verification_status text NOT NULL DEFAULT 'PENDING_REVIEW' CHECK (verification_status IN ('PENDING_REVIEW','VERIFIED','REJECTED')),
+  captured_by text, captured_at timestamptz NOT NULL DEFAULT now(),
+  reviewed_by text, reviewed_at timestamptz, review_evidence_ref text,
+  is_placeholder boolean NOT NULL DEFAULT false,   -- exported to engine JSON as "placeholder" (explicit mapping)
+  source_document_id uuid NOT NULL REFERENCES public.core1_source_documents(id) ON DELETE RESTRICT,
+  source_ref text NOT NULL,
+  is_active boolean NOT NULL DEFAULT false,
+  activated_by text, activated_at timestamptz, activation_evidence_ref text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK ((unit IN ('PERSON_NIGHT','PERSON_STAY') AND adult_pricing IS NOT NULL) OR (unit IN ('ROOM_NIGHT','ROOM_STAY') AND amount IS NOT NULL)),
+  CHECK (verification_status <> 'VERIFIED' OR (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND review_evidence_ref IS NOT NULL)),
+  -- is_active = usable for REFERENCE calculation (verified, not placeholder, activation record). It does NOT mean sellable:
+  -- sellable = the engine returns COMPLETE, which additionally needs price_basis='CLIENT_FINAL' and taxes_included=true.
+  -- A NET/UNKNOWN-basis rate may be active and then yields SOURCE_SUBTOTAL_ONLY (internal), never a client price.
+  CHECK (NOT is_active OR (verification_status = 'VERIFIED' AND NOT is_placeholder AND activated_by IS NOT NULL AND activated_at IS NOT NULL AND activation_evidence_ref IS NOT NULL)),
+  UNIQUE (room_map_id, stay_from, stay_until_exclusive, source_document_id, revision)
+);
+
+-- No overlapping ACTIVE ranges for the same room map (engine would otherwise fail closed with RATE_AMBIGUOUS).
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+ALTER TABLE public.core1_base_rates ADD CONSTRAINT core1_no_active_overlap
+  EXCLUDE USING gist (room_map_id WITH =, daterange(stay_from, stay_until_exclusive, '[)') WITH &&) WHERE (is_active);
+
+-- FX (V2-T5): NOT a rate authority. The value is read from the governed exchange rate source (public.exchange_rates or another
+-- accredited source) by the server-side context builder; this table only records the APPROVAL of one governed rate version for a
+-- bounded window. rate_observed is an audit snapshot to detect drift (builder must refuse if the governed value differs); it is never
+-- the source. exchange_rate_ref/source_version are the canonical identity. FK to exchange_rates is NOT declared because its PK type is
+-- UNK in this repository evidence; confirm in the disposable stub before adding it.
+CREATE TABLE public.core1_fx_approvals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pair text NOT NULL CHECK (pair = 'USD_DOP'),
+  direction text NOT NULL CHECK (direction = 'DOP_PER_USD'),
+  exchange_rate_ref text NOT NULL,       -- id of the governed row (opaque text until PK type confirmed)
+  source_version text NOT NULL,          -- version/hash of that governed row at approval time
+  rate_observed numeric NOT NULL CHECK (rate_observed > 0),   -- audit snapshot only; NOT authority
+  effective_from timestamptz NOT NULL, effective_until_exclusive timestamptz NOT NULL,
+  CHECK (effective_until_exclusive > effective_from AND effective_until_exclusive - effective_from <= interval '24 hours'),  -- FX-POLICY-v1 = engine constant 24h
+  approved_by_ref text NOT NULL, source_ref text NOT NULL,
+  active boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(),
+  EXCLUDE USING gist (tstzrange(effective_from, effective_until_exclusive, '[)') WITH &&) WHERE (active)
+);
+
+CREATE INDEX core1_base_rates_lookup_idx ON public.core1_base_rates (hotel_id, provider_id, room_map_id, stay_from, stay_until_exclusive) WHERE is_active;
+
+-- Born locked. Explicit ACL for ALL privileges (no reliance on defaults, no inferred default privileges).
+ALTER TABLE public.core1_source_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.core1_room_map ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.core1_base_rates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.core1_fx_approvals ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.core1_source_documents, public.core1_room_map, public.core1_base_rates, public.core1_fx_approvals FROM PUBLIC, anon, authenticated;
+REVOKE DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.core1_source_documents, public.core1_room_map, public.core1_base_rates, public.core1_fx_approvals FROM service_role;
+GRANT SELECT, INSERT, UPDATE ON public.core1_source_documents, public.core1_room_map, public.core1_base_rates, public.core1_fx_approvals TO service_role;
+REVOKE ALL ON FUNCTION public.core1_room_map_check_v2_1() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_room_map_mismatches_v2_1() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.core1_room_map_mismatches_v2_1() TO service_role;
+-- Dependency to confirm in the disposable stub: service_role needs SELECT on public.rooms for the trigger (Supabase service_role bypasses RLS).
+-- Corrections create a new revision (supersedes_id). Net values never leave through a public DTO.
+-- Why four tables (V2-T6): source_documents (1 file hash/signature state), room_map (separates room identity from rates, enables the
+-- hotel check), base_rates (price terms), fx_approvals (approval of a governed rate for a window). v1 had two; the two added tables
+-- close findings F-ID (room/hotel) and T-FX-VENTANA. The set remains a CANDIDATE until relations/authority/consumption are clarified.

@@ -1,0 +1,17 @@
+{
+ "schema_version": "CORE1-CONSUMER-LEGACY-RETIREMENT-v1", "status": "CANDIDATE_NOT_APPLIED", "basis": "CORE1-PRICE-CONSUMER-TRACE-AND-CUTOVER-PLAN-v1-20261023 (Curator read of Portal 44ddb149, Admin cd629b57). Lines are the Curator's; not re-read by ATLAS-TECH.",
+ "rule": "Retire consumption in a joint app changeset; never delete data by amount and never assume personal-service rules. Nothing here is applied.",
+ "items": [
+  {"id": "L1", "where": "Portal src/components/HotelBookingForm.jsx L226", "legacy": "literal FX 58.5", "replacement": "server FX approval identity; no browser FX"},
+  {"id": "L2", "where": "HotelBookingForm.jsx L229-248", "legacy": "reads public.rates with select*, takes first room rate if no range matches, no activation/date validation", "replacement": "DTO only; no rates query from browser"},
+  {"id": "L3", "where": "HotelBookingForm.jsx L269-273", "legacy": "child 50% alternative and total computed in client", "replacement": "child price only from DTO (age bands, confirmed ages)"},
+  {"id": "L4", "where": "HotelSearchBar.jsx L155/L248", "legacy": "child age default 5; RPC sends count only", "replacement": "ages_confirmed required; ages travel"},
+  {"id": "L5", "where": "UnifiedBookingEngine.jsx L264-285", "legacy": "price/base_price/0 mapping; default cancelPolicy free_7d/deadline 7; MOCK_TBO_RATEPLANS mixed when room list empty", "replacement": "toUnifiedEngineView; cancellationPolicy null unless a future contract supplies it; mocks never mixed into priced results"},
+  {"id": "L6", "where": "useRoomPricing.js L34", "legacy": "expects success/room_id/total_usd/price_per_night; infant_rate=0 by omission", "replacement": "toRoomPricingLegacyShape (explicit mapping, average labelled)"},
+  {"id": "L7", "where": "useHotelPricing.js L41, L88-95", "legacy": "on failure uses hotel.base_price/min_price/0 to build priceRange", "replacement": "toHotelPricingView: null + reason"},
+  {"id": "L8", "where": "Admin src/features/bookings/source-horizons/services/bookingService.js L28", "legacy": "getQuotation with 8 legacy keys (rate 0, provider DOP false)", "replacement": "toAdminQuotationView via the same server"},
+  {"id": "L9", "where": "DestinationsPage L109-120, L159-168", "legacy": "minimum rooms.base_price; mixes grouped offer with precio_base", "replacement": "toCardView: governed catalog reference or Consultar"},
+  {"id": "L10", "where": "HotelCard L38-48, L182-189", "legacy": "price source cascade; Number(minPrice)||0 to comparator", "replacement": "toCardView + toComparatorEntry (snapshot, unit, validity)"},
+  {"id": "L11", "where": "QuoteCompareContext L126-139", "legacy": "rebuilds price/base_price/0, USD and free-cancellation defaults", "replacement": "toComparatorEntry: price null, cancellation null"}
+ ]
+}

@@ -1,0 +1,13 @@
+#!/bin/sh
+# Offline, simulated. Copies inert files to a temp dir with runnable extensions. No network, no DB, no app. usage: sh run_all.sh.inert
+set -e
+D="$(cd "$(dirname "$0")/.." && pwd)"; T="$(mktemp -d)"
+cp "$D/client/core1PriceAdapter.mjs.inert" "$T/core1PriceAdapter.mjs"
+cp "$D/tests/run_client_tests.mjs.inert" "$T/run_client_tests.mjs"
+python3 -I -c "
+import os,sys
+D=sys.argv[1]
+src=open(D+'/tests/run_server_scenarios.py.inert').read().replace('HERE = os.path.dirname(os.path.abspath(__file__))','HERE = D+\"/tests\"')
+exec(compile(src,'scenarios','exec'),{'D':D,'os':os,'sys':sys,'__name__':'__main__'})" "$D" | tail -1
+node "$T/run_client_tests.mjs" "$D/fixtures/generated-dtos.json" | tail -1
+rm -rf "$T"

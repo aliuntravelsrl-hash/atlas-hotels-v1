@@ -1,0 +1,414 @@
+-- INERT / NOT APPLIED / NOT EXECUTED AGAINST ANY DATABASE.
+-- ATLAS-TECH (AP-03) · 2026-10-23 · v2.1 over v2 (OBS-203 V2-T3, V2-T4, V2-T5). v1 and v2 are kept intact.
+-- No BEGIN/COMMIT here: transaction control belongs to the operator/harness (all-or-nothing + final ROLLBACK in test).
+-- Status: PROPOSED. Parsed offline only (pglast). Parity with core1_reference_model_v2_1.py.inert is a design goal, not a proof.
+-- Rules: STABLE price function; NO SECURITY DEFINER; reads no table; writes nothing; no secrets; every helper signature has
+-- explicit ACL (no reliance on PostgreSQL default PUBLIC EXECUTE, no inferred default privileges).
+-- FX cap is a constant (FX-POLICY-v1 = 24h, same as the DDL CHECK); a context policy may only tighten it.
+
+CREATE OR REPLACE FUNCTION public.core1_stop_v2(p_code text, p_status text DEFAULT 'INCOMPLETE')
+RETURNS void LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+BEGIN RAISE EXCEPTION 'C1STOP' USING DETAIL = p_status || '|' || p_code; END $fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_num_v2(p jsonb)
+RETURNS numeric LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+DECLARE s text;
+BEGIN
+  IF p IS NULL OR jsonb_typeof(p) = 'null' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  s := p #>> '{}';
+  IF jsonb_typeof(p) = 'number' THEN
+    IF s !~ '^[0-9]+$' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  ELSIF jsonb_typeof(p) = 'string' THEN
+    IF s !~ '^[0-9]+(\.[0-9]+)?$' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  ELSE PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  RETURN s::numeric;
+END $fn$;
+
+-- child age: JSON number only, non-negative, decimals allowed (11.5), text rejected
+CREATE OR REPLACE FUNCTION public.core1_age_v2(p jsonb)
+RETURNS numeric LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+DECLARE s text;
+BEGIN
+  IF p IS NULL OR jsonb_typeof(p) IS DISTINCT FROM 'number' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  s := p #>> '{}';
+  IF s !~ '^[0-9]+(\.[0-9]+)?$' OR s::numeric >= 18 THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  RETURN s::numeric;
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_int_v2(p jsonb, p_min int DEFAULT 0)
+RETURNS int LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+DECLARE s text;
+BEGIN
+  IF p IS NULL OR jsonb_typeof(p) IS DISTINCT FROM 'number' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  s := p #>> '{}';
+  IF s !~ '^[0-9]{1,6}$' OR s::int < p_min THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  RETURN s::int;
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_date_v2(p jsonb)
+RETURNS date LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+DECLARE s text; d date;
+BEGIN
+  IF p IS NULL OR jsonb_typeof(p) IS DISTINCT FROM 'string' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  s := p #>> '{}';
+  IF s !~ '^\d{4}-\d{2}-\d{2}$' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  BEGIN d := s::date; EXCEPTION WHEN others THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END;
+  RETURN d;
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_ts_v2(p jsonb)
+RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+DECLARE s text; t timestamptz;
+BEGIN
+  IF p IS NULL OR jsonb_typeof(p) IS DISTINCT FROM 'string' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  s := p #>> '{}';
+  IF s !~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  BEGIN t := s::timestamptz; EXCEPTION WHEN others THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END;
+  RETURN t;
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_money_v2(p numeric) RETURNS text
+LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, public AS
+$$ SELECT to_char(round(p, 2), 'FM999999999990.00') $$;
+
+-- Mirrors validate() rate loop of the model, same order, so an invalid unused rate also invalidates the context.
+CREATE OR REPLACE FUNCTION public.core1_validate_rate_v2(r jsonb)
+RETURNS void LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+DECLARE k text; ap jsonb; b jsonb; v jsonb;
+BEGIN
+  IF jsonb_typeof(r) IS DISTINCT FROM 'object' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  IF coalesce(r->>'unit','') = '' THEN PERFORM public.core1_stop_v2('UNIT_UNDEFINED'); END IF;
+  FOREACH k IN ARRAY ARRAY['id','revision','hotel_id','provider_id','room_type_id','stay_from','stay_until_exclusive','currency'] LOOP
+    IF coalesce(r->>k,'') = '' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  END LOOP;
+  IF jsonb_typeof(r->'placeholder') IS DISTINCT FROM 'boolean' OR jsonb_typeof(r->'is_active') IS DISTINCT FROM 'boolean' THEN
+    PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  PERFORM public.core1_date_v2(r->'stay_from'); PERFORM public.core1_date_v2(r->'stay_until_exclusive');
+  IF r->>'unit' NOT IN ('PERSON_NIGHT','ROOM_NIGHT','PERSON_STAY','ROOM_STAY') OR r->>'currency' NOT IN ('USD','DOP') THEN
+    PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  IF r->'amount' IS NOT NULL AND jsonb_typeof(r->'amount') <> 'null' THEN PERFORM public.core1_num_v2(r->'amount'); END IF;
+  ap := r->'adult_pricing';
+  IF ap IS NOT NULL AND jsonb_typeof(ap) = 'object' AND ap <> '{}'::jsonb THEN
+    IF ap->>'mode' = 'TIER_PER_ADULT' THEN
+      IF ap->'tier_by_adult_count' IS NOT NULL AND jsonb_typeof(ap->'tier_by_adult_count') = 'object' THEN
+        FOR v IN SELECT value FROM jsonb_each(ap->'tier_by_adult_count') LOOP PERFORM public.core1_num_v2(v); END LOOP;
+      END IF;
+    ELSIF ap->>'mode' = 'BASE_PLUS_EXTRA' THEN
+      PERFORM public.core1_num_v2(ap->'base_amount_per_adult'); PERFORM public.core1_num_v2(ap->'extra_adult_amount');
+      PERFORM public.core1_int_v2(ap->'base_adults', 1);
+    ELSE PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  END IF;
+  IF jsonb_typeof(r->'child_pricing'->'bands') = 'array' THEN
+    FOR b IN SELECT value FROM jsonb_array_elements(r->'child_pricing'->'bands') LOOP
+      PERFORM public.core1_num_v2(b->'amount'); PERFORM public.core1_num_v2(b->'from_inclusive'); PERFORM public.core1_num_v2(b->'to_exclusive');
+      IF public.core1_num_v2(b->'from_inclusive') >= public.core1_num_v2(b->'to_exclusive') THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+      IF b->'min_adults' IS NOT NULL AND jsonb_typeof(b->'min_adults') <> 'null' THEN PERFORM public.core1_int_v2(b->'min_adults', 0); END IF;
+    END LOOP;
+  END IF;
+  IF r->'sale_until_exclusive' IS NOT NULL AND jsonb_typeof(r->'sale_until_exclusive') <> 'null' THEN PERFORM public.core1_ts_v2(r->'sale_until_exclusive'); END IF;
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_adult_amount_v2(p_ap jsonb, p_adults int, p_max int)
+RETURNS numeric LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+DECLARE v_base int; v_t jsonb;
+BEGIN
+  IF p_ap IS NULL OR p_max IS NULL OR p_adults > p_max OR p_adults < 1 THEN PERFORM public.core1_stop_v2('OCCUPANCY_PRICE_UNDEFINED'); END IF;
+  IF p_ap->>'mode' = 'TIER_PER_ADULT' THEN
+    v_t := p_ap->'tier_by_adult_count'->(p_adults::text);
+    IF v_t IS NULL THEN PERFORM public.core1_stop_v2('OCCUPANCY_PRICE_UNDEFINED'); END IF;
+    RETURN public.core1_num_v2(v_t) * p_adults;
+  ELSIF p_ap->>'mode' = 'BASE_PLUS_EXTRA' THEN
+    v_base := public.core1_int_v2(p_ap->'base_adults', 1);
+    RETURN public.core1_num_v2(p_ap->'base_amount_per_adult') * least(p_adults, v_base)
+         + public.core1_num_v2(p_ap->'extra_adult_amount') * greatest(0, p_adults - v_base);
+  END IF;
+  PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID');
+  RETURN NULL;
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_child_amount_v2(p_rate jsonb, p_adults int, p_ages jsonb)
+RETURNS numeric LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public AS $fn$
+DECLARE v_bands jsonb; v_total numeric := 0; a jsonb; b jsonb; v_age numeric; v_hit int; v_amt numeric; i int; j int; n int;
+BEGIN
+  IF p_ages IS NULL OR jsonb_array_length(p_ages) = 0 THEN RETURN 0; END IF;
+  v_bands := p_rate->'child_pricing'->'bands';
+  IF jsonb_typeof(v_bands) IS DISTINCT FROM 'array' OR jsonb_array_length(v_bands) = 0 THEN PERFORM public.core1_stop_v2('AGE_PRICE_UNDEFINED'); END IF;
+  n := jsonb_array_length(v_bands);
+  FOR i IN 0..n-1 LOOP
+    FOR j IN i+1..n-1 LOOP
+      IF public.core1_num_v2(v_bands->i->'from_inclusive') < public.core1_num_v2(v_bands->j->'to_exclusive')
+         AND public.core1_num_v2(v_bands->j->'from_inclusive') < public.core1_num_v2(v_bands->i->'to_exclusive') THEN
+        PERFORM public.core1_stop_v2('CHILD_BANDS_AMBIGUOUS');
+      END IF;
+    END LOOP;
+  END LOOP;
+  FOR a IN SELECT value FROM jsonb_array_elements(p_ages) LOOP
+    v_age := public.core1_age_v2(a); v_hit := 0; v_amt := 0;
+    FOR b IN SELECT value FROM jsonb_array_elements(v_bands) LOOP
+      IF public.core1_num_v2(b->'from_inclusive') <= v_age AND v_age < public.core1_num_v2(b->'to_exclusive') THEN
+        v_hit := v_hit + 1;
+        IF b->'min_adults' IS NOT NULL AND jsonb_typeof(b->'min_adults') <> 'null' AND p_adults < public.core1_int_v2(b->'min_adults', 0) THEN
+          PERFORM public.core1_stop_v2('AGE_PRICE_UNDEFINED'); END IF;
+        v_amt := public.core1_num_v2(b->'amount');
+      END IF;
+    END LOOP;
+    IF v_hit <> 1 THEN PERFORM public.core1_stop_v2('AGE_PRICE_UNDEFINED'); END IF;
+    v_total := v_total + v_amt;
+  END LOOP;
+  RETURN v_total;
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.core1_price_pure_v2_1(p_req jsonb, p_ctx jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  c_fx_max_hours constant int := 24;   -- FX-POLICY-v1, equals DDL CHECK in core1_fx_approvals
+  v_out jsonb; v_cur text; v_detail text; v_status text; v_code text; v_partial numeric;
+  v_ci date; v_co date; v_now timestamptz; v_rooms jsonb; v_room jsonb; v_rates jsonb; r jsonb; s jsonb; f jsonb; g jsonb;
+  v_src_ccy text; v_exact numeric := 0; v_rtotal numeric; v_amt numeric; v_n date; v_cnt int; v_ridx int := 0;
+  v_adults int; v_ages jsonb; v_mxa int; v_mxc int; v_used jsonb; v_exposable boolean := true; v_warn jsonb := '[]'::jsonb; v_may boolean := true;
+  v_seen jsonb; v_key text; v_sig text; v_sd date; v_pay text; v_dep jsonb; v_needs_fx boolean; v_fx numeric; v_inwin int; v_future boolean;
+  v_max_h int; v_src_total numeric; v_pay_total numeric; v_dp numeric; v_pct numeric; v_min numeric; v_stay_rate jsonb;
+  v_all_night boolean := true; v_nightly jsonb := '{}'::jsonb; v_shown_sum numeric := 0; v_charges jsonb := '[]'::jsonb; v_sup_shown numeric := 0;
+  v_adj numeric; v_mh jsonb;
+BEGIN
+  v_cur := CASE WHEN jsonb_typeof(p_ctx->'rates') = 'array' THEN p_ctx->'rates'->0->>'currency' END;
+  IF jsonb_typeof(p_req) IS DISTINCT FROM 'object' OR jsonb_typeof(p_ctx) IS DISTINCT FROM 'object' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  IF (p_ctx->>'schema_version') IS DISTINCT FROM 'CORE1-PRICE-CONTEXT-v2' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  v_ci := public.core1_date_v2(p_req->'check_in'); v_co := public.core1_date_v2(p_req->'check_out');
+  v_now := public.core1_ts_v2(p_req->'server_now');
+  IF (p_req->>'payment_currency') IS NULL OR (p_req->>'payment_currency') NOT IN ('USD','DOP') THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  IF coalesce(p_req->>'hotel_id','') = '' OR coalesce(p_req->>'provider_id','') = '' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  v_rooms := p_req->'rooms';
+  IF jsonb_typeof(v_rooms) IS DISTINCT FROM 'array' OR jsonb_array_length(v_rooms) NOT BETWEEN 1 AND 20 THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  FOR v_room IN SELECT value FROM jsonb_array_elements(v_rooms) LOOP
+    IF jsonb_typeof(v_room) IS DISTINCT FROM 'object' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+    IF jsonb_typeof(v_room->'adults') IS DISTINCT FROM 'number' OR (v_room->>'adults') !~ '^[0-9]{1,2}$' OR (v_room->>'adults')::int NOT BETWEEN 1 AND 12 THEN
+      PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+    IF coalesce(v_room->>'room_type_id','') = '' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+    v_ages := coalesce(v_room->'child_ages','[]'::jsonb);
+    IF jsonb_typeof(v_ages) IS DISTINCT FROM 'array' OR jsonb_array_length(v_ages) > 12 THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+    FOR g IN SELECT value FROM jsonb_array_elements(v_ages) LOOP PERFORM public.core1_age_v2(g); END LOOP;
+  END LOOP;
+  IF jsonb_typeof(p_ctx->'accepted_payment_currencies') IS DISTINCT FROM 'array'
+     OR EXISTS (SELECT 1 FROM jsonb_array_elements(p_ctx->'accepted_payment_currencies') x WHERE x IS DISTINCT FROM '"USD"'::jsonb AND x IS DISTINCT FROM '"DOP"'::jsonb) THEN
+    PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  v_dep := p_ctx->'deposit_policy';
+  IF jsonb_typeof(v_dep) IS DISTINCT FROM 'object' OR (v_dep->>'type') IS NULL OR (v_dep->>'type') NOT IN ('FULL_PAYMENT','DEFAULT_MAX_PERCENT_OR_ROOM_MIN') THEN
+    PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  IF v_dep->>'type' <> 'FULL_PAYMENT' THEN
+    v_pct := public.core1_num_v2(v_dep->'percentage');
+    IF v_pct <= 0 OR v_pct > 1 THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+    PERFORM public.core1_num_v2(v_dep->'minimum_per_room'->'amount');
+    IF (v_dep->'minimum_per_room'->>'currency') IS NULL OR (v_dep->'minimum_per_room'->>'currency') NOT IN ('USD','DOP') THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  END IF;
+  IF jsonb_typeof(p_ctx->'rates') IS DISTINCT FROM 'array' THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+  FOR r IN SELECT value FROM jsonb_array_elements(p_ctx->'rates') LOOP PERFORM public.core1_validate_rate_v2(r); END LOOP;
+  IF v_co <= v_ci THEN PERFORM public.core1_stop_v2('STAY_INVALID','INVALID'); END IF;
+
+  FOR v_room IN SELECT value FROM jsonb_array_elements(v_rooms) LOOP
+    SELECT coalesce(jsonb_agg(x), '[]'::jsonb) INTO v_rates FROM jsonb_array_elements(p_ctx->'rates') x
+     WHERE x->>'hotel_id' = p_req->>'hotel_id' AND x->>'provider_id' = p_req->>'provider_id'
+       AND x->>'room_type_id' = v_room->>'room_type_id'
+       AND (coalesce(p_req->>'plan','') = '' OR x->>'plan' IS NULL OR x->>'plan' = p_req->>'plan');
+    IF jsonb_array_length(v_rates) = 0 THEN PERFORM public.core1_stop_v2('ROOM_MAPPING_UNRESOLVED'); END IF;
+    v_adults := (v_room->>'adults')::int; v_ages := coalesce(v_room->'child_ages','[]'::jsonb);
+    v_rtotal := 0; v_used := '{}'::jsonb; v_n := v_ci;
+    WHILE v_n < v_co LOOP
+      SELECT count(*) INTO v_cnt FROM jsonb_array_elements(v_rates) x WHERE (x->>'stay_from')::date <= v_n AND v_n < (x->>'stay_until_exclusive')::date;
+      IF v_cnt = 0 THEN PERFORM public.core1_stop_v2('RATE_COVERAGE_GAP'); END IF;
+      IF v_cnt > 1 THEN PERFORM public.core1_stop_v2('RATE_AMBIGUOUS'); END IF;
+      SELECT x INTO r FROM jsonb_array_elements(v_rates) x WHERE (x->>'stay_from')::date <= v_n AND v_n < (x->>'stay_until_exclusive')::date;
+      IF (r->>'placeholder')::boolean THEN PERFORM public.core1_stop_v2('PLACEHOLDER_RATE'); END IF;
+      IF NOT (r->>'is_active')::boolean THEN PERFORM public.core1_stop_v2('RATE_NOT_ACTIVE'); END IF;
+      IF r->>'verification_status' IS NULL THEN PERFORM public.core1_stop_v2('VERIFICATION_MISSING'); END IF;
+      IF r->>'verification_status' <> 'VERIFIED' OR coalesce(r->>'review_evidence_ref','') = '' OR coalesce(r->>'source_document_id','') = '' THEN
+        PERFORM public.core1_stop_v2('RATE_ORIGIN_NOT_VERIFIED'); END IF;
+      IF r->'sale_until_exclusive' IS NOT NULL AND jsonb_typeof(r->'sale_until_exclusive') <> 'null' AND v_now >= public.core1_ts_v2(r->'sale_until_exclusive') THEN
+        PERFORM public.core1_stop_v2('SALE_WINDOW_CLOSED'); END IF;
+      IF v_src_ccy IS NULL THEN v_src_ccy := r->>'currency';
+      ELSIF v_src_ccy <> r->>'currency' THEN PERFORM public.core1_stop_v2('MIXED_SOURCE_CURRENCY'); END IF;
+      v_used := v_used || jsonb_build_object(r->>'id', r);
+      v_mxa := CASE WHEN r->'occupancy_included'->'max_adults' IS NOT NULL THEN public.core1_int_v2(r->'occupancy_included'->'max_adults', 1)
+                    WHEN r->'max_adults' IS NOT NULL AND jsonb_typeof(r->'max_adults') <> 'null' THEN public.core1_int_v2(r->'max_adults', 1) END;
+      IF v_mxa IS NULL THEN PERFORM public.core1_stop_v2('CAPACITY_UNKNOWN'); END IF;
+      IF v_adults > v_mxa THEN PERFORM public.core1_stop_v2('OCCUPANCY_PRICE_UNDEFINED'); END IF;
+      IF jsonb_array_length(v_ages) > 0 THEN
+        v_mxc := CASE WHEN r->'occupancy_included'->'max_children' IS NOT NULL THEN public.core1_int_v2(r->'occupancy_included'->'max_children', 0)
+                      WHEN r->'max_children' IS NOT NULL AND jsonb_typeof(r->'max_children') <> 'null' THEN public.core1_int_v2(r->'max_children', 0) END;
+        IF v_mxc IS NULL THEN PERFORM public.core1_stop_v2('CAPACITY_UNKNOWN'); END IF;
+        IF jsonb_array_length(v_ages) > v_mxc THEN PERFORM public.core1_stop_v2('CAPACITY_EXCEEDED'); END IF;
+      END IF;
+      v_amt := 0;
+      IF r->>'unit' NOT IN ('PERSON_NIGHT','ROOM_NIGHT') THEN v_all_night := false; END IF;
+      IF r->>'unit' = 'PERSON_NIGHT' THEN
+        v_amt := public.core1_adult_amount_v2(r->'adult_pricing', v_adults, v_mxa) + public.core1_child_amount_v2(r, v_adults, v_ages);
+      ELSIF r->>'unit' = 'ROOM_NIGHT' THEN
+        v_amt := public.core1_num_v2(r->'amount');
+      END IF;
+      v_rtotal := v_rtotal + v_amt;
+      v_nightly := jsonb_set(v_nightly, ARRAY[v_n::text], to_jsonb(coalesce((v_nightly->>(v_n::text))::numeric,0) + v_amt));
+      v_n := v_n + 1;
+    END LOOP;
+    v_stay_rate := NULL;
+    SELECT e.value INTO v_stay_rate FROM jsonb_each(v_used) e WHERE e.value->>'unit' IN ('PERSON_STAY','ROOM_STAY') LIMIT 1;
+    IF v_stay_rate IS NOT NULL THEN
+      IF (SELECT count(*) FROM jsonb_object_keys(v_used)) <> 1 THEN PERFORM public.core1_stop_v2('STAY_UNIT_RANGE_INCOMPLETE'); END IF;
+      v_mxa := CASE WHEN v_stay_rate->'occupancy_included'->'max_adults' IS NOT NULL THEN public.core1_int_v2(v_stay_rate->'occupancy_included'->'max_adults', 1)
+                    WHEN v_stay_rate->'max_adults' IS NOT NULL AND jsonb_typeof(v_stay_rate->'max_adults') <> 'null' THEN public.core1_int_v2(v_stay_rate->'max_adults', 1) END;
+      IF v_stay_rate->>'unit' = 'PERSON_STAY' THEN
+        v_rtotal := v_rtotal + public.core1_adult_amount_v2(v_stay_rate->'adult_pricing', v_adults, v_mxa) + public.core1_child_amount_v2(v_stay_rate, v_adults, v_ages);
+      ELSE
+        v_rtotal := v_rtotal + public.core1_num_v2(v_stay_rate->'amount');
+      END IF;
+    END IF;
+    -- supplements: used rates only; identity = (obligation_id, date, unit); distinct ids are never collapsed
+    v_seen := '{}'::jsonb;
+    FOR r IN SELECT e.value FROM jsonb_each(v_used) e LOOP
+      FOR s IN SELECT value FROM jsonb_array_elements(coalesce(r->'mandatory_supplements','[]'::jsonb)) LOOP
+        v_partial := v_exact + v_rtotal;
+        IF s->>'unit' IS DISTINCT FROM 'PERSON_EVENT' OR s->>'currency' IS DISTINCT FROM r->>'currency'
+           OR s->>'applicability' IS NULL OR s->>'applicability' NOT IN ('NIGHT_IN_STAY_EXPLICIT','UNKNOWN') THEN
+          RAISE EXCEPTION 'C1STOP' USING DETAIL = 'INCOMPLETE|SUPPLEMENT_RULE_UNVERIFIED|' || v_partial::text; END IF;
+        v_sd := public.core1_date_v2(s->'date');
+        IF coalesce(s->>'obligation_id','') = '' THEN RAISE EXCEPTION 'C1STOP' USING DETAIL = 'INCOMPLETE|SUPPLEMENT_RULE_UNVERIFIED|' || v_partial::text; END IF;
+        v_key := (s->>'obligation_id') || '|' || (s->>'date') || '|' || (s->>'unit');
+        v_sig := (s->>'applicability') || '|' || coalesce(s->>'adult_amount','') || '|' || coalesce(s->>'child_amount','') || '|' || coalesce((s->'child_age_rule')::text,'');
+        IF v_seen ? v_key THEN
+          IF v_seen->>v_key <> v_sig THEN RAISE EXCEPTION 'C1STOP' USING DETAIL = 'INCOMPLETE|SUPPLEMENT_RULE_UNVERIFIED|' || v_partial::text; END IF;
+          CONTINUE;
+        END IF;
+        v_seen := v_seen || jsonb_build_object(v_key, v_sig);
+        IF s->>'applicability' = 'UNKNOWN' THEN
+          IF v_ci <= v_sd AND v_sd <= v_co THEN RAISE EXCEPTION 'C1STOP' USING DETAIL = 'INCOMPLETE|SUPPLEMENT_RULE_UNVERIFIED|' || v_partial::text; END IF;
+          CONTINUE;
+        END IF;
+        IF NOT (v_ci <= v_sd AND v_sd < v_co) THEN CONTINUE; END IF;
+        v_amt := public.core1_num_v2(s->'adult_amount') * v_adults;
+        IF jsonb_array_length(v_ages) > 0 THEN
+          IF s->'child_amount' IS NULL OR s->'child_age_rule' IS NULL THEN RAISE EXCEPTION 'C1STOP' USING DETAIL = 'INCOMPLETE|SUPPLEMENT_RULE_UNVERIFIED|' || v_partial::text; END IF;
+          IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_ages) a
+                      WHERE NOT (public.core1_num_v2(s->'child_age_rule'->'from_inclusive') <= public.core1_age_v2(a)
+                                 AND public.core1_age_v2(a) < public.core1_num_v2(s->'child_age_rule'->'to_exclusive'))) THEN
+            RAISE EXCEPTION 'C1STOP' USING DETAIL = 'INCOMPLETE|SUPPLEMENT_RULE_UNVERIFIED|' || v_partial::text; END IF;
+          v_amt := v_amt + public.core1_num_v2(s->'child_amount') * jsonb_array_length(v_ages);
+        END IF;
+        v_rtotal := v_rtotal + v_amt;
+        v_charges := v_charges || jsonb_build_array(jsonb_build_object('obligation_id', s->>'obligation_id', 'date', s->>'date', 'room_index', v_ridx, 'amount', public.core1_money_v2(v_amt)));
+        v_sup_shown := v_sup_shown + round(v_amt, 2);
+      END LOOP;
+      IF r->>'price_basis' IS DISTINCT FROM 'CLIENT_FINAL' OR (r->'taxes_included') IS DISTINCT FROM 'true'::jsonb THEN
+        v_exposable := false;
+        IF r->>'price_basis' IS DISTINCT FROM 'CLIENT_FINAL' THEN
+          IF NOT v_warn ? 'NET_BASIS_NOT_CLIENT_PRICE' THEN v_warn := v_warn || '"NET_BASIS_NOT_CLIENT_PRICE"'::jsonb; END IF;
+        ELSIF NOT v_warn ? 'TAXES_UNKNOWN' THEN v_warn := v_warn || '"TAXES_UNKNOWN"'::jsonb; END IF;
+      END IF;
+    END LOOP;
+    v_exact := v_exact + v_rtotal;
+    v_ridx := v_ridx + 1;
+  END LOOP;
+  IF v_exact >= 1000000000 THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(p_ctx->'rates') x
+              WHERE x->>'hotel_id' = p_req->>'hotel_id' AND (x->>'group_min_rooms') IS NOT NULL AND (x->>'group_min_rooms')::int > 0
+                AND (x->>'group_min_rooms')::int > jsonb_array_length(v_rooms)
+                AND EXISTS (SELECT 1 FROM jsonb_array_elements(v_rooms) rr WHERE rr->>'room_type_id' = x->>'room_type_id')) THEN
+    v_may := false; v_warn := v_warn || '"GROUP_MINIMUM_NOT_MET"'::jsonb;
+  END IF;
+  IF (p_ctx->'source_document'->'signature_required_for_sale') = 'true'::jsonb AND (p_ctx->'source_document'->>'signature_status') IS DISTINCT FROM 'SIGNED' THEN
+    v_may := false; v_warn := v_warn || '"SIGNATURE_CONDITION_FOR_SALE_UNVERIFIED"'::jsonb;
+  END IF;
+
+  v_pay := p_req->>'payment_currency';
+  IF NOT (p_ctx->'accepted_payment_currencies') ? v_pay THEN PERFORM public.core1_stop_v2('PAYMENT_CURRENCY_NOT_ALLOWED'); END IF;
+  v_needs_fx := v_pay <> v_src_ccy OR (v_dep->>'type' <> 'FULL_PAYMENT' AND v_dep->'minimum_per_room'->>'currency' <> v_pay);
+  IF v_needs_fx THEN
+    v_max_h := c_fx_max_hours;
+    IF p_ctx->'policy' IS NOT NULL AND jsonb_typeof(p_ctx->'policy') = 'object' AND (p_ctx->'policy') ? 'max_fx_window_hours' THEN
+      v_mh := p_ctx->'policy'->'max_fx_window_hours';
+      v_max_h := public.core1_int_v2(v_mh, 1);
+      IF v_max_h > c_fx_max_hours THEN PERFORM public.core1_stop_v2('INPUT_INVALID','INVALID'); END IF;
+    END IF;
+    IF jsonb_typeof(p_ctx->'fx') IS DISTINCT FROM 'array' THEN PERFORM public.core1_stop_v2('FX_MISSING'); END IF;
+    SELECT count(*) INTO v_cnt FROM jsonb_array_elements(p_ctx->'fx') x WHERE x->>'pair' = 'USD_DOP';
+    IF v_cnt = 0 THEN PERFORM public.core1_stop_v2('FX_MISSING'); END IF;
+    SELECT count(*) INTO v_inwin FROM jsonb_array_elements(p_ctx->'fx') x
+     WHERE x->>'pair' = 'USD_DOP' AND x->'active' = 'true'::jsonb AND public.core1_ts_v2(x->'effective_from') <= v_now AND v_now < public.core1_ts_v2(x->'effective_until_exclusive');
+    SELECT EXISTS (SELECT 1 FROM jsonb_array_elements(p_ctx->'fx') x WHERE x->>'pair' = 'USD_DOP' AND x->'active' = 'true'::jsonb AND public.core1_ts_v2(x->'effective_from') > v_now) INTO v_future;
+    IF v_inwin = 0 THEN PERFORM public.core1_stop_v2(CASE WHEN v_future THEN 'FX_NOT_EFFECTIVE' ELSE 'FX_EXPIRED' END); END IF;
+    FOR f IN SELECT x FROM jsonb_array_elements(p_ctx->'fx') x
+              WHERE x->>'pair' = 'USD_DOP' AND x->'active' = 'true'::jsonb AND public.core1_ts_v2(x->'effective_from') <= v_now AND v_now < public.core1_ts_v2(x->'effective_until_exclusive') LOOP
+      IF public.core1_num_v2(f->'rate_sell') <= 0 OR f->>'direction' IS DISTINCT FROM 'DOP_PER_USD' THEN PERFORM public.core1_stop_v2('FX_INVALID'); END IF;
+      IF coalesce(f->>'approved_by_ref','') = '' OR coalesce(f->>'source_ref','') = '' OR coalesce(f->>'source_version','') = '' THEN PERFORM public.core1_stop_v2('FX_UNAPPROVED'); END IF;
+      IF public.core1_ts_v2(f->'effective_until_exclusive') - public.core1_ts_v2(f->'effective_from') > make_interval(hours => v_max_h) THEN PERFORM public.core1_stop_v2('FX_WINDOW_TOO_LONG'); END IF;
+      v_fx := public.core1_num_v2(f->'rate_sell');
+    END LOOP;
+    IF v_inwin > 1 THEN PERFORM public.core1_stop_v2('FX_AMBIGUOUS'); END IF;
+  END IF;
+
+  v_src_total := round(v_exact, 2);
+  v_out := jsonb_build_object('collection_allowed', false, 'source_currency', v_src_ccy, 'source_subtotal', public.core1_money_v2(v_src_total));
+  IF NOT v_exposable THEN
+    RETURN v_out || jsonb_build_object('calculation_status','SOURCE_SUBTOTAL_ONLY','commercial_use','INTERNAL_REFERENCE_ONLY',
+      'client_price_exposable', false, 'payment_total', NULL, 'deposit_preview', NULL, 'warnings', v_warn, 'may_request_booking', false);
+  END IF;
+  IF v_pay = v_src_ccy THEN v_pay_total := v_src_total;
+  ELSIF v_pay = 'DOP' THEN v_pay_total := round(v_exact * v_fx, 2);
+  ELSE v_pay_total := round(v_exact / v_fx, 2); END IF;
+  IF v_dep->>'type' = 'FULL_PAYMENT' THEN v_dp := v_pay_total;
+  ELSE
+    v_min := public.core1_num_v2(v_dep->'minimum_per_room'->'amount');
+    IF v_dep->'minimum_per_room'->>'currency' = 'DOP' AND v_pay = 'USD' THEN v_min := v_min / v_fx;
+    ELSIF v_dep->'minimum_per_room'->>'currency' = 'USD' AND v_pay = 'DOP' THEN v_min := v_min * v_fx; END IF;
+    v_dp := least(v_pay_total, greatest(ceil(v_pay_total * v_pct * 100) / 100, ceil(v_min * jsonb_array_length(v_rooms) * 100) / 100));
+  END IF;
+  v_out := v_out || jsonb_build_object('calculation_status','COMPLETE','commercial_use','REFERENCE_ONLY','client_price_exposable',true,
+    'payment_currency', v_pay, 'source_total', public.core1_money_v2(v_src_total), 'payment_total', public.core1_money_v2(v_pay_total),
+    'deposit_preview', public.core1_money_v2(v_dp));
+  IF jsonb_array_length(v_warn) > 0 THEN v_out := v_out || jsonb_build_object('warnings', v_warn, 'may_request_booking', v_may); END IF;
+  IF v_all_night THEN
+    SELECT coalesce(sum(round(value::numeric, 2)), 0) INTO v_shown_sum FROM jsonb_each_text(v_nightly);
+    v_adj := v_src_total - v_shown_sum - v_sup_shown;
+    IF jsonb_array_length(v_charges) > 0 THEN v_out := v_out || jsonb_build_object('supplement_charges', v_charges); END IF;
+    IF v_adj <> 0 OR jsonb_array_length(v_charges) > 0 THEN
+      v_out := v_out || jsonb_build_object('exact_source_total', to_char(round(v_exact, 4), 'FM999999999990.0000'),
+        'displayed_nightly_amounts', (SELECT jsonb_agg(public.core1_money_v2(round(value::numeric, 2)) ORDER BY key) FROM jsonb_each_text(v_nightly)));
+    END IF;
+    IF v_adj <> 0 THEN v_out := v_out || jsonb_build_object('rounding_adjustment', public.core1_money_v2(v_adj)); END IF;
+  END IF;
+  RETURN v_out;
+EXCEPTION
+  WHEN data_exception THEN   -- uncast/overflow/format errors: structured INVALID, never a price
+    RETURN jsonb_build_object('collection_allowed', false, 'calculation_status', 'INVALID', 'commercial_use', 'NO_COMPLETE_QUOTE',
+      'payment_total', NULL, 'deposit_preview', NULL, 'error_code', 'INPUT_INVALID', 'source_currency', v_cur);
+  WHEN raise_exception THEN
+    GET STACKED DIAGNOSTICS v_detail = PG_EXCEPTION_DETAIL;
+    IF SQLERRM <> 'C1STOP' THEN RAISE; END IF;
+    v_status := split_part(v_detail, '|', 1); v_code := split_part(v_detail, '|', 2);
+    v_out := jsonb_build_object('collection_allowed', false, 'calculation_status', v_status, 'commercial_use', 'NO_COMPLETE_QUOTE',
+      'payment_total', NULL, 'deposit_preview', NULL, 'error_code', v_code, 'source_currency', v_cur);
+    IF split_part(v_detail, '|', 3) <> '' THEN
+      v_out := v_out || jsonb_build_object('source_subtotal_without_unverified_supplements', public.core1_money_v2(split_part(v_detail, '|', 3)::numeric));
+    END IF;
+    RETURN v_out;
+END $fn$;
+
+-- ACL: explicit for EVERY signature. PostgreSQL grants EXECUTE to PUBLIC on new functions by default, so each is revoked
+-- explicitly (no reliance on default privileges). service_role gets the minimum it needs (the entry point and the helpers it calls).
+REVOKE ALL ON FUNCTION public.core1_stop_v2(text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_num_v2(jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_age_v2(jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_int_v2(jsonb, int) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_date_v2(jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_ts_v2(jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_money_v2(numeric) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_validate_rate_v2(jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_adult_amount_v2(jsonb, int, int) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_child_amount_v2(jsonb, int, jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.core1_price_pure_v2_1(jsonb, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.core1_stop_v2(text, text), public.core1_num_v2(jsonb), public.core1_age_v2(jsonb), public.core1_int_v2(jsonb, int),
+  public.core1_date_v2(jsonb), public.core1_ts_v2(jsonb), public.core1_money_v2(numeric), public.core1_validate_rate_v2(jsonb),
+  public.core1_adult_amount_v2(jsonb, int, int), public.core1_child_amount_v2(jsonb, int, jsonb), public.core1_price_pure_v2_1(jsonb, jsonb) TO service_role;

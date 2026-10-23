@@ -23,3 +23,16 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
   * Definición de puentes de telemetría hacia `ariadne-data` y `atlas-intel`.
   * Suite de pruebas unitarias automatizadas con cobertura del 100% PASS.
 * **Autor:** Curator Constitucional & Director General Aldo Hilario
+
+### 🏷️ Versión 1.1.0-draft — Custodia de mecanismos Core 1 (precio de referencia)
+* **Fecha:** 23 de Octubre de 2026
+* **Commit:** rama `atlas-tech/core1-price-mechanisms` (hash definitivo = commit de la rama; no hay tag)
+* **Estado de Integridad:** `KERNEL SIN CAMBIOS` — `kernel/`, `tests/` y `spec/` no se tocaron; `npm test` pasa igual que en 1.0.0.
+* **Cambios / Contratos:**
+  * Se incorpora `core1-price/` con las versiones v1, v2, v2.1, v2.2, v2.2.1 del mecanismo de precio de referencia y el diseño del adaptador de consumo, copiados sin alterar (manifiesto sha256). Todos INERTES, no adoptados, SQL nunca ejecutado.
+  * Se registran las reglas del Director del 23-Oct-2026 como autoridad (`core1-price/rules/`).
+  * Se documenta, como hallazgo separado y abierto, la desalineación entre el kernel actual y esas reglas (`core1-price/KERNEL-ALIGNMENT-FINDINGS.md`). No se corrige en este cambio.
+  * Se agrega la sección 5 del Manual de Operación y el script `npm run test:core1`.
+* **Resultado de auditoría:** v2.2.1 107/107 y v2.2 97/97 contra sus propios vectores sintéticos (solo modelo).
+* **Autor:** ATLAS-TECH (AP-03), a instrucción del Director General Aldo Hilario. Pendiente de revisión del Curator Constitucional.
+
