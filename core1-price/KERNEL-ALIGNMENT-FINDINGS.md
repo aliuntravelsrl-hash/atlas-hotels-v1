@@ -1,6 +1,6 @@
 # Hallazgo separado — Mirror Kernel actual vs. reglas del Director (Core 1)
 **Fecha:** 2026-10-23 · **Autor:** ATLAS-TECH (AP-03) · **Naturaleza:** lectura de código. **No se modificó el kernel** (`kernel/`), ni `tests/`, ni la lógica de `scripts/`.
-**Estado:** HALLAZGO ABIERTO — requiere decisión del Curador. Cambiar el kernel exige entrada en `history/INTEGRITY-STATE-LOG.md`, versión nueva y `npm test` al 100 % (Manual §4).
+**Estado:** HALLAZGO ABIERTO — requiere dictamen técnico del Curator y convocatoria del Director. Cambiar el kernel exige entrada en `history/INTEGRITY-STATE-LOG.md`, versión nueva y `npm test` al 100 % (Manual §4).
 **Verificación hecha:** `npm test` pasa con el kernel sin cambios; esto solo prueba que sus pruebas actuales pasan, no que su lógica cumpla las reglas del Director.
 
 ## Contexto

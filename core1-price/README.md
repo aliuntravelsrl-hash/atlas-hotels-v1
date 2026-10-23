@@ -11,7 +11,7 @@ Cotización **de consulta** (no pagable, manual/asíncrona) del precio de un hot
 |---|---|
 | `rules/DIRECTOR-RULES-CORE1-20261023.md` | Reglas de negocio del Director con fecha y fuente (chat). Mandan sobre cualquier versión. |
 | `VERSION-MAP.md` | Mapa de versiones del mecanismo y estado de cada una. |
-| `versions/v1 … v2.2.2` | Todas las versiones del motor/changeset, **sin alterar** (hashes en `MANIFEST.sha256`). |
+| `versions/v1 … v2.2.3` | Todas las versiones del motor/changeset, **sin alterar** (hashes en `MANIFEST.sha256`). |
 | `versions/consumer-adapter-v1` | Diseño inerte del adaptador de consumo (servidor simulado, DTO público, cliente). |
 | `prompts/` | Prompt para el ejecutor (cambios en Admin / booking form). **Es un documento guardado, no un despacho operativo**; atribuye alcances a la conversación ATLAS-TECH. ATLAS-TECH no edita Admin directamente. |
 | `rules/PROVENANCE-DIRECTOR-INSTRUCTIONS-20261023.md` | Texto literal de las instrucciones del Director, mapa de supersesiones y reservas. |
@@ -19,11 +19,12 @@ Cotización **de consulta** (no pagable, manual/asíncrona) del precio de un hot
 | `custody/` | Inventario de copias, plantilla del acto de transferencia y manifiesto de recuperación del kernel v1. |
 | `KERNEL-NEW-VERSION-DESIGN.md` | Diseño (no implementado) de una versión nueva del kernel. |
 | `RECEIVED-AT-MAPPING-DESIGN.md` | Diseño del mapeo de `received_at` y evidencias mínimas antes de cualquier SQL (`rates.created_at` = UNK). |
-| `versions/consumer-adapter-v1.1` | Adaptador inerte para contexto/motor v2.2.2 (30 + 24 pruebas simuladas). El v1 se conserva. |
+| `versions/consumer-adapter-v1.1` | Adaptador para v2.2.2 (30 + 24 simuladas); se conserva (OBS-208 encontró V11-R1..R5). |
+| `versions/consumer-adapter-v1.1.1` | **Candidato** para v2.2.3: corrige V11-R1..R5 (43 + 27 simuladas). Inerte, no adoptado. |
 | `KERNEL-ALIGNMENT-FINDINGS.md` | Hallazgo **separado**: desalineaciones entre el Mirror Kernel actual y las reglas del Director. No modifica el kernel. |
 | `MANIFEST.sha256` | Hash de cada archivo copiado, para verificar que la custodia no se altera. |
 
-## Candidata de referencia: v2.2.2 (no adoptada, no desplegada)
+## Candidata de referencia: v2.2.3 (no adoptada, no desplegada)
 Calcula solo habitación, personas, ocupación, precio por persona y noche, y niños por edad. Sin valores por defecto; 0 no es precio; suplementos e impuestos viajan como notas; las condiciones con caducidad devuelven estado sin alterar el monto; rangos solapados los resuelve la tarifa vigente con el instante de ingesta (`received_at`) más reciente.
 
 ## Qué prueba y qué no
@@ -33,7 +34,7 @@ Calcula solo habitación, personas, ocupación, precio por persona y noche, y ni
 ## Comprobar
 ```bash
 npm test                 # kernel existente (sin cambios en este aporte)
-npm run test:core1:all   # modelos v2.2.2 (115), v2.2.1 (107) y v2.2 (97), adaptador simulado, + adaptador v1.1 (30 + 24) + 21 comprobaciones del runner (19 negativas, la reproducción del defecto original `python | tail -1` y 1 control positivo); falla con código != 0
+npm run test:core1:all   # modelos v2.2.3 (120), v2.2.2 (115), v2.2.1 (107) y v2.2 (97), adaptador simulado, + adaptador v1.1 (30 + 24) + adaptador v1.1.1 (43 + 27) + 30 comprobaciones del runner (28 negativas, la reproducción del defecto original `python | tail -1` y 1 control positivo); falla con código != 0
 sha256sum -c core1-price/MANIFEST.sha256
 ```
 

@@ -27,6 +27,7 @@ DEFAULT_ROOT = os.path.abspath(os.path.join(HERE, ".."))
 
 # (carpeta, modelo, vectores, casos esperados)
 MODELS = [
+    ("v2.2.3", "core1_reference_model_v2_2_3.py.inert", "CORE1-BASE-PRICE-REGRESSION-v2.2.3-ATLAS-TECH.json", 120),
     ("v2.2.2", "core1_reference_model_v2_2_2.py.inert", "CORE1-BASE-PRICE-REGRESSION-v2.2.2-ATLAS-TECH.json", 115),
     ("v2.2.1", "core1_reference_model_v2_2_1.py.inert", "CORE1-BASE-PRICE-REGRESSION-v2.2.1-ATLAS-TECH.json", 107),
     ("v2.2", "core1_reference_model_v2_2.py.inert", "CORE1-BASE-PRICE-REGRESSION-v2.2-ATLAS-TECH.json", 97),
@@ -145,6 +146,8 @@ def check_adapter(root, python=None, node="node"):
 
 SUMMARY_SERVER11 = re.compile(r"^SERVER SCENARIOS v1\.1 \(simulated\): (\d+)/(\d+) PASS; failing=\[\]$", re.M)
 SUMMARY_CLIENT11 = re.compile(r"^CLIENT TESTS v1\.1 \(simulated DTOs\): (\d+)/(\d+) PASS; failing=\[\]$", re.M)
+SUMMARY_SERVER111 = re.compile(r"^SERVER SCENARIOS v1\.1\.1 \(simulated\): (\d+)/(\d+) PASS; failing=\[\]$", re.M)
+SUMMARY_CLIENT111 = re.compile(r"^CLIENT TESTS v1\.1\.1 \(simulated DTOs\): (\d+)/(\d+) PASS; failing=\[\]$", re.M)
 
 
 def check_adapter11(root, python=None, node="node"):
@@ -193,6 +196,52 @@ def check_adapter11(root, python=None, node="node"):
     return problems
 
 
+def check_adapter111(root, python=None, node="node"):
+    """Adapter v1.1.1: server 43/43 + client 27/27 in a temporary layout (versions/v2.2.3 + versions/consumer-adapter-v1.1.1). Writes nothing into the repo."""
+    python = python or sys.executable
+    problems = []
+    src_ad = os.path.join(root, "versions", "consumer-adapter-v1.1.1")
+    src_eng = os.path.join(root, "versions", "v2.2.3")
+    for p in (src_ad, src_eng):
+        if not os.path.isdir(p):
+            return [f"adapter111: falta carpeta {os.path.relpath(p, root)}"]
+    tmp = tempfile.mkdtemp(prefix="core1-adapter111-")
+    try:
+        os.makedirs(os.path.join(tmp, "versions"))
+        ad = os.path.join(tmp, "versions", "consumer-adapter-v1.1.1")
+        shutil.copytree(src_ad, ad)
+        shutil.copytree(src_eng, os.path.join(tmp, "versions", "v2.2.3"))
+        dump = os.path.join(tmp, "dtos.json")
+        code, out, err = run([python, "-I", os.path.join(ad, "tests", "run_server_scenarios.py.inert"), "--dump", dump])
+        if code != 0:
+            problems.append(f"adapter111/servidor: salió con código {code}")
+        m = SUMMARY_SERVER111.search(out)
+        if not m:
+            problems.append("adapter111/servidor: falta línea resumen")
+        elif (int(m.group(1)), int(m.group(2))) != (43, 43):
+            problems.append(f"adapter111/servidor: resumen {m.group(1)}/{m.group(2)}, se esperaba 43/43")
+        cdir = os.path.join(tmp, "client-run")
+        os.makedirs(cdir)
+        shutil.copy(os.path.join(ad, "client", "core1PriceAdapter.mjs.inert"), os.path.join(cdir, "core1PriceAdapter.mjs"))
+        shutil.copy(os.path.join(ad, "tests", "run_client_tests.mjs.inert"), os.path.join(cdir, "run_client_tests.mjs"))
+        if not (os.path.isfile(dump) and os.path.isfile(os.path.join(tmp, "dtos-internal.json"))):
+            problems.append("adapter111: el servidor no generó los DTO/vistas para el cliente")
+        else:
+            code, out, err = run([node, os.path.join(cdir, "run_client_tests.mjs"), dump, os.path.join(tmp, "dtos-internal.json")])
+            if code != 0:
+                problems.append(f"adapter111/cliente: salió con código {code}")
+            m = SUMMARY_CLIENT111.search(out)
+            if not m:
+                problems.append("adapter111/cliente: falta línea resumen")
+            elif (int(m.group(1)), int(m.group(2))) != (27, 27):
+                problems.append(f"adapter111/cliente: resumen {m.group(1)}/{m.group(2)}, se esperaba 27/27")
+        if not problems:
+            print("OK  adapter v1.1.1: servidor 43/43 y cliente 27/27 (simulados) en layout temporal")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return problems
+
+
 def main(argv):
     root = DEFAULT_ROOT
     only = None
@@ -207,6 +256,8 @@ def main(argv):
         problems += check_adapter(root)
     if only in (None, "adapter11"):
         problems += check_adapter11(root)
+    if only in (None, "adapter111"):
+        problems += check_adapter111(root)
     if problems:
         print("FALLA (código 1):")
         for p in problems:

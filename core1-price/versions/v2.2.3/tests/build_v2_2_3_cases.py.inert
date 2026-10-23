@@ -1,0 +1,302 @@
+"""Genera (v2.2.3) CORE1-BASE-PRICE-REGRESSION-v2.2.3-ATLAS-TECH.json (vectores SINTETICOS).
+Las cifras 100/150/50% provienen del ejemplo del Director (23-Oct-2026); TPL 90, QUAD 85 y demas son inventadas
+para ejercitar el modelo. No son tarifas de ningun hotel real.
+Uso: python3 -I build_v2_2_3_cases.py   (escribe el JSON en el directorio padre)
+"""
+import copy
+import json
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(HERE, "..", "CORE1-BASE-PRICE-REGRESSION-v2.2.3-ATLAS-TECH.json")
+
+AGE_POLICY = {
+    "adult_from_age": 13,
+    "bands": [
+        {"label": "INFANT", "from_age": 0, "to_age": 2, "price": {"mode": "FREE"}, "max_per_room": 1},
+        {"label": "CHILD", "from_age": 3, "to_age": 12, "price": {"mode": "PERCENT_OF_DBL", "value": "50"}},
+    ],
+}
+ROW = {
+    "id": "R1", "revision": 1, "hotel_id": "H1", "provider_id": "P1", "room_type_id": "RT1",
+    "stay_from": "2027-03-01", "stay_until_exclusive": "2027-04-01", "currency": "USD", "unit": "PERSON_NIGHT",
+    "placeholder": False, "is_active": True, "verification_status": "VERIFIED",
+    "review_evidence_ref": "SYNTH-REVIEW", "source_document_id": "SYNTH-DOC", "price_basis": "CLIENT_FINAL",
+    "taxes_included": True,
+    "occupancy_rates": {"SGL": "150", "DBL": "100", "TPL": "90"},
+    "age_policy": AGE_POLICY,
+    "capacity": {"max_total": 4, "max_adults": 3, "max_children": 2},
+}
+FX = {"id": "FX1", "pair": "USD_DOP", "direction": "DOP_PER_USD", "rate_sell": "62", "active": True,
+      "effective_from": "2026-10-23T00:00:00Z", "effective_until_exclusive": "2026-10-23T23:00:00Z",
+      "approved_by_ref": "SYNTH-APPROVER", "source_ref": "SYNTH-SRC", "source_version": "SYNTH-V1"}
+
+
+def mk(id_, title, mut, exp):
+    c = {
+        "id": id_, "title": title, "schema_version": "CORE1-PRICE-ACCEPTANCE-v2.2.3",
+        "request": {"request_id": id_, "hotel_id": "H1", "provider_id": "P1", "check_in": "2027-03-28",
+                    "check_out": "2027-03-29", "payment_currency": "USD", "server_now": "2026-10-23T14:00:00Z",
+                    "rooms": [{"room_type_id": "RT1", "adults": 2, "child_ages": []}]},
+        "context": {"schema_version": "CORE1-PRICE-CONTEXT-v2.2.3", "accepted_payment_currencies": ["USD", "DOP"],
+                    "deposit_policy": {"type": "FULL_PAYMENT"}, "rates": [copy.deepcopy(ROW)], "fx": [copy.deepcopy(FX)]},
+    }
+    mut(c["request"], c["context"], c["context"]["rates"][0])
+    c["expected"] = exp
+    return c
+
+
+INC = lambda code: {"calculation_status": "INCOMPLETE", "commercial_use": "NO_COMPLETE_QUOTE", "payment_total": None,
+                    "deposit_preview": None, "error_code": code, "collection_allowed": False}
+INV = {"calculation_status": "INVALID", "commercial_use": "NO_COMPLETE_QUOTE", "payment_total": None,
+       "deposit_preview": None, "error_code": "INPUT_INVALID", "collection_allowed": False}
+
+
+def OKT(total, **kw):
+    d = {"calculation_status": "COMPLETE", "payment_total": total, "display_label": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+         "collection_allowed": False, "engine_version": "CORE1-PRICE-ENGINE-v2.2.3"}
+    d.update(kw)
+    return d
+
+
+cases = []
+def add(*a): cases.append(mk(*a))
+def room(q, **kw): q["rooms"][0].update(kw)
+def band(r, label, **kw):
+    for b in r["age_policy"]["bands"]:
+        if b["label"] == label:
+            b.update(kw)
+
+
+# ---- A. Base por cantidad de adultos (R3) con cifras del Director
+add("V22-A00", "2 adultos DBL 100 pp = 200; el desglose muestra base DBL", lambda q, x, r: None,
+    OKT("200.00", displayed_nightly_amounts=["200.00"], room_breakdown=[{"room_index": 0, "nights": [
+        {"night": "2027-03-28", "row_id": "R1", "revision": 1, "base": "DBL", "adults_declared": 2, "adults_effective": 2,
+         "reclassified_ages": [], "adult_unit_amount": "100.00", "adult_amount": "200.00", "children": []}]}]))
+add("V22-A01", "1 adulto => base SGL 150", lambda q, x, r: room(q, adults=1), OKT("150.00"))
+add("V22-A02", "3 adultos => base TPL 90 pp = 270", lambda q, x, r: room(q, adults=3), OKT("270.00"))
+add("V22-A03", "4 adultos sobre max_adults 3 => capacidad", lambda q, x, r: room(q, adults=4), INC("CAPACITY_EXCEEDED"))
+def quad(q, x, r):
+    room(q, adults=4); r["occupancy_rates"]["QUAD"] = "85"; r["capacity"].update(max_adults=4, max_total=4)
+add("V22-A04", "4 adultos con QUAD declarado = 340", quad, OKT("340.00"))
+def quad_missing(q, x, r):
+    room(q, adults=4); r["capacity"].update(max_adults=5, max_total=5)
+add("V22-A05", "4 adultos sin QUAD declarado => Consultar (no se deduce)", quad_missing, INC("OCCUPANCY_PRICE_UNDEFINED"))
+add("V22-A06", "SGL ausente con 1 adulto => Consultar (no se deriva de DBL)", lambda q, x, r: (room(q, adults=1), r["occupancy_rates"].pop("SGL")), INC("OCCUPANCY_PRICE_UNDEFINED"))
+
+# ---- B. Ninos sobre DBL (ejemplo del Director) y edades
+add("V22-B01", "1 adulto + 1 nino(5): SGL 150 + 50% de DBL 100 = 200 (igual a 2 adultos)", lambda q, x, r: room(q, adults=1, child_ages=[5]), OKT("200.00"))
+add("V22-B02", "2 adultos + 1 nino(5) = 200 + 50 = 250", lambda q, x, r: room(q, child_ages=[5]), OKT("250.00"))
+add("V22-B03", "1 adulto + 2 ninos(5,6) = 150 + 100 = 250", lambda q, x, r: room(q, adults=1, child_ages=[5, 6]), OKT("250.00"))
+add("V22-B04", "nino a 35 fijo: 2A+1N = 235 (no se usa 50 por defecto)", lambda q, x, r: (room(q, child_ages=[5]), band(r, "CHILD", price={"mode": "FIXED_AMOUNT", "value": "35"})), OKT("235.00"))
+add("V22-B05", "nino a 35 fijo con 1 adulto = 150 + 35 = 185", lambda q, x, r: (room(q, adults=1, child_ages=[5]), band(r, "CHILD", price={"mode": "FIXED_AMOUNT", "value": "35"})), OKT("185.00"))
+add("V22-B06", "porcentaje 35% sobre DBL: 2A+1N = 235", lambda q, x, r: (room(q, child_ages=[5]), band(r, "CHILD", price={"mode": "PERCENT_OF_DBL", "value": "35"})), OKT("235.00"))
+add("V22-B07", "sin banda para la edad => Consultar", lambda q, x, r: (room(q, child_ages=[5]), r["age_policy"]["bands"].pop(1)), INC("CHILD_PRICE_UNDEFINED"))
+add("V22-B08", "porcentaje sobre DBL pero DBL ausente => Consultar", lambda q, x, r: (room(q, adults=1, child_ages=[5]), r["occupancy_rates"].pop("DBL")), INC("CHILD_PRICE_UNDEFINED"))
+add("V22-B09", "bebe de 1 ano gratis declarado explicito: 200 y linea FREE 0.00", lambda q, x, r: room(q, child_ages=[1]),
+    OKT("200.00", room_breakdown=[{"room_index": 0, "nights": [
+        {"night": "2027-03-28", "row_id": "R1", "revision": 1, "base": "DBL", "adults_declared": 2, "adults_effective": 2,
+         "reclassified_ages": [], "adult_unit_amount": "100.00", "adult_amount": "200.00",
+         "children": [{"age": 1, "band": "INFANT", "mode": "FREE", "amount": "0.00"}]}]}]))
+add("V22-B10", "gratis sin tope declarado (max_per_room ausente) => Consultar", lambda q, x, r: (room(q, child_ages=[1]), band(r, "INFANT", max_per_room=None)), INC("CHILD_PRICE_UNDEFINED"))
+add("V22-B11", "dos bebes con tope gratis 1 => Consultar", lambda q, x, r: room(q, child_ages=[1, 2]), INC("CHILD_PRICE_UNDEFINED"))
+add("V22-B12", "min_adults de la banda no cumplido => Consultar", lambda q, x, r: (room(q, adults=1, child_ages=[5]), band(r, "CHILD", min_adults=2)), INC("CHILD_PRICE_UNDEFINED"))
+add("V22-B13", "bandas superpuestas => ambiguo", lambda q, x, r: (room(q, child_ages=[5]), band(r, "CHILD", from_age=2)), INC("CHILD_BANDS_AMBIGUOUS"))
+add("V22-B14", "edad 2 = bebe gratis (limite superior inclusivo)", lambda q, x, r: room(q, child_ages=[2]), OKT("200.00"))
+add("V22-B15", "edad 3 = nino 50% (limite inferior)", lambda q, x, r: room(q, child_ages=[3]), OKT("250.00"))
+add("V22-B16", "edad 12 sigue siendo nino (hasta 12 cumplidos)", lambda q, x, r: room(q, child_ages=[12]), OKT("250.00"))
+
+# ---- C. Reclasificacion a adulto (13+) y capacidad
+add("V22-C01", "2 adultos + adolescente 15 => 3 adultos TPL = 270",
+    lambda q, x, r: room(q, child_ages=[15]),
+    OKT("270.00", room_breakdown=[{"room_index": 0, "nights": [
+        {"night": "2027-03-28", "row_id": "R1", "revision": 1, "base": "TPL", "adults_declared": 2, "adults_effective": 3,
+         "reclassified_ages": [15], "adult_unit_amount": "90.00", "adult_amount": "270.00", "children": []}]}]))
+add("V22-C02", "edad 13 ya es adulto (corte declarado 13)", lambda q, x, r: room(q, child_ages=[13]), OKT("270.00"))
+add("V22-C03", "3 adultos + adolescente 15 => 4 adultos > max_adults", lambda q, x, r: room(q, adults=3, child_ages=[15]), INC("CAPACITY_EXCEEDED"))
+add("V22-C04", "3 adultos + 2 ninos => total 5 > max_total 4", lambda q, x, r: room(q, adults=3, child_ages=[5, 6]), INC("CAPACITY_EXCEEDED"))
+add("V22-C05", "1 adulto + 3 ninos > max_children", lambda q, x, r: room(q, adults=1, child_ages=[5, 6, 7]), INC("CAPACITY_EXCEEDED"))
+add("V22-C06", "capacidad no declarada => Consultar", lambda q, x, r: r.pop("capacity"), INC("CAPACITY_UNKNOWN"))
+add("V22-C07", "sin ninos no se exige politica de edad", lambda q, x, r: r.pop("age_policy"), OKT("200.00"))
+add("V22-C08", "con nino y sin politica de edad => Consultar", lambda q, x, r: (room(q, child_ages=[5]), r.pop("age_policy")), INC("AGE_POLICY_UNDEFINED"))
+add("V22-C09", "con nino y sin adult_from_age => Consultar (el 13 no es del motor)", lambda q, x, r: (room(q, child_ages=[5]), r["age_policy"].pop("adult_from_age")), INC("AGE_POLICY_UNDEFINED"))
+add("V22-C10", "children_count=1 sin edad => Consultar", lambda q, x, r: room(q, children_count=1, child_ages=[]), INC("CHILD_AGE_MISSING"))
+add("V22-C11", "children_count menor que edades => invalido", lambda q, x, r: room(q, children_count=0, child_ages=[5]), INV)
+add("V22-C12", "children_count coincide con edades => normal", lambda q, x, r: room(q, children_count=1, child_ages=[5]), OKT("250.00"))
+add("V22-C13", "edad 18 invalida", lambda q, x, r: room(q, child_ages=[18]), INV)
+add("V22-C14", "edad decimal 5.0 invalida", lambda q, x, r: room(q, child_ages=[5.0]), INV)
+add("V22-C15", "edad texto invalida", lambda q, x, r: room(q, child_ages=["5"]), INV)
+add("V22-C16", "edad negativa invalida", lambda q, x, r: room(q, child_ages=[-1]), INV)
+add("V22-C17", "edad booleana invalida", lambda q, x, r: room(q, child_ages=[True]), INV)
+
+# ---- D. Cero no es precio; sin valores por defecto
+add("V22-D01", "monto fijo de nino 0 no es precio (usar FREE explicito)", lambda q, x, r: (room(q, child_ages=[5]), band(r, "CHILD", price={"mode": "FIXED_AMOUNT", "value": "0"})), INC("PRICE_ZERO_NOT_ACCEPTED"))
+add("V22-D02", "porcentaje 0 no es precio", lambda q, x, r: (room(q, child_ages=[5]), band(r, "CHILD", price={"mode": "PERCENT_OF_DBL", "value": "0"})), INC("PRICE_ZERO_NOT_ACCEPTED"))
+add("V22-D03", "tarifa adulto DBL 0 no es precio", lambda q, x, r: r["occupancy_rates"].update(DBL="0"), INC("PRICE_ZERO_NOT_ACCEPTED"))
+add("V22-D04", "porcentaje 150 invalido", lambda q, x, r: band(r, "CHILD", price={"mode": "PERCENT_OF_DBL", "value": "150"}), INV)
+add("V22-D05", "modo de precio desconocido invalido", lambda q, x, r: band(r, "CHILD", price={"mode": "MAGIC", "value": "5"}), INV)
+add("V22-D06", "FREE con valor invalido", lambda q, x, r: band(r, "INFANT", price={"mode": "FREE", "value": "0"}), INV)
+add("V22-D07", "ocupacion desconocida en occupancy_rates invalida", lambda q, x, r: r["occupancy_rates"].update(XYZ="5"), INV)
+add("V22-D08", "importe negativo invalido", lambda q, x, r: r["occupancy_rates"].update(DBL="-1"), INV)
+add("V22-D09", "importe float JSON invalido", lambda q, x, r: r["occupancy_rates"].update(DBL=100.5), INV)
+
+# ---- E. Suplementos e impuestos: notas, no calculo (R2)
+def sup(q, x, r): r["mandatory_supplements"] = [{"obligation_id": "OB-GALA", "date": "2027-03-28", "adult_amount": "10.00"}]
+add("V22-E01", "suplemento en la estancia: total sin cambio y nota", sup, OKT("200.00", supplement_notes=[{"obligation_id": "OB-GALA", "date": "2027-03-28", "note_only": True}]))
+def sup_out(q, x, r): r["mandatory_supplements"] = [{"obligation_id": "OB-GALA", "date": "2027-05-01", "adult_amount": "10.00"}]
+add("V22-E02", "suplemento fuera de la estancia: sin nota", sup_out, OKT("200.00", supplement_notes=None))
+def sup_unk(q, x, r): r["mandatory_supplements"] = [{"obligation_id": "OB-X", "date": "2027-03-28", "applicability": "UNKNOWN"}]
+add("V22-E03", "suplemento de aplicabilidad desconocida ya no bloquea (solo nota)", sup_unk, OKT("200.00"))
+add("V22-E04", "impuestos desconocidos: se cotiza y se avisa por nota", lambda q, x, r: r.update(taxes_included=None), OKT("200.00", client_price_exposable=True, warnings=["TAX_NOTE_SEE_INVOICE"], may_request_booking=True))
+add("V22-E05", "base neta (comision) sigue sin ser precio cliente", lambda q, x, r: r.update(price_basis="NET_PROVIDER"),
+    {"calculation_status": "SOURCE_SUBTOTAL_ONLY", "client_price_exposable": False, "payment_total": None, "may_request_booking": False})
+
+# ---- F. Condiciones con caducidad: estado sin alterar el monto (R6)
+def cexp(q, x, r): r["condition_notes"] = [{"id": "C1", "text": "Nino a 35 hasta 20-Oct", "expires_on": "2026-10-20"}]
+add("V22-F01", "condicion vencida: mismo monto y estado VENCIDA con revision requerida", cexp,
+    OKT("200.00", conditions=[{"row_id": "R1", "id": "C1", "text": "Nino a 35 hasta 20-Oct", "expires_on": "2026-10-20", "status": "VENCIDA", "review_required": True}],
+        warnings=["CONDITION_EXPIRED_CONFIRM_WITH_PROVIDER"], may_request_booking=True))
+def cok(q, x, r): r["condition_notes"] = [{"id": "C1", "text": "x", "expires_on": "2026-12-31"}]
+add("V22-F02", "condicion vigente", cok, OKT("200.00", conditions=[{"row_id": "R1", "id": "C1", "text": "x", "expires_on": "2026-12-31", "status": "VIGENTE", "review_required": False}], warnings=None))
+def cnot(q, x, r): r["condition_notes"] = [{"id": "C1", "text": "x", "expires_on": "2026-11-01"}]
+add("V22-F03", "sin plazo de aviso configurado no hay POR_VENCER", cnot, OKT("200.00", conditions=[{"row_id": "R1", "id": "C1", "text": "x", "expires_on": "2026-11-01", "status": "VIGENTE", "review_required": False}]))
+def cnot2(q, x, r): cnot(q, x, r); x["policy"] = {"review_notice_days": 14}
+add("V22-F04", "con aviso de 14 dias, 9 dias restantes => POR_VENCER", cnot2, OKT("200.00", conditions=[{"row_id": "R1", "id": "C1", "text": "x", "expires_on": "2026-11-01", "status": "POR_VENCER", "review_required": True}], warnings=["CONDITION_EXPIRING_CONFIRM_WITH_PROVIDER"]))
+def cday(q, x, r): r["condition_notes"] = [{"id": "C1", "text": "x", "expires_on": "2026-10-23"}]
+add("V22-F05", "vence hoy: sigue vigente (ultimo dia inclusivo)", cday, OKT("200.00", conditions=[{"row_id": "R1", "id": "C1", "text": "x", "expires_on": "2026-10-23", "status": "VIGENTE", "review_required": False}]))
+add("V22-F06", "ventana de venta cerrada ya no bloquea: condicion VENCIDA y mismo monto", lambda q, x, r: r.update(sale_until_exclusive="2026-10-22T00:00:00Z"),
+    OKT("200.00", conditions=[{"row_id": "R1", "id": "SALE_WINDOW", "text": None, "expires_on": "2026-10-22T00:00:00Z", "status": "VENCIDA", "review_required": True}], warnings=["CONDITION_EXPIRED_CONFIRM_WITH_PROVIDER"]))
+add("V22-F07", "fecha de caducidad invalida", lambda q, x, r: r.update(condition_notes=[{"id": "C1", "expires_on": "2026-13-45"}]), INV)
+add("V22-F08", "condicion sin id invalida", lambda q, x, r: r.update(condition_notes=[{"text": "x"}]), INV)
+add("V22-F09", "review_notice_days negativo invalido", lambda q, x, r: x.update(policy={"review_notice_days": -1}), INV)
+def cmany(q, x, r): r["condition_notes"] = [{"id": "C1", "text": "a", "expires_on": "2026-10-20"}, {"id": "C2", "text": "b", "expires_on": None}]
+add("V22-F10", "condicion sin caducidad = VIGENTE; la otra vencida; monto igual", cmany,
+    OKT("200.00", conditions=[{"row_id": "R1", "id": "C1", "text": "a", "expires_on": "2026-10-20", "status": "VENCIDA", "review_required": True},
+                              {"row_id": "R1", "id": "C2", "text": "b", "expires_on": None, "status": "VIGENTE", "review_required": False}]))
+
+# ---- G. Cambio de regla entre rangos (por noche)
+def two_rows(age):
+    def f(q, x, r):
+        q["check_out"] = "2027-03-30"; room(q, child_ages=[age])
+        r["stay_until_exclusive"] = "2027-03-29"
+        r2 = copy.deepcopy(r)
+        r2.update(id="R2", stay_from="2027-03-29", stay_until_exclusive="2027-04-01")
+        r2["occupancy_rates"] = {"SGL": "170", "DBL": "120", "TPL": "110"}
+        r2["age_policy"] = {"adult_from_age": 12, "bands": [
+            {"label": "INFANT", "from_age": 0, "to_age": 2, "price": {"mode": "FREE"}, "max_per_room": 1},
+            {"label": "CHILD", "from_age": 3, "to_age": 11, "price": {"mode": "FIXED_AMOUNT", "value": "35"}}]}
+        x["rates"].append(r2)
+    return f
+add("V22-G01", "dos noches, dos reglas: noche1 250 (50% de 100) + noche2 275 (120x2 + 35) = 525", two_rows(5), OKT("525.00", displayed_nightly_amounts=["250.00", "275.00"]))
+add("V22-G02", "edad 12: nino en noche1 (corte 13) y adulto en noche2 (corte 12): 250 + 330 = 580", two_rows(12), OKT("580.00", displayed_nightly_amounts=["250.00", "330.00"]))
+def gap(q, x, r): q["check_out"] = "2027-03-31"; r["stay_until_exclusive"] = "2027-03-30"
+add("V22-G03", "noche sin cobertura => Consultar", gap, INC("RATE_COVERAGE_GAP"))
+def amb(q, x, r): r2 = copy.deepcopy(r); r2["id"] = "R2"; x["rates"].append(r2)
+add("V22-G04", "rangos solapados sin received_at => Consultar", amb, INC("RATE_AMBIGUOUS"))
+def ov(r1_date, r2_date, r2_from=None, r2_until=None, r2_dbl="120", r2_patch=None):
+    def f(q, x, r):
+        r["received_at"] = r1_date
+        r2 = copy.deepcopy(r); r2["id"] = "R2"; r2["occupancy_rates"]["DBL"] = r2_dbl
+        if r2_date is None: r2.pop("received_at")
+        else: r2["received_at"] = r2_date
+        if r2_from: r2["stay_from"] = r2_from
+        if r2_until: r2["stay_until_exclusive"] = r2_until
+        if r2_patch: r2_patch(r2)
+        x["rates"].append(r2)
+    return f
+add("V22-G05", "solape: la fila mas reciente manda (R2 nueva DBL 120 sobre R1 vieja) = 240", ov("2026-09-01T09:00:00Z", "2026-10-01T09:00:00Z"), OKT("240.00", superseded_rates=[{"row_id": "R2", "supersedes": ["R1"]}]))
+add("V22-G06", "manda la mas reciente aunque sea la mas larga (R1 larga nueva gana a R2 corta vieja) = 200", ov("2026-10-01T09:00:00Z", "2026-09-01T09:00:00Z", "2027-03-27", "2027-03-30"), OKT("200.00", superseded_rates=[{"row_id": "R1", "supersedes": ["R2"]}]))
+add("V22-G07", "empate exacto de instante de ingesta => Consultar", ov("2026-10-01T09:00:00Z", "2026-10-01T09:00:00Z"), INC("RATE_AMBIGUOUS"))
+add("V22-G08", "una de las filas sin received_at => Consultar", ov("2026-10-01T09:00:00Z", None), INC("RATE_AMBIGUOUS"))
+def unv(r2): r2["verification_status"] = "PENDING"
+add("V22-G09", "fila mas reciente NO verificada no desplaza a la vigente anterior = 200", ov("2026-09-01T09:00:00Z", "2026-10-01T09:00:00Z", r2_patch=unv), OKT("200.00", superseded_rates=None))
+def ina(r2): r2["is_active"] = False
+add("V22-G10", "fila mas reciente inactiva no desplaza a la vigente anterior = 200", ov("2026-09-01T09:00:00Z", "2026-10-01T09:00:00Z", r2_patch=ina), OKT("200.00", superseded_rates=None))
+def plc(r2): r2["placeholder"] = True
+add("V22-G11", "fila mas reciente placeholder no desplaza = 200", ov("2026-09-01T09:00:00Z", "2026-10-01T09:00:00Z", r2_patch=plc), OKT("200.00", superseded_rates=None))
+def both_bad(r2): r2["is_active"] = False
+add("V22-G12", "solape sin ninguna fila vigente => error de la primera (inactiva)", lambda q, x, r: (r.update(is_active=False, received_at="2026-09-01T09:00:00Z"), ov("2026-09-01T09:00:00Z", "2026-10-01T09:00:00Z", r2_patch=both_bad)(q, x, r)), INC("RATE_NOT_ACTIVE"))
+add("V22-G13", "received_at invalida", lambda q, x, r: r.update(received_at="2026-13-40T00:00:00Z"), INV)
+add("V22-G14", "fila unica con received_at: sin nota de reemplazo", lambda q, x, r: r.update(received_at="2026-10-01T09:00:00Z"), OKT("200.00", superseded_rates=None))
+add("V22-G15", "mismo dia, hora distinta: manda la ingesta mas tardia (R2 15:00 sobre R1 09:00) = 240", ov("2026-10-01T09:00:00Z", "2026-10-01T15:00:00Z"), OKT("240.00", superseded_rates=[{"row_id": "R2", "supersedes": ["R1"]}]))
+add("V22-G16", "mismo dia, la fila vieja de hora tardia gana a la nueva de hora temprana (R1 15:00 sobre R2 09:00) = 200", ov("2026-10-01T15:00:00Z", "2026-10-01T09:00:00Z"), OKT("200.00", superseded_rates=[{"row_id": "R1", "supersedes": ["R2"]}]))
+add("V22-G17", "diferencia de un segundo decide (R2 +1s) = 240", ov("2026-10-01T09:00:00Z", "2026-10-01T09:00:01Z"), OKT("240.00", superseded_rates=[{"row_id": "R2", "supersedes": ["R1"]}]))
+add("V22-G18", "received_on (solo fecha) ya no ordena: dos filas con fecha y sin instante => Consultar", lambda q, x, r: (r.update(received_on="2026-09-01"), x["rates"].append(dict(copy.deepcopy(r), id="R2", received_on="2026-10-01"))), INC("RATE_AMBIGUOUS"))
+add("V22-G19", "received_at sin zona (no UTC) es invalido", lambda q, x, r: r.update(received_at="2026-10-01T09:00:00"), INV)
+add("V22-G20", "misma hora en distinta notacion de fraccion es empate => Consultar", ov("2026-10-01T09:00:00Z", "2026-10-01T09:00:00.000Z"), INC("RATE_AMBIGUOUS"))
+# ---- moneda del monto fijo: la dicta la fila, no el sistema (decision del Director 23-Oct 11:39)
+def dop_fixed(q, x, r):
+    q["payment_currency"] = "DOP"; room(q, child_ages=[5])
+    r["currency"] = "DOP"; r["occupancy_rates"] = {"SGL": "9000", "DBL": "6000", "TPL": "5400"}
+    band(r, "CHILD", price={"mode": "FIXED_AMOUNT", "value": "2000"}); x["fx"] = []
+add("V22-J01", "monto fijo de nino en DOP en fila DOP, pago DOP, sin FX: 2x6000 + 2000 = 14000", dop_fixed, OKT("14000.00"))
+def dop_fixed_usd(q, x, r):
+    dop_fixed(q, x, r); q["payment_currency"] = "USD"; x["fx"] = []
+add("V22-J02", "fila DOP pagada en USD sin FX => Consultar (no se usa tasa propia)", dop_fixed_usd, INC("FX_MISSING"))
+
+# ---- H. Procedencia y mapeo (sin cambios de politica respecto de v2.1)
+add("V22-H01", "tarifa de otro hotel", lambda q, x, r: r.update(hotel_id="OTHER"), INC("ROOM_MAPPING_UNRESOLVED"))
+add("V22-H02", "tarifa de otro proveedor", lambda q, x, r: r.update(provider_id="OTHER"), INC("ROOM_MAPPING_UNRESOLVED"))
+add("V22-H03", "habitacion sin mapeo", lambda q, x, r: room(q, room_type_id="UNMAPPED"), INC("ROOM_MAPPING_UNRESOLVED"))
+add("V22-H04", "placeholder", lambda q, x, r: r.update(placeholder=True), INC("PLACEHOLDER_RATE"))
+add("V22-H05", "inactiva", lambda q, x, r: r.update(is_active=False), INC("RATE_NOT_ACTIVE"))
+add("V22-H06", "verificacion ausente", lambda q, x, r: r.pop("verification_status"), INC("VERIFICATION_MISSING"))
+add("V22-H07", "verificacion PENDING", lambda q, x, r: r.update(verification_status="PENDING"), INC("RATE_ORIGIN_NOT_VERIFIED"))
+add("V22-H08", "VERIFIED sin evidencia", lambda q, x, r: r.pop("review_evidence_ref"), INC("RATE_ORIGIN_NOT_VERIFIED"))
+add("V22-H09", "VERIFIED sin documento", lambda q, x, r: r.pop("source_document_id"), INC("RATE_ORIGIN_NOT_VERIFIED"))
+add("V22-H10", "unidad ROOM_NIGHT no soportada en v2.2", lambda q, x, r: r.update(unit="ROOM_NIGHT"), INC("UNIT_NOT_SUPPORTED_V2_2"))
+add("V22-H11", "unidad vacia", lambda q, x, r: r.update(unit=""), INC("UNIT_UNDEFINED"))
+add("V22-H12", "unidad nula", lambda q, x, r: r.update(unit=None), INC("UNIT_UNDEFINED"))
+add("V22-H13", "contexto con schema v2 (no retrocompatible)", lambda q, x, r: x.update(schema_version="CORE1-PRICE-CONTEXT-v2"), INV)
+add("V22-H14", "contexto sin schema_version", lambda q, x, r: x.pop("schema_version"), INV)
+add("V22-H15", "sin adultos", lambda q, x, r: room(q, adults=0), INV)
+add("V22-H16", "sin habitaciones", lambda q, x, r: q.update(rooms=[]), INV)
+add("V22-H17", "fecha invalida", lambda q, x, r: q.update(check_in="2027-02-30"), INV)
+add("V22-H18", "salida igual a entrada", lambda q, x, r: q.update(check_out=q["check_in"]), {"calculation_status": "INVALID"})
+add("V22-H19", "moneda de pago invalida", lambda q, x, r: q.update(payment_currency="EUR"), INV)
+add("V22-H20", "hotel_id ausente", lambda q, x, r: q.pop("hotel_id"), INV)
+add("V22-H21", "accepted_payment_currencies ausente", lambda q, x, r: x.pop("accepted_payment_currencies"), INV)
+add("V22-H22", "deposit_policy ausente", lambda q, x, r: x.pop("deposit_policy"), INV)
+
+# ---- I. Moneda, tasa, minimo de grupo (heredado de v2.1)
+add("V22-I01", "pago en DOP con FX 62 = 12400", lambda q, x, r: q.update(payment_currency="DOP"), OKT("12400.00"))
+add("V22-I02", "DOP sin FX => Consultar", lambda q, x, r: (q.update(payment_currency="DOP"), x.update(fx=[])), INC("FX_MISSING"))
+add("V22-I03", "FX sin aprobador", lambda q, x, r: (q.update(payment_currency="DOP"), x["fx"][0].pop("approved_by_ref")), INC("FX_UNAPPROVED"))
+add("V22-I04", "FX vencida", lambda q, x, r: (q.update(payment_currency="DOP"), x["fx"][0].update(effective_until_exclusive="2026-10-23T06:00:00Z")), INC("FX_EXPIRED"))
+add("V22-I05", "FX ventana > 24h", lambda q, x, r: (q.update(payment_currency="DOP"), x["fx"][0].update(effective_from="2026-10-22T00:00:00Z", effective_until_exclusive="2026-10-24T00:00:00Z")), INC("FX_WINDOW_TOO_LONG"))
+add("V22-I06", "minimo de grupo no cumplido avisa y no permite solicitar reserva", lambda q, x, r: r.update(group_min_rooms=2),
+    OKT("200.00", warnings=["GROUP_MINIMUM_NOT_MET"], may_request_booking=False))
+def dep(q, x, r): x["deposit_policy"] = {"type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN", "percentage": "0.30", "minimum_per_room": {"amount": "100", "currency": "USD"}}
+add("V22-I07", "deposito: max(30% de 200 = 60, minimo 100) = 100", dep, OKT("200.00", deposit_preview="100.00"))
+
+# ---- K. v2.2.3: la rama NET / base desconocida conserva notas, fuentes, supersesion y base (OBS-208 V11-R1)
+def net_full(q, x, r):
+    r.update(price_basis="NET_PROVIDER", condition_notes=[{"id": "C1", "text": "Nino a 35 hasta 01-Oct", "expires_on": "2026-10-01"}],
+             mandatory_supplements=[{"obligation_id": "OB-GALA", "date": "2027-03-28", "adult_amount": "10.00"}])
+add("V22-K01", "NET con condicion vencida y suplemento: sin precio cliente pero conserva condicion, nota, fuente y base", net_full,
+    {"calculation_status": "SOURCE_SUBTOTAL_ONLY", "payment_total": None, "source_subtotal": "200.00", "client_price_exposable": False,
+     "warnings": ["NET_BASIS_NOT_CLIENT_PRICE", "CONDITION_EXPIRED_CONFIRM_WITH_PROVIDER"],
+     "conditions": [{"row_id": "R1", "id": "C1", "text": "Nino a 35 hasta 01-Oct", "expires_on": "2026-10-01", "status": "VENCIDA", "review_required": True}],
+     "supplement_notes": [{"obligation_id": "OB-GALA", "date": "2027-03-28", "note_only": True}],
+     "sources_used": [{"row_id": "R1", "revision": 1, "source_document_id": "SYNTH-DOC", "review_evidence_ref": "SYNTH-REVIEW", "price_basis": "NET_PROVIDER", "taxes_included": True}]})
+def net_soon(q, x, r):
+    r.update(price_basis="NET_PROVIDER", condition_notes=[{"id": "C1", "text": "x", "expires_on": "2026-11-01"}]); x["policy"] = {"review_notice_days": 14}
+add("V22-K02", "NET con condicion por vencer conserva el estado POR_VENCER", net_soon,
+    {"calculation_status": "SOURCE_SUBTOTAL_ONLY", "payment_total": None, "conditions": [{"row_id": "R1", "id": "C1", "text": "x", "expires_on": "2026-11-01", "status": "POR_VENCER", "review_required": True}],
+     "warnings": ["NET_BASIS_NOT_CLIENT_PRICE", "CONDITION_EXPIRING_CONFIRM_WITH_PROVIDER"]})
+def net_overlap(q, x, r):
+    r.update(price_basis="NET_PROVIDER", received_at="2026-09-01T09:00:00Z")
+    r2 = copy.deepcopy(r); r2["id"] = "R2"; r2["received_at"] = "2026-10-01T09:00:00Z"; r2["occupancy_rates"]["DBL"] = "120"; x["rates"].append(r2)
+add("V22-K03", "NET con solape: conserva la supersesion (R2 sobre R1) y el subtotal de la fila vigente", net_overlap,
+    {"calculation_status": "SOURCE_SUBTOTAL_ONLY", "payment_total": None, "source_subtotal": "240.00", "superseded_rates": [{"row_id": "R2", "supersedes": ["R1"]}]})
+add("V22-K04", "CLIENT_FINAL declara su base en sources_used", lambda q, x, r: None,
+    OKT("200.00", sources_used=[{"row_id": "R1", "revision": 1, "source_document_id": "SYNTH-DOC", "review_evidence_ref": "SYNTH-REVIEW", "price_basis": "CLIENT_FINAL", "taxes_included": True}]))
+add("V22-K05", "base desconocida: sin precio cliente y la base desconocida queda declarada", lambda q, x, r: r.update(price_basis="DESCONOCIDA"),
+    {"calculation_status": "SOURCE_SUBTOTAL_ONLY", "payment_total": None, "warnings": ["NET_BASIS_NOT_CLIENT_PRICE"],
+     "sources_used": [{"row_id": "R1", "revision": 1, "source_document_id": "SYNTH-DOC", "review_evidence_ref": "SYNTH-REVIEW", "price_basis": "DESCONOCIDA", "taxes_included": True}]})
+
+d = {"schema_version": "CORE1-BASE-PRICE-REGRESSION-v2.2.3-ATLAS-TECH", "status": "SPECIFIED_NOT_EXECUTED_AGAINST_SQL",
+     "synthetic": True, "scope": "Model-level oracle vectors; SQL not executed. Cifras 100/150/50% del ejemplo del Director; resto inventado.",
+     "cases": cases}
+json.dump(d, open(OUT, "w"), indent=1, ensure_ascii=False)
+print(len(cases))

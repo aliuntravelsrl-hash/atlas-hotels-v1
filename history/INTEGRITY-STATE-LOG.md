@@ -59,3 +59,9 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Pruebas (offline):** adaptador v1.1 servidor 30/30 y cliente 24/24 simulados; runner con 21 comprobaciones propias; v2.2.2 115/115, v2.2.1 107/107, v2.2 97/97; `npm test` sin cambios. Sin SQL, Supabase, red, audit:live ni apps.
 * **Estado:** candidato, NO adoptado, NO desplegado; custodia no transferida; kernel v1 sin cambios. Autor: ATLAS-TECH (AP-03). Pendiente de revisión del Curator.
 
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-208 / §259 / STATE106 — motor v2.2.3 y adaptador v1.1.1 (candidatos, inertes)
+* **Hallazgos atendidos (V11-R1…R5):** NET perdía metadatos; deriva de tasa por fila fuera de fechas; `child_ages={}` aceptado; subtotal rotulado como monto proveedor sin base acreditada; esquema DTO no cerrado en anidados.
+* **Versiones nuevas (nada publicado se editó):** `versions/v2.2.3` (120 vectores) y `versions/consumer-adapter-v1.1.1` (43 servidor + 27 cliente, simulados). v2.2.2 y adaptador v1.1 se conservan como históricos; v1, v2.1, adaptador v1, kernel v1 y etiquetas sin cambios.
+* **Documentación:** K3 ahora "tasa por selección, solo si se usa"; diseño del kernel §4/§5 con "dictamen técnico del Curator + convocatoria del Director"; mapa de versiones, README y manual §5 actualizados (30 comprobaciones del runner: 28 negativas + reproducción + control).
+* **Estado:** candidatos, NO adoptados, NO desplegados; sin SQL, sin acto de custodia firmado, sin tag, sin implementación de kernel. A/B §253 y F-SEC-01 siguen abiertos; la custodia es un acto independiente que requiere decisión del DG.
+

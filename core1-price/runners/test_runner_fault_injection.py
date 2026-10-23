@@ -34,7 +34,7 @@ def record(name, ok, detail=""):
 def fresh_root():
     t = tempfile.mkdtemp(prefix="core1-fault-")
     os.makedirs(os.path.join(t, "versions"))
-    for d in ("v2.2.2", "v2.2.1", "v2.2", "v2.1", "consumer-adapter-v1", "consumer-adapter-v1.1"):
+    for d in ("v2.2.2", "v2.2.1", "v2.2", "v2.1", "consumer-adapter-v1", "consumer-adapter-v1.1", "consumer-adapter-v1.1.1", "v2.2.3"):
         shutil.copytree(os.path.join(ROOT, "versions", d), os.path.join(t, "versions", d))
     return t
 
@@ -67,7 +67,7 @@ record("EVIDENCIA VLT-01: 'python | tail -1' devuelve 0 aunque python salga con 
 
 # 1. Control positivo: layout intacto => el runner debe pasar
 root = fresh_root()
-probs = R.check_models(root) + R.check_adapter(root) + R.check_adapter11(root)
+probs = R.check_models(root) + R.check_adapter(root) + R.check_adapter11(root) + R.check_adapter111(root)
 shutil.rmtree(root, ignore_errors=True)
 record("CONTROL: layout intacto pasa", not probs, "; ".join(probs))
 
@@ -192,6 +192,52 @@ root = fresh_root()
 shutil.rmtree(os.path.join(root, "versions", "v2.2.2"))
 expect_detected("adapter v1.1: falta el motor v2.2.2 en el layout", root, R.check_adapter11)
 
+# 20-28. Adapter v1.1.1 (OBS-208): each injected fault must be detected
+def a111(root, rel):
+    return os.path.join(root, "versions", "consumer-adapter-v1.1.1", *rel.split("/"))
+
+def mutate(path, old, new_):
+    t = open(path).read(); assert old in t, "mutation target missing: " + old[:50]
+    open(path, "w").write(t.replace(old, new_, 1))
+
+root = fresh_root()
+mutate(a111(root, "server/consumer_server_sim.py.inert"), "if b[\"drift\"] and _conversion_applies(result, req, b[\"ctx\"]):", "if b[\"drift\"]:")
+expect_detected("adapter v1.1.1: FX_DRIFT sin conversión real (regresión V11-R2) se detecta", root, R.check_adapter111)
+
+root = fresh_root()
+mutate(a111(root, "server/consumer_server_sim.py.inert"), 'if "child_ages" not in r: return reject("AGE_INVALID")', 'if "child_ages" not in r: r["child_ages"] = []')
+expect_detected("adapter v1.1.1: child_ages ausente normalizado a [] (regresión V11-R3) se detecta", root, R.check_adapter111)
+
+root = fresh_root()
+mutate(a111(root, "server/consumer_server_sim.py.inert"), '"ACCREDITED" if basis_status == "NET_PROVIDER" else', '"ACCREDITED" if basis_status in ("NET_PROVIDER", "CLIENT_FINAL") else')
+expect_detected("adapter v1.1.1: base CLIENT_FINAL acreditada como monto proveedor (regresión V11-R4) se detecta", root, R.check_adapter111)
+
+root = fresh_root()
+sp = a111(root, "CORE1-PRICE-PUBLIC-DTO-v1.1.1.schema.json.inert")
+d_ = json.load(open(sp)); d_["oneOf"][0]["properties"]["price"]["additionalProperties"] = True
+json.dump(d_, open(sp, "w"))
+expect_detected("adapter v1.1.1: esquema abierto en objeto anidado (regresión V11-R5) se detecta", root, R.check_adapter111)
+
+root = fresh_root()
+mutate(os.path.join(root, "versions", "v2.2.3", "core1_reference_model_v2_2_3.py.inert"), "            if notes:\n                base[\"supplement_notes\"] = notes", "            if False:\n                base[\"supplement_notes\"] = notes")
+expect_detected("modelo v2.2.3: rama NET pierde notas de suplemento (regresión V11-R1) se detecta", root, lambda r: R.check_models(r, models=[m for m in R.MODELS if m[0] == "v2.2.3"]) + R.check_adapter111(r))
+
+root = fresh_root()
+os.remove(a111(root, "tests/run_server_scenarios.py.inert"))
+expect_detected("adapter v1.1.1: falta el script de servidor", root, R.check_adapter111)
+
+root = fresh_root()
+open(a111(root, "tests/run_client_tests.mjs.inert"), "w").write("console.log('CLIENT TESTS v1.1.1 (simulated DTOs): 27/27 PASS; failing=[]');\nprocess.exit(3);\n")
+expect_detected("adapter v1.1.1: cliente sale con 3 pese al resumen", root, R.check_adapter111)
+
+root = fresh_root()
+shutil.rmtree(os.path.join(root, "versions", "v2.2.3"))
+expect_detected("adapter v1.1.1: falta el motor v2.2.3 en el layout", root, R.check_adapter111)
+
+root = fresh_root()
+mutate(a111(root, "tests/run_server_scenarios.py.inert"), "EXPECTED = 43", "EXPECTED = 42")
+expect_detected("adapter v1.1.1: conteo esperado alterado (43 -> 42) se detecta", root, R.check_adapter111)
+
 bad = [r for r in results if not r[1]]
-print(f"\nINYECCIÓN DE FALLOS: {len(results) - len(bad)}/{len(results)} comportamientos esperados (19 negativos + reproducción del defecto + control positivo)")
+print(f"\nINYECCIÓN DE FALLOS: {len(results) - len(bad)}/{len(results)} comportamientos esperados (28 negativos + reproducción del defecto + control positivo)")
 sys.exit(1 if bad else 0)

@@ -21,7 +21,7 @@
 |---|---|---|
 | K1 capacidad | `||2 / ||0` | `AUSENTE` ⇒ habitación no reservable (B = Consultar) |
 | K2 precio heredado | usa precio base del hotel | sin precio propio ⇒ sin precio |
-| K3 tasa 1.0 / 60.25 | convierte con 1.0 | sin tasa vigente ⇒ DOP "Consultar" |
+| K3 tasa 1.0 / 60.25 | convierte con 1.0 | la tasa se exige **por selección**, solo cuando hay conversión real o un mínimo/depósito aplicable en otra divisa; sin tasa vigente en ese caso ⇒ "Consultar" en la otra divisa. Filas fuera de fechas, inactivas, sustituidas o de otro plan **no** crean dependencia de tasa |
 | K4 margen 15 % | por defecto | fuera del kernel, o dato declarado con origen |
 | K5/K6 estrellas, horarios, cancelación | rellenados | `AUSENTE` visible |
 | K7/K8 P3/P2 | pasa con un precio / nombre+adultos | exige perfil de ocupación, edades, vigencia, origen |
@@ -43,8 +43,8 @@
 | T9 | Auditoría en vivo | **no** forma parte de `npm test` |
 | T10 | Regresión de kernel v1 | los 7 pilares y sus pruebas de v1 siguen pasando sobre su copia congelada |
 
-## 4. Plan de implementación (requiere decisión del Curador; nada ejecutado)
+## 4. Plan de implementación (requiere dictamen técnico del Curator + convocatoria del Director; nada ejecutado)
 Carpeta `kernel-v2/` nueva (sin tocar `kernel/`), entrada de bitácora, manual §4 actualizado, `npm test` 100 % + pruebas nuevas, tag de v1 antes de empezar. Sin conexión a Supabase en pruebas.
 
 ## 5. Cerrado por OBS-207 / pendiente
-Margen fuera del kernel (cerrado). Habilitación: el kernel propone, la autoridad operativa del servidor verifica (cerrado). Nombre y ubicación de tablas físicas (`rooms`/`rates` vs `hotel_rooms`/`hotel_rates` vs nuevas): abiertos hasta la decisión A/B §253. La implementación futura va aislada en `kernel-v2/` con v1 congelada, tag v1 previo (solo propuesto), bitácora, manual y negativos, y requiere nueva convocatoria del Director; el diseño offline no espera a Antigravity.
+Margen fuera del kernel (cerrado). Habilitación: el kernel propone, la autoridad operativa del servidor verifica (cerrado). Nombre y ubicación de tablas físicas (`rooms`/`rates` vs `hotel_rooms`/`hotel_rates` vs nuevas): abiertos hasta la decisión A/B §253. La implementación futura va aislada en `kernel-v2/` con v1 congelada, tag v1 previo (solo propuesto), bitácora, manual y negativos, y requiere dictamen técnico del Curator y nueva convocatoria del Director (la custodia es un acto independiente que también necesita decisión del DG); el diseño offline no espera a Antigravity.
