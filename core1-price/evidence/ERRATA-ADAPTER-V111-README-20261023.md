@@ -1,0 +1,2 @@
+# Addendum de errata — README de consumer-adapter-v1.1.1 (no se altera el paquete)
+En la sección «Contenido» del README del paquete (commit `ded02ded9065c8b6a9cf0cca9d8f60ee5c1cca70`), la frase «`tests/run_client_tests.mjs.inert` (24 pruebas)» es **errata**: son **27 pruebas de cliente** (C01–C27). Servidor: 43 escenarios (S01–S43). Los conteos correctos están en la sección «Cómo se prueba» y en el runner (`check_adapter111`: 43/43 y 27/27). Sin cambio de lógica.

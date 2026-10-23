@@ -1,0 +1,103 @@
+--- ../core1-price-v2/core1_reference_model_v2.py.inert	2026-10-23 11:28:51.410536785 +0000
++++ core1_reference_model_v2_1.py.inert	2026-10-23 11:43:17.163288088 +0000
+@@ -23,6 +23,7 @@
+ from math import ceil, floor
+ 
+ MAX_TOTAL = Fraction(10 ** 9)
++FX_MAX_HOURS = 24  # FX-POLICY-v1: hard cap, aligned with DDL CHECK; policy may only tighten, never widen
+ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+ TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$")
+ NUM_RE = re.compile(r"^\d+(\.\d+)?$")
+@@ -85,6 +86,11 @@
+     return f"{cents // 100}.{cents % 100:02d}"
+ 
+ 
++def d4(x):
++    cents = floor(x * 10000 + Fraction(1, 2))
++    return f"{cents // 10000}.{cents % 10000:04d}"
++
++
+ def nights(ci, co):
+     d = ci
+     while d < co:
+@@ -223,7 +229,8 @@
+         may = True
+         all_night_units = True
+         exposable = True
+-        for room in rooms:
++        sup_charges, sup_shown = [], Fraction(0)
++        for ridx, room in enumerate(rooms):
+             cand = [r for r in ctx["rates"]
+                     if r["hotel_id"] == req["hotel_id"] and r["provider_id"] == req["provider_id"]
+                     and r["room_type_id"] == room["room_type_id"]
+@@ -303,7 +310,9 @@
+                     if s.get("applicability") not in ("NIGHT_IN_STAY_EXPLICIT", "UNKNOWN"):
+                         raise Stop("SUPPLEMENT_RULE_UNVERIFIED", partial=exact + rtotal)
+                     d = pdate(s.get("date"))
+-                    key = (s["date"], s["unit"])
++                    if not s.get("obligation_id"):
++                        raise Stop("SUPPLEMENT_RULE_UNVERIFIED", partial=exact + rtotal)
++                    key = (s["obligation_id"], s["date"], s["unit"])
+                     sig = (s["applicability"], s.get("adult_amount"), s.get("child_amount"), json.dumps(s.get("child_age_rule"), sort_keys=True))
+                     if key in seen and seen[key] != sig:
+                         raise Stop("SUPPLEMENT_RULE_UNVERIFIED", partial=exact + rtotal)
+@@ -326,6 +335,8 @@
+                                 raise Stop("SUPPLEMENT_RULE_UNVERIFIED", partial=exact + rtotal)
+                         amt += num(s["child_amount"]) * len(ages)
+                     rtotal += amt
++                    sup_charges.append({"obligation_id": s["obligation_id"], "date": s["date"], "room_index": ridx, "amount": dfmt(q2_half_up(amt))})
++                    sup_shown += q2_half_up(amt)
+             exact += rtotal
+             for r in used.values():
+                 if r.get("price_basis") != "CLIENT_FINAL" or r.get("taxes_included") is not True:
+@@ -359,7 +370,11 @@
+             fx_all = [f for f in ctx.get("fx", []) if f.get("pair") == "USD_DOP"]
+             if not fx_all:
+                 raise Stop("FX_MISSING")
+-            max_h = int((ctx.get("policy") or {}).get("max_fx_window_hours", 24))
++            pol = ctx.get("policy") or {}
++            mh = pol.get("max_fx_window_hours", FX_MAX_HOURS)
++            if isinstance(mh, bool) or not isinstance(mh, int) or not 1 <= mh <= FX_MAX_HOURS:
++                bad()
++            max_h = mh
+             inwin, future = [], False
+             for f in fx_all:
+                 ef, eu = pts(f["effective_from"]), pts(f["effective_until_exclusive"])
+@@ -376,7 +391,7 @@
+                     pos = False
+                 if not pos or f.get("direction") != "DOP_PER_USD":
+                     raise Stop("FX_INVALID")
+-                if not f.get("approved_by_ref") or not f.get("source_ref"):
++                if not f.get("approved_by_ref") or not f.get("source_ref") or not f.get("source_version"):
+                     raise Stop("FX_UNAPPROVED")
+                 if eu - ef > timedelta(hours=max_h):
+                     raise Stop("FX_WINDOW_TOO_LONG")
+@@ -416,10 +431,13 @@
+             out["may_request_booking"] = may
+         if all_night_units:
+             shown = [q2_half_up(v) for _, v in sorted(nightly.items())]
+-            adj = src_total - sum(shown)
+-            if adj != 0:
+-                out["exact_source_total"] = f"{float(exact):.4f}"
++            adj = src_total - sum(shown) - sup_shown
++            if sup_charges:
++                out["supplement_charges"] = sup_charges
++            if adj != 0 or sup_charges:
++                out["exact_source_total"] = d4(exact)
+                 out["displayed_nightly_amounts"] = [dfmt(x) for x in shown]
++            if adj != 0:
+                 out["rounding_adjustment"] = ("-" if adj < 0 else "") + dfmt(abs(adj))
+     except Stop as e:
+         out.update({"calculation_status": e.status, "commercial_use": "NO_COMPLETE_QUOTE", "payment_total": None,
+@@ -444,9 +462,11 @@
+         r.setdefault("price_basis", "CLIENT_FINAL")
+         for s in r.get("mandatory_supplements", []):
+             s.setdefault("child_age_rule", {"from_inclusive": 0, "to_exclusive": 18})
++            s.setdefault("obligation_id", "FIXTURE_ONLY-" + str(s.get("date")))
+     for f in cx.get("fx", []):
+         f.setdefault("approved_by_ref", "FIXTURE_ONLY")
+         f.setdefault("source_ref", "FIXTURE_ONLY")
++        f.setdefault("source_version", "FIXTURE_ONLY")
+     if "provider_id" not in c["request"]:
+         c["request"]["provider_id"] = "SYNTH-PROVIDER"
+     return c

@@ -1,0 +1,519 @@
+{
+ "note": "SIMULATED outputs of the reference model, not SQL/RPC",
+ "state_now": "2026-10-23T12:00:00Z",
+ "dtos": {
+  "base": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "fingerprint": "e4206433f85cbade22d2dd44",
+   "status": "PRICE_REFERENCE",
+   "reason": null,
+   "message_es": "Precio de referencia. No es una reserva ni un cobro.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "valid_until": "2026-10-23T12:15:00Z",
+   "selection": {
+    "hotel_ref": "H-1",
+    "provider_plan_ref": "PP-1",
+    "check_in": "2027-03-29",
+    "check_out": "2027-03-30",
+    "rooms": [
+     {
+      "room_ref": "R-A",
+      "adults": 2,
+      "child_count": 0
+     }
+    ]
+   },
+   "price": {
+    "total": {
+     "amount": "200.00",
+     "currency": "USD"
+    },
+    "unit": "STAY_TOTAL",
+    "nights": 1,
+    "derived_average_per_night": {
+     "amount": "200.00",
+     "currency": "USD",
+     "is_rate": false
+    }
+   },
+   "deposit_preview": {
+    "amount": "60.00",
+    "currency": "USD",
+    "is_preview": true
+   },
+   "conditions": [],
+   "may_request_booking": true,
+   "channel": {
+    "mode": "NONE",
+    "status": "PENDING_NOT_ACCREDITED"
+   },
+   "collection_allowed": false
+  },
+  "A01_room_other_hotel": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "REQUEST_INVALID",
+   "reason": "SELECTION_INVALID",
+   "message_es": "La selección no es válida.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A02_ages_unconfirmed": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "REQUEST_INVALID",
+   "reason": "AGES_NOT_CONFIRMED",
+   "message_es": "Confirme las edades de los niños.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A02_ages_confirmed": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "fingerprint": "42d4e06ebbcf196e06dbb201",
+   "status": "PRICE_REFERENCE",
+   "reason": null,
+   "message_es": "Precio de referencia. No es una reserva ni un cobro.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "valid_until": "2026-10-23T12:15:00Z",
+   "selection": {
+    "hotel_ref": "H-1",
+    "provider_plan_ref": "PP-1",
+    "check_in": "2027-03-29",
+    "check_out": "2027-03-30",
+    "rooms": [
+     {
+      "room_ref": "R-A",
+      "adults": 2,
+      "child_count": 1
+     }
+    ]
+   },
+   "price": {
+    "total": {
+     "amount": "255.00",
+     "currency": "USD"
+    },
+    "unit": "STAY_TOTAL",
+    "nights": 1,
+    "derived_average_per_night": {
+     "amount": "255.00",
+     "currency": "USD",
+     "is_rate": false
+    }
+   },
+   "deposit_preview": {
+    "amount": "76.50",
+    "currency": "USD",
+    "is_preview": true
+   },
+   "conditions": [],
+   "may_request_booking": true,
+   "channel": {
+    "mode": "NONE",
+    "status": "PENDING_NOT_ACCREDITED"
+   },
+   "collection_allowed": false
+  },
+  "A03_fx_missing": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "CONSULT",
+   "reason": "CURRENCY_CONVERSION_UNAVAILABLE",
+   "message_es": "No hay conversión de moneda vigente.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A03_fx_expired": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "CONSULT",
+   "reason": "CURRENCY_CONVERSION_UNAVAILABLE",
+   "message_es": "No hay conversión de moneda vigente.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A03_fx_ambiguous": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "CONSULT",
+   "reason": "CURRENCY_CONVERSION_UNAVAILABLE",
+   "message_es": "No hay conversión de moneda vigente.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A03_fx_drift": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "CONSULT",
+   "reason": "FX_DRIFT",
+   "message_es": "No hay conversión de moneda vigente.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A03_fx_ok_dop": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "fingerprint": "92a9836601479680b66b4b75",
+   "status": "PRICE_REFERENCE",
+   "reason": null,
+   "message_es": "Precio de referencia. No es una reserva ni un cobro.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "valid_until": "2026-10-23T12:15:00Z",
+   "selection": {
+    "hotel_ref": "H-1",
+    "provider_plan_ref": "PP-1",
+    "check_in": "2027-03-29",
+    "check_out": "2027-03-30",
+    "rooms": [
+     {
+      "room_ref": "R-A",
+      "adults": 2,
+      "child_count": 0
+     }
+    ]
+   },
+   "price": {
+    "total": {
+     "amount": "12400.00",
+     "currency": "DOP"
+    },
+    "unit": "STAY_TOTAL",
+    "nights": 1,
+    "derived_average_per_night": {
+     "amount": "12400.00",
+     "currency": "DOP",
+     "is_rate": false
+    }
+   },
+   "deposit_preview": {
+    "amount": "3720.00",
+    "currency": "DOP",
+    "is_preview": true
+   },
+   "conditions": [],
+   "may_request_booking": true,
+   "channel": {
+    "mode": "NONE",
+    "status": "PENDING_NOT_ACCREDITED"
+   },
+   "collection_allowed": false
+  },
+  "A04_net": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "CONSULT",
+   "reason": "PENDING_REVIEW",
+   "message_es": "Tarifa en revisión; consulte.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A04_taxes_unknown": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "CONSULT",
+   "reason": "PENDING_REVIEW",
+   "message_es": "Tarifa en revisión; consulte.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A05_rpc_fail": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "CONSULT",
+   "reason": "PRICE_UNAVAILABLE",
+   "message_es": "Precio no disponible por ahora; consulte.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A10_requote_after_expiry": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-2",
+   "fingerprint": "e4206433f85cbade22d2dd44",
+   "status": "PRICE_REFERENCE",
+   "reason": null,
+   "message_es": "Precio de referencia. No es una reserva ni un cobro.",
+   "computed_at": "2026-10-23T12:20:00Z",
+   "valid_until": "2026-10-23T12:35:00Z",
+   "selection": {
+    "hotel_ref": "H-1",
+    "provider_plan_ref": "PP-1",
+    "check_in": "2027-03-29",
+    "check_out": "2027-03-30",
+    "rooms": [
+     {
+      "room_ref": "R-A",
+      "adults": 2,
+      "child_count": 0
+     }
+    ]
+   },
+   "price": {
+    "total": {
+     "amount": "200.00",
+     "currency": "USD"
+    },
+    "unit": "STAY_TOTAL",
+    "nights": 1,
+    "derived_average_per_night": {
+     "amount": "200.00",
+     "currency": "USD",
+     "is_rate": false
+    }
+   },
+   "deposit_preview": {
+    "amount": "60.00",
+    "currency": "USD",
+    "is_preview": true
+   },
+   "conditions": [],
+   "may_request_booking": true,
+   "channel": {
+    "mode": "NONE",
+    "status": "PENDING_NOT_ACCREDITED"
+   },
+   "collection_allowed": false
+  },
+  "A10_requote_after_change": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-3",
+   "fingerprint": "84b28fe64c90bf72b542c6c7",
+   "status": "PRICE_REFERENCE",
+   "reason": null,
+   "message_es": "Precio de referencia. No es una reserva ni un cobro.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "valid_until": "2026-10-23T12:15:00Z",
+   "selection": {
+    "hotel_ref": "H-1",
+    "provider_plan_ref": "PP-1",
+    "check_in": "2027-03-29",
+    "check_out": "2027-03-30",
+    "rooms": [
+     {
+      "room_ref": "R-A",
+      "adults": 2,
+      "child_count": 0
+     }
+    ]
+   },
+   "price": {
+    "total": {
+     "amount": "220.00",
+     "currency": "USD"
+    },
+    "unit": "STAY_TOTAL",
+    "nights": 1,
+    "derived_average_per_night": {
+     "amount": "220.00",
+     "currency": "USD",
+     "is_rate": false
+    }
+   },
+   "deposit_preview": {
+    "amount": "66.00",
+    "currency": "USD",
+    "is_preview": true
+   },
+   "conditions": [],
+   "may_request_booking": true,
+   "channel": {
+    "mode": "NONE",
+    "status": "PENDING_NOT_ACCREDITED"
+   },
+   "collection_allowed": false
+  },
+  "A11_core2_room": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "REQUEST_INVALID",
+   "reason": "PRODUCT_NOT_SUPPORTED",
+   "message_es": "Este producto se cotiza por otro camino.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "A12_paused": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "status": "CONSULT",
+   "reason": "SERVICE_PAUSED",
+   "message_es": "La cotización en línea está en pausa; consulte.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "price": null,
+   "deposit_preview": null,
+   "conditions": [],
+   "channel": null,
+   "collection_allowed": false
+  },
+  "COND_group": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "fingerprint": "c7b261c11b38572c8ccd6170",
+   "status": "PRICE_REFERENCE",
+   "reason": null,
+   "message_es": "Precio de referencia. No es una reserva ni un cobro.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "valid_until": "2026-10-23T12:15:00Z",
+   "selection": {
+    "hotel_ref": "H-1",
+    "provider_plan_ref": "PP-1",
+    "check_in": "2027-03-29",
+    "check_out": "2027-03-30",
+    "rooms": [
+     {
+      "room_ref": "R-A",
+      "adults": 2,
+      "child_count": 0
+     }
+    ]
+   },
+   "price": {
+    "total": {
+     "amount": "200.00",
+     "currency": "USD"
+    },
+    "unit": "STAY_TOTAL",
+    "nights": 1,
+    "derived_average_per_night": {
+     "amount": "200.00",
+     "currency": "USD",
+     "is_rate": false
+    }
+   },
+   "deposit_preview": {
+    "amount": "60.00",
+    "currency": "USD",
+    "is_preview": true
+   },
+   "conditions": [
+    {
+     "code": "GROUP_MINIMUM_NOT_MET",
+     "message_es": "Requiere un mínimo de habitaciones para grupo."
+    }
+   ],
+   "may_request_booking": false,
+   "channel": {
+    "mode": "NONE",
+    "status": "PENDING_NOT_ACCREDITED"
+   },
+   "collection_allowed": false
+  },
+  "SUP_charge": {
+   "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1",
+   "mechanism_version": "core1_price_pure_v2_1",
+   "request_id": "REQ-1",
+   "fingerprint": "0b5748200263afbb626173ee",
+   "status": "PRICE_REFERENCE",
+   "reason": null,
+   "message_es": "Precio de referencia. No es una reserva ni un cobro.",
+   "computed_at": "2026-10-23T12:00:00Z",
+   "valid_until": "2026-10-23T12:15:00Z",
+   "selection": {
+    "hotel_ref": "H-1",
+    "provider_plan_ref": "PP-1",
+    "check_in": "2027-03-29",
+    "check_out": "2027-03-30",
+    "rooms": [
+     {
+      "room_ref": "R-A",
+      "adults": 2,
+      "child_count": 0
+     }
+    ]
+   },
+   "price": {
+    "total": {
+     "amount": "220.00",
+     "currency": "USD"
+    },
+    "unit": "STAY_TOTAL",
+    "nights": 1,
+    "derived_average_per_night": {
+     "amount": "220.00",
+     "currency": "USD",
+     "is_rate": false
+    },
+    "supplement_charges": [
+     {
+      "obligation_id": "OB-A",
+      "date": "2027-03-29",
+      "room_index": 0,
+      "amount": "20.00"
+     }
+    ],
+    "displayed_nightly_amounts": [
+     "200.00"
+    ]
+   },
+   "deposit_preview": {
+    "amount": "66.00",
+    "currency": "USD",
+    "is_preview": true
+   },
+   "conditions": [],
+   "may_request_booking": true,
+   "channel": {
+    "mode": "NONE",
+    "status": "PENDING_NOT_ACCREDITED"
+   },
+   "collection_allowed": false
+  }
+ }
+}

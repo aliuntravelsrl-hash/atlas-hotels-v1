@@ -1,0 +1,90 @@
+--- ../core1-price-v2/04-rollback-v2.sql.inert	2026-10-23 11:31:07.087931136 +0000
++++ 04-rollback-v2_1.sql.inert	2026-10-23 11:45:56.898778227 +0000
+@@ -1,25 +1,62 @@
+--- INERT / NOT APPLIED. ATLAS-TECH · 2026-10-22 · v2 (CS-R8). Rollback BY PHASE with STOP gates. Never touches public.rates/rooms/legacy functions.
+--- Run each phase separately; each begins with a read-only gate. If a gate returns rows, STOP and ask the Director/Curator.
+--- PHASE 0 (read-only gate, run first): objects exist and nobody consumes them
+---   SELECT count(*) FROM public.core1_base_rates;                         -- if > 0: STOP, export batch first (PHASE 1)
+---   SELECT count(*) FROM pg_depend d JOIN pg_proc p ON p.oid=d.objid WHERE d.refobjid = 'public.core1_price_pure_v2(jsonb,jsonb)'::regprocedure; -- must be 0 consumers
+---   (and application-side: grep callers of core1_price_pure_v2 in apps/edge functions = 0; not part of this file)
+--- PHASE 1 (preserve evidence): export core1_source_documents, core1_room_map, core1_base_rates, core1_fx_windows to a restricted file (no PII), record sha256. STOP until stored.
+--- PHASE 2 (functions only; reversible by re-applying 02):
+-BEGIN;
+-DROP FUNCTION IF EXISTS public.core1_price_pure_v2(jsonb, jsonb);
+-DROP FUNCTION IF EXISTS public.core1_child_amount_v2(jsonb, int, jsonb);
+-DROP FUNCTION IF EXISTS public.core1_adult_amount_v2(jsonb, int, int);
+-DROP FUNCTION IF EXISTS public.core1_money_v2(numeric);
+-DROP FUNCTION IF EXISTS public.core1_ts_v2(jsonb);
+-DROP FUNCTION IF EXISTS public.core1_date_v2(jsonb);
+-DROP FUNCTION IF EXISTS public.core1_num_v2(jsonb);
+-DROP FUNCTION IF EXISTS public.core1_stop_v2(text, text);
+-COMMIT;
+--- PHASE 3 (tables; ONLY after PHASE 1 evidence stored and Director authorises; irreversible without the export). Gate again:
+---   SELECT count(*) FROM public.core1_base_rates WHERE is_active;   -- must be 0, else STOP: deactivate through an authorised step, not by DROP
+--- BEGIN;
+--- DROP TABLE IF EXISTS public.core1_base_rates;  DROP TABLE IF EXISTS public.core1_fx_windows;
+--- DROP TABLE IF EXISTS public.core1_room_map;    DROP TABLE IF EXISTS public.core1_source_documents;
+--- COMMIT;   -- kept commented: a human removes the comment marks only after the gates pass.
+--- Fail-closed after rollback: Core 1 shows "price not available - consult"; no 100/0 or 58.50 fallback exists in this path.
++-- INERT / NOT APPLIED. ATLAS-TECH · 2026-10-23 · v2.1 (OBS-203 V2-T6). Rollback by phase with EXECUTABLE gates.
++-- Every destructive step lives INSIDE a DO block that checks its gates first and RAISES, so a failed gate stops the step even if
++-- the client ignores errors (no reliance on psql ON_ERROR_STOP, no commented SELECTs). Gates are not a substitute for human approval.
++-- Helper names core1_num/date/ts/money/stop/adult_amount/child_amount_v2 are SHARED with the (never applied) v2 file: apply v2.1 INSTEAD of v2.
++--
++-- Operator settings (session-level, set by a person before each phase; values are attestations recorded in the evidence report):
++--   SET core1.rollback_appside_callers_zero = 'yes';                      -- caller grep in apps/edge functions = 0 (outside DB, UNK to this file)
++--   SET core1.rollback_export_sha256 = '<64 hex>';                        -- sha256 of the restricted export of the four tables (phase 3)
++--   SET core1.rollback_restore_verified = 'yes';                          -- restore of that export was tested in a disposable DB (phase 3)
++--   SET core1.rollback_director_ack = 'yes';                              -- Director/Curator authorisation (phase 3)
++
++-- PHASE 2: drop functions (re-appliable from 02). Gates: attestation of zero app-side callers; zero DB-side callers; no active rates.
++DO $gate$
++DECLARE v_n bigint;
++BEGIN
++  IF coalesce(current_setting('core1.rollback_appside_callers_zero', true), '') <> 'yes' THEN
++    RAISE EXCEPTION 'ROLLBACK_STOP: app-side caller attestation missing';
++  END IF;
++  SELECT count(*) INTO v_n FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
++   WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND p.proname NOT LIKE 'core1!_%' ESCAPE '!'
++     AND p.prosrc ILIKE '%core1_price_pure_v2%';
++  IF v_n <> 0 THEN RAISE EXCEPTION 'ROLLBACK_STOP: % database function(s) outside core1_* reference the price function', v_n; END IF;
++  IF to_regclass('public.core1_base_rates') IS NOT NULL THEN
++    EXECUTE 'SELECT count(*) FROM public.core1_base_rates WHERE is_active' INTO v_n;
++    IF v_n <> 0 THEN RAISE EXCEPTION 'ROLLBACK_STOP: % active rate(s); deactivate through an authorised step first', v_n; END IF;
++  END IF;
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_price_pure_v2_1(jsonb, jsonb)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_validate_rate_v2(jsonb)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_child_amount_v2(jsonb, int, jsonb)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_adult_amount_v2(jsonb, int, int)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_room_map_mismatches_v2_1()';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_money_v2(numeric)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_ts_v2(jsonb)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_date_v2(jsonb)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_age_v2(jsonb)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_int_v2(jsonb, int)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_num_v2(jsonb)';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_stop_v2(text, text)';
++END $gate$;
++
++-- PHASE 3: drop tables (irreversible without the export). Gates: all phase-2 attestations + export hash + restore test + Director ack + zero active rows.
++-- The trigger function is dropped with its table dependency order handled below.
++DO $gate$
++DECLARE v_n bigint;
++BEGIN
++  IF coalesce(current_setting('core1.rollback_appside_callers_zero', true), '') <> 'yes' THEN RAISE EXCEPTION 'ROLLBACK_STOP: app-side caller attestation missing'; END IF;
++  IF coalesce(current_setting('core1.rollback_export_sha256', true), '') !~ '^[0-9a-f]{64}$' THEN RAISE EXCEPTION 'ROLLBACK_STOP: export sha256 missing or malformed'; END IF;
++  IF coalesce(current_setting('core1.rollback_restore_verified', true), '') <> 'yes' THEN RAISE EXCEPTION 'ROLLBACK_STOP: restore of the export not verified'; END IF;
++  IF coalesce(current_setting('core1.rollback_director_ack', true), '') <> 'yes' THEN RAISE EXCEPTION 'ROLLBACK_STOP: Director/Curator authorisation missing'; END IF;
++  IF to_regclass('public.core1_base_rates') IS NOT NULL THEN
++    EXECUTE 'SELECT count(*) FROM public.core1_base_rates WHERE is_active' INTO v_n;
++    IF v_n <> 0 THEN RAISE EXCEPTION 'ROLLBACK_STOP: % active rate(s)', v_n; END IF;
++  END IF;
++  EXECUTE 'DROP TABLE IF EXISTS public.core1_base_rates';
++  EXECUTE 'DROP TABLE IF EXISTS public.core1_fx_approvals';
++  EXECUTE 'DROP TABLE IF EXISTS public.core1_room_map';
++  EXECUTE 'DROP TABLE IF EXISTS public.core1_source_documents';
++  EXECUTE 'DROP FUNCTION IF EXISTS public.core1_room_map_check_v2_1()';
++END $gate$;
++-- After rollback the behaviour of any CALLER is UNK: no caller guard exists in this package, so nothing here promises that the UI
++-- shows "Consultar". Legacy objects were never changed, so there is nothing to restore there.
++-- Export hygiene: the export is accepted only with its sha256, the file version of this changeset and a tested restore (gate above).

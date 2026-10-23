@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Server-side contract scenarios (SIMULATED engine = reference model v2.1; NOT SQL, NOT RPC, NOT production).
+Writes fixtures/generated-dtos.json consumed by tests/run_client_tests.mjs. Run: python3 -I run_server_scenarios.py"""
+import copy, json, os, sys
+HERE = os.path.dirname(os.path.abspath(__file__))
+src = open(os.path.join(HERE, "..", "server", "consumer_server_sim.py.inert")).read()
+S = type(sys)("S"); S.__file__ = os.path.join(HERE, "..", "server", "consumer_server_sim.py.inert"); exec(compile(src, S.__file__, "exec"), S.__dict__)
+S.HERE = os.path.join(HERE, "..", "server")
+
+def state():
+    rate = {"id": "RATE-1", "revision": "1", "hotel_id": "SYNTH-HOTEL", "provider_id": "SYNTH-PROVIDER", "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24", "stay_until_exclusive": "2027-12-24", "unit": "PERSON_NIGHT", "currency": "USD",
+            "adult_pricing": {"mode": "TIER_PER_ADULT", "tier_by_adult_count": {"1": "150.00", "2": "100.00"}}, "max_adults": 2, "max_children": 2,
+            "child_pricing": {"age_evaluation": "CHECK_IN", "bands": [{"from_inclusive": 0, "to_exclusive": 3, "amount": "0.00", "min_adults": 2}, {"from_inclusive": 3, "to_exclusive": 12, "amount": "55.00", "min_adults": 2}]},
+            "taxes_included": True, "price_basis": "CLIENT_FINAL", "mandatory_supplements": [], "placeholder": False, "is_active": True,
+            "verification_status": "VERIFIED", "review_evidence_ref": "SYNTH-REVIEW", "source_document_id": "SYNTH-DOC"}
+    return {"now": "2026-10-23T12:00:00Z", "consumer_enabled": True, "rpc_fail": False,
+            "policy": {"quote_ttl_minutes": 15, "accepted_payment_currencies": ["USD", "DOP"], "deposit_preview_exposable": True,
+                       "deposit_policy": {"id": "SYNTH-DEFAULT", "revision": "1", "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN", "percentage": "0.30", "minimum_per_room": {"amount": "2000.00", "currency": "DOP"}}},
+            "capabilities": {"assisted_channel_accredited": False},
+            "hotels": {"H-1": {"hotel_id": "SYNTH-HOTEL"}},
+            "provider_plans": {"PP-1": {"hotel_ref": "H-1", "provider_id": "SYNTH-PROVIDER", "plan": None}},
+            "rooms": {"R-A": {"provider_plan_ref": "PP-1", "room_type_id": "SYNTH-ROOM-A", "map_hotel_id": "SYNTH-HOTEL", "room_row_hotel_id": "SYNTH-HOTEL", "product": "CORE1"},
+                      "R-BAD": {"provider_plan_ref": "PP-1", "room_type_id": "SYNTH-ROOM-A", "map_hotel_id": "SYNTH-HOTEL", "room_row_hotel_id": "OTHER-HOTEL", "product": "CORE1"},
+                      "R-CORE2": {"provider_plan_ref": "PP-1", "room_type_id": "SYNTH-ROOM-A", "map_hotel_id": "SYNTH-HOTEL", "room_row_hotel_id": "SYNTH-HOTEL", "product": "CORE2_BLOCK"}},
+            "rates": [rate], "source_document": {"id": "SYNTH-DOC", "signature_status": "UNKNOWN", "signature_required_for_sale": False},
+            "fx_governed": {"EXR-1": {"version": "v7", "rate_sell": "62.00", "direction": "DOP_PER_USD"}},
+            "fx_approvals": [{"id": "APP-1", "pair": "USD_DOP", "exchange_rate_ref": "EXR-1", "source_version": "v7", "rate_observed": "62.00", "active": True,
+                              "effective_from": "2026-10-23T00:00:00Z", "effective_until_exclusive": "2026-10-24T00:00:00Z", "approved_by_ref": "SYNTH-APPROVER", "source_ref": "SYNTH-SRC"}]}
+
+def req(**kw):
+    r = {"request_id": "REQ-1", "contract_version": S.CONTRACT, "channel": "PORTAL", "hotel_ref": "H-1", "provider_plan_ref": "PP-1",
+         "rooms": [{"room_ref": "R-A", "adults": 2, "child_ages": []}], "check_in": "2027-03-29", "check_out": "2027-03-30", "payment_currency": "USD"}
+    r.update(kw); return r
+
+LEAK_KEYS = ("source_subtotal", "source_total", "source_currency", "exact_source_total", "error_code", "NET", "TAXES", "warnings", "margin", "p_ctx", "document", "sha256")
+results, dtos = {}, {}
+def check(name, ok, detail=""): results[name] = {"status": "PASS" if ok else "FAIL", "detail": detail, "simulated": True}
+
+st = state()
+base = S.quote(req(), st); dtos["base"] = base
+check("A00_baseline_reference_price", base["status"] == "PRICE_REFERENCE" and base["price"]["total"] == {"amount": "200.00", "currency": "USD"} and base["collection_allowed"] is False)
+blob = json.dumps(base)
+check("A00_no_leak_of_internal_fields", not any(k in blob for k in LEAK_KEYS), "")
+# A01 wrong room / forged request / room of other hotel
+d = S.quote(req(rooms=[{"room_ref": "R-BAD", "adults": 2, "child_ages": []}]), st); dtos["A01_room_other_hotel"] = d
+check("A01_room_of_other_hotel_rejected", d["status"] == "REQUEST_INVALID" and d["price"] is None)
+d = S.quote(req(rooms=[{"room_ref": "R-NOPE", "adults": 2, "child_ages": []}]), st)
+check("A01_unknown_room_rejected", d["status"] == "REQUEST_INVALID")
+# A02 ages not confirmed
+d = S.quote(req(rooms=[{"room_ref": "R-A", "adults": 2, "child_ages": [5]}]), st); dtos["A02_ages_unconfirmed"] = d
+check("A02_unconfirmed_ages_rejected", d["reason"] == "AGES_NOT_CONFIRMED" and d["price"] is None)
+d = S.quote(req(rooms=[{"room_ref": "R-A", "adults": 2, "child_ages": [5], "ages_confirmed": True}]), st); dtos["A02_ages_confirmed"] = d
+check("A02_confirmed_ages_priced", d["status"] == "PRICE_REFERENCE" and d["price"]["total"]["amount"] == "255.00")
+# A03 FX missing / ambiguous / expired (DOP request)
+for name, mut in (("missing", lambda s: s.update(fx_approvals=[])), ("expired", lambda s: s["fx_approvals"][0].update(effective_until_exclusive="2026-10-23T06:00:00Z")),
+                  ("ambiguous", lambda s: s["fx_approvals"].append(dict(s["fx_approvals"][0], id="APP-2")))):
+    s2 = copy.deepcopy(st); mut(s2); d = S.quote(req(payment_currency="DOP"), s2); dtos["A03_fx_" + name] = d
+    check("A03_fx_" + name + "_no_price", d["status"] == "CONSULT" and d["price"] is None and d["reason"] == "CURRENCY_CONVERSION_UNAVAILABLE", d.get("reason"))
+s2 = copy.deepcopy(st); s2["fx_governed"]["EXR-1"]["rate_sell"] = "63.00"; d = S.quote(req(payment_currency="DOP"), s2); dtos["A03_fx_drift"] = d
+check("A03_fx_drift_vs_governed_source_no_price", d["price"] is None, d.get("reason"))
+d = S.quote(req(payment_currency="DOP"), st); dtos["A03_fx_ok_dop"] = d
+check("A03_dop_with_valid_fx", d["status"] == "PRICE_REFERENCE" and d["price"]["total"]["amount"] == "12400.00" and d["valid_until"] == "2026-10-23T12:15:00Z", d["valid_until"])
+# A04 NET / unknown taxes: no public leak, no price, no deposit preview
+for name, mut in (("net", {"price_basis": "NET_PROVIDER"}), ("taxes_unknown", {"taxes_included": None})):
+    s2 = copy.deepcopy(st); s2["rates"][0].update(mut); d = S.quote(req(), s2); dtos["A04_" + name] = d
+    check("A04_" + name + "_no_price_no_leak", d["status"] == "CONSULT" and d["price"] is None and d["deposit_preview"] is None and not any(k in json.dumps(d) for k in ("200.00", "source_subtotal")), "")
+# A05 engine / RPC failure: no legacy fallback
+s2 = copy.deepcopy(st); s2["rpc_fail"] = True; d = S.quote(req(), s2); dtos["A05_rpc_fail"] = d
+check("A05_rpc_failure_no_fallback_price", d["status"] == "CONSULT" and d["price"] is None and "58.5" not in json.dumps(d))
+# A09 manipulated client request: authority fields rejected
+for field, value in (("total", "1.00"), ("p_ctx", {}), ("rate", "10"), ("margin", "0"), ("verification_status", "VERIFIED"), ("nights", 1), ("collection_allowed", True)):
+    d = S.quote(req(**{field: value}), st)
+    check("A09_forged_" + field + "_rejected", d["status"] == "REQUEST_INVALID" and d["reason"] == "FORBIDDEN_FIELD" and d["price"] is None)
+d = S.quote(req(rooms=[{"room_ref": "R-A", "adults": 2, "child_ages": [], "total": "1"}]), st)
+check("A09_forged_room_field_rejected", d["reason"] == "FORBIDDEN_FIELD")
+# A10 snapshot expiry / change
+snap = {"valid_until": base["valid_until"], "fingerprint": base["fingerprint"]}
+r_ok = S.reaccept_snapshot(snap, req(), st)
+s_late = copy.deepcopy(st); s_late["now"] = "2026-10-23T12:20:00Z"; s_late["fx_approvals"][0]["effective_until_exclusive"] = "2026-10-24T00:00:00Z"
+r_late = S.reaccept_snapshot(snap, req(request_id="REQ-2"), s_late)
+s_chg = copy.deepcopy(st); s_chg["rates"][0]["adult_pricing"]["tier_by_adult_count"]["2"] = "110.00"; r_chg = S.reaccept_snapshot(snap, req(request_id="REQ-3"), s_chg)
+dtos["A10_requote_after_expiry"] = r_late["dto"]; dtos["A10_requote_after_change"] = r_chg["dto"]
+check("A10_valid_snapshot_kept", r_ok["action"] == "SNAPSHOT_STILL_VALID")
+check("A10_expired_snapshot_requotes", r_late["action"] == "REQUOTE_REQUIRED")
+check("A10_changed_rate_requotes_new_price", r_chg["action"] == "REQUOTE_REQUIRED" and r_chg["dto"]["price"]["total"]["amount"] == "220.00")
+# A11 Core1 vs Core2 identity/unit
+d = S.quote(req(rooms=[{"room_ref": "R-CORE2", "adults": 2, "child_ages": []}]), st); dtos["A11_core2_room"] = d
+check("A11_core2_room_not_priced_by_core1", d["reason"] == "PRODUCT_NOT_SUPPORTED" and d["price"] is None)
+# A12 consumer paused (rollback of consumption): honest consult, nothing activated
+s2 = copy.deepcopy(st); s2["consumer_enabled"] = False; d = S.quote(req(), s2); dtos["A12_paused"] = d
+check("A12_rollback_pause_honest_consult", d["status"] == "CONSULT" and d["reason"] == "SERVICE_PAUSED" and d["price"] is None and d["channel"] is None)
+# channel honesty
+check("CH_assisted_not_accredited_is_pending", base["channel"] == {"mode": "NONE", "status": "PENDING_NOT_ACCREDITED"})
+s2 = copy.deepcopy(st); s2["capabilities"]["assisted_channel_accredited"] = True; check("CH_assisted_only_when_accredited", S.quote(req(), s2)["channel"]["mode"] == "ASSISTED")
+# conditions travel
+s2 = copy.deepcopy(st); s2["rates"][0]["group_min_rooms"] = 10; d = S.quote(req(), s2); dtos["COND_group"] = d
+check("COND_group_minimum_travels", d["status"] == "PRICE_REFERENCE" and d["may_request_booking"] is False and any(c["code"] == "GROUP_MINIMUM_NOT_MET" for c in d["conditions"]))
+# supplements are charges, not rounding
+s2 = copy.deepcopy(st); s2["rates"][0]["mandatory_supplements"] = [{"obligation_id": "OB-A", "date": "2027-03-29", "unit": "PERSON_EVENT", "currency": "USD", "applicability": "NIGHT_IN_STAY_EXPLICIT", "adult_amount": "10.00"}]
+d = S.quote(req(), s2); dtos["SUP_charge"] = d
+check("SUP_supplement_is_charge_not_rounding", d["price"]["total"]["amount"] == "220.00" and d["price"]["supplement_charges"][0]["amount"] == "20.00" and "rounding_adjustment" not in d["price"])
+json.dump({"note": "SIMULATED outputs of the reference model, not SQL/RPC", "state_now": st["now"], "dtos": dtos}, open(os.path.join(HERE, "..", "fixtures", "generated-dtos.json"), "w"), indent=1, ensure_ascii=False)
+bad = [k for k, v in results.items() if v["status"] == "FAIL"]
+for k, v in results.items(): print(k, v["status"], v["detail"] if v["status"] == "FAIL" else "")
+print(f"SERVER SCENARIOS (simulated): {len(results) - len(bad)}/{len(results)} PASS; failing={bad}")
+sys.exit(1 if bad else 0)

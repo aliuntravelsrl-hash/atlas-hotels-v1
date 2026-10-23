@@ -1,0 +1,95 @@
+// CORE1 price consumer — CLIENT ADAPTERS (INERT, pure functions, no fetch, no storage, no globals). ATLAS-TECH (AP-03) 2026-10-23.
+// Candidate for Portal/Admin after a joint changeset; NOT applied to any app. Input is ONLY the public DTO (CORE1-PRICE-PUBLIC-DTO-v1)
+// produced by the server. The browser never computes a price, never holds a rate, never builds p_ctx, never uses service_role.
+// Forbidden here by design (lint-tested): 58.5, 0.5 child default, free_7d/"cancelacion gratuita" defaults, `|| 0` price fallbacks,
+// base_price/min_price fallbacks, MOCK_ rate plans, hotel-side total computation.
+
+export const CONTRACT = "CORE1-PRICE-CONSUMER-ADAPTER-v1";
+
+// ---- request building -------------------------------------------------------------------------------------------
+export function buildQuoteRequest({ requestId, hotelRef, providerPlanRef, rooms, checkIn, checkOut, currency }) {
+  if (!requestId) return { error: "REQUEST_INVALID" };
+  if (!Array.isArray(rooms) || rooms.length === 0) return { error: "ROOM_NOT_SELECTED" };           // never pick the cheapest room
+  const out = [];
+  for (const r of rooms) {
+    if (!r || !r.roomRef) return { error: "ROOM_NOT_SELECTED" };
+    const ages = Array.isArray(r.childAges) ? r.childAges : [];
+    if (ages.length > 0 && r.agesConfirmed !== true) return { error: "AGES_NOT_CONFIRMED" };        // UI default 5 / infant 0 is not a confirmation
+    out.push({ room_ref: r.roomRef, adults: r.adults, child_ages: ages, ages_confirmed: ages.length > 0 ? true : undefined });
+  }
+  const req = { request_id: requestId, contract_version: CONTRACT, channel: "PORTAL", hotel_ref: hotelRef, provider_plan_ref: providerPlanRef,
+                rooms: out.map((r) => (r.ages_confirmed === undefined ? { room_ref: r.room_ref, adults: r.adults, child_ages: r.child_ages } : r)),
+                check_in: checkIn, check_out: checkOut, payment_currency: currency };
+  return { request: req };                                                                           // no total / rate / margin / nights / flags
+}
+
+// ---- stale responses and invalidation ---------------------------------------------------------------------------
+export function createTracker() {
+  let latest = null; let current = null;
+  return {
+    begin(requestId) { latest = requestId; current = null; return requestId; },                    // any new request drops the previous result
+    accept(dto) {                                                                                    // A06: ignore answers to older requests
+      if (!dto || dto.request_id !== latest) return false;
+      current = dto; return true;
+    },
+    invalidate() { latest = null; current = null; },                                                 // A08: date/room/occupancy/currency change
+    get current() { return current; },
+  };
+}
+
+// ---- DTO -> views -----------------------------------------------------------------------------------------------
+const isPrice = (d) => d && d.status === "PRICE_REFERENCE" && d.price && d.price.total;
+const noPrice = (d) => ({ hasPrice: false, status: d ? d.status : "CONSULT", reason: d ? d.reason : "PRICE_UNAVAILABLE", message: d ? d.message_es : "Precio no disponible por ahora; consulte." });
+
+// Booking form / search bar / unified engine / admin quotation share this base view.
+export function toQuoteView(dto) {
+  if (!isPrice(dto)) return noPrice(dto);                                                            // on error the previous price is NOT kept (caller replaces state)
+  return { hasPrice: true, status: dto.status, total: dto.price.total.amount, currency: dto.price.total.currency, unit: dto.price.unit, nights: dto.price.nights,
+           derivedAveragePerNight: dto.price.derived_average_per_night.amount, averageIsRate: false,
+           supplementCharges: dto.price.supplement_charges || [], roundingAdjustment: dto.price.rounding_adjustment || null,
+           validUntil: dto.valid_until, conditions: dto.conditions, mayRequestBooking: dto.may_request_booking, channel: dto.channel,
+           depositPreview: dto.deposit_preview, collectionAllowed: false, requestId: dto.request_id, fingerprint: dto.fingerprint,
+           cancellationPolicy: null /* the DTO carries none: never default to a free-cancellation promise */ };
+}
+
+// useRoomPricing: legacy shape { success, room_id, total_usd, total_dop, price_per_night } -> explicit mapping
+export function toRoomPricingLegacyShape(dto, roomRef) {
+  const v = toQuoteView(dto);
+  if (!v.hasPrice) return { success: false, room_id: roomRef, total_usd: null, total_dop: null, price_per_night: null, reason: v.reason };
+  return { success: true, room_id: roomRef, total_usd: v.currency === "USD" ? v.total : null, total_dop: v.currency === "DOP" ? v.total : null,
+           price_per_night: v.derivedAveragePerNight, price_per_night_is_average: true };            // the other currency is NOT computed in the browser
+}
+
+// useHotelPricing: priceRange only from a DTO; on error: null (no hotel.base_price / min_price / 0 fallback)
+export function toHotelPricingView(dto) {
+  const v = toQuoteView(dto);
+  if (!v.hasPrice) return { priceRange: null, error: v.reason };
+  return { priceRange: { currency: v.currency, total: v.total, derivedAveragePerNight: v.derivedAveragePerNight }, error: null };
+}
+
+// UnifiedBookingEngine: rate plans from the server DTO only; nothing mock, no default cancel policy
+export function toUnifiedEngineView(dto) {
+  const v = toQuoteView(dto);
+  return { ...v, ratePlans: v.hasPrice ? [{ planRef: dto.selection.provider_plan_ref, total: v.total, currency: v.currency }] : [], mocksIncluded: false };
+}
+
+export const toAdminQuotationView = (dto) => ({ ...toQuoteView(dto), adminOverride: false });      // same server/engine/version; no price override from the frontend
+
+// ---- listing / card / comparator ---------------------------------------------------------------------------------
+// Without a minimal selection only a GOVERNED catalog reference may be shown, labelled, never as a purchasable quote.
+export function toCardView(catalogEntry, dto) {
+  if (isPrice(dto)) return { kind: "QUOTE", ...toQuoteView(dto) };
+  const g = catalogEntry && catalogEntry.governed === true && catalogEntry.from_amount != null && catalogEntry.currency && catalogEntry.unit_label;
+  if (!g) return { kind: "CONSULT", hasPrice: false, label: "Consultar" };
+  return { kind: "CATALOG_REFERENCE", hasPrice: true, purchasable: false, fromAmount: catalogEntry.from_amount, currency: catalogEntry.currency, unitLabel: catalogEntry.unit_label };
+}
+
+export function toComparatorEntry(selection, dto) {
+  if (!isPrice(dto)) return { selection, price: null, snapshot: null, cancellation: null };           // never 0, never inferred free cancellation
+  return { selection, price: { amount: dto.price.total.amount, currency: dto.price.total.currency, unit: dto.price.unit },
+           snapshot: { fingerprint: dto.fingerprint, request_id: dto.request_id, valid_until: dto.valid_until, computed_at: dto.computed_at, mechanism_version: dto.mechanism_version },
+           conditions: dto.conditions, cancellation: null };
+}
+export function comparatorEntryExpired(entry, nowIso) {                                              // A10: expired snapshots are not shown as a price
+  return !entry.snapshot || Date.parse(entry.snapshot.valid_until) <= Date.parse(nowIso);
+}

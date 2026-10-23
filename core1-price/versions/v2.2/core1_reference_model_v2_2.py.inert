@@ -1,0 +1,569 @@
+#!/usr/bin/env python3
+"""
+CORE1-PRICE — modelo de referencia OFFLINE v2.2 (INERTE). Autor: ATLAS-TECH (AP-03), 2026-10-23.
+Propuesta, no adoptada, no desplegada. Sin base de datos, red, secretos ni PII.
+v2.1 y v2 se conservan intactos en changesets/core1-price-v2.1 y core1-price-v2.
+
+Base normativa: instrucciones del Director del 23-Oct-2026 (chat):
+  R1  Core 1 calcula SOLO: tipo de habitacion, cantidad de personas, ocupacion/tipo de ocupacion,
+      precio por persona y por noche, y precio de ninos por edad.
+  R2  Suplementos (galas, etc.) e impuestos NO entran al calculo: viajan como notas (voucher/factura).
+  R3  Base por adultos tras reclasificar: 1=SGL, 2=DBL, 3=TPL (4=QUAD solo si el hotel lo declara).
+      Un menor con edad >= adult_from_age (estandar 13, dato de cada propiedad) cuenta como adulto.
+  R4  Precio de nino: FREE explicito | PERCENT_OF_DBL (sobre el DBL por persona) | FIXED_AMOUNT.
+      NINGUN valor por defecto en el motor: si falta el dato => "Consultar" (INCOMPLETE). 0 no es un precio.
+  R5  Capacidad maxima por tipo de habitacion; si no cabe => "Consultar".
+  R6  Una condicion con caducidad (oferta) NO cambia el monto: se devuelve con su estado
+      (VIGENTE / POR_VENCER / VENCIDA) para revision humana. El tarifario cambia solo al cargar uno nuevo vigente.
+  R7  Toda cotizacion completa es "referencia sujeta a confirmacion".
+
+Alcance de lo que prueba: coherencia entre este modelo y los vectores (oraculos). NO prueba el SQL, el motor
+desplegado ni el portal. Un resultado "N/N" es una comparacion campo a campo de este modelo contra los oraculos.
+
+Uso:
+  python3 -I core1_reference_model_v2_2.py CASES.json [--json-out OUT.json]
+"""
+import json
+import re
+import sys
+from datetime import date, datetime, timedelta
+from fractions import Fraction
+from math import ceil, floor
+
+ENGINE_VERSION = "CORE1-PRICE-ENGINE-v2.2"
+CONTEXT_SCHEMA = "CORE1-PRICE-CONTEXT-v2.2"
+DISPLAY_LABEL = "REFERENCE_SUBJECT_TO_CONFIRMATION"
+MAX_TOTAL = Fraction(10 ** 9)
+FX_MAX_HOURS = 24
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$")
+NUM_RE = re.compile(r"^\d+(\.\d+)?$")
+CCY = ("USD", "DOP")
+OCC_LABEL = {1: "SGL", 2: "DBL", 3: "TPL", 4: "QUAD"}
+PRICE_MODES = ("FREE", "PERCENT_OF_DBL", "FIXED_AMOUNT")
+
+
+class Stop(Exception):
+    def __init__(self, code, status="INCOMPLETE"):
+        self.code, self.status = code, status
+
+
+def bad(code="INPUT_INVALID"):
+    raise Stop(code, "INVALID")
+
+
+def is_int(x):
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def num(x, allow_none=False):
+    """Importe/porcentaje no negativo en texto decimal o entero JSON. Rechaza float, negativos, vacios."""
+    if x is None:
+        if allow_none:
+            return None
+        bad()
+    if isinstance(x, bool) or isinstance(x, float):
+        bad()
+    s = str(x)
+    if not NUM_RE.match(s):
+        bad()
+    return Fraction(s)
+
+
+def pdate(s):
+    if not isinstance(s, str) or not DATE_RE.match(s):
+        bad()
+    try:
+        return date.fromisoformat(s)
+    except ValueError:
+        bad()
+
+
+def pts(s):
+    if not isinstance(s, str) or not TS_RE.match(s):
+        bad()
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except ValueError:
+        bad()
+
+
+def q2_half_up(x):
+    return Fraction(floor(x * 100 + Fraction(1, 2)), 100)
+
+
+def q2_ceil(x):
+    return Fraction(ceil(x * 100), 100)
+
+
+def dfmt(x):
+    cents = int(x * 100)
+    return f"{cents // 100}.{cents % 100:02d}"
+
+
+def d4(x):
+    cents = floor(x * 10000 + Fraction(1, 2))
+    return f"{cents // 10000}.{cents % 10000:04d}"
+
+
+def nights(ci, co):
+    d = ci
+    while d < co:
+        yield d
+        d += timedelta(days=1)
+
+
+# ---------------------------------------------------------------- validacion de entrada
+def validate(req, ctx):
+    if not isinstance(req, dict) or not isinstance(ctx, dict):
+        bad()
+    if ctx.get("schema_version") != CONTEXT_SCHEMA:
+        bad()
+    ci, co = pdate(req.get("check_in")), pdate(req.get("check_out"))
+    now = pts(req.get("server_now"))
+    if req.get("payment_currency") not in CCY:
+        bad()
+    if not req.get("hotel_id") or not req.get("provider_id"):
+        bad()
+    rooms = req.get("rooms")
+    if not isinstance(rooms, list) or not 1 <= len(rooms) <= 20:
+        bad()
+    missing_age = False
+    for r in rooms:
+        if not isinstance(r, dict):
+            bad()
+        a = r.get("adults")
+        if not is_int(a) or not 1 <= a <= 12:
+            bad()
+        if not r.get("room_type_id"):
+            bad()
+        ages = r.get("child_ages", [])
+        if not isinstance(ages, list) or len(ages) > 12:
+            bad()
+        for g in ages:
+            # R4: la edad es un entero de anios cumplidos (0..17). Sin decimales, sin texto, sin booleanos.
+            if not is_int(g) or g < 0 or g >= 18:
+                bad()
+        cc = r.get("children_count")
+        if cc is not None:
+            if not is_int(cc) or cc < 0 or cc > 12:
+                bad()
+            if cc < len(ages):
+                bad()
+            if cc > len(ages):
+                missing_age = True
+    acc = ctx.get("accepted_payment_currencies")
+    if not isinstance(acc, list) or any(c not in CCY for c in acc):
+        bad()
+    dep = ctx.get("deposit_policy")
+    if not isinstance(dep, dict) or dep.get("type") not in ("FULL_PAYMENT", "DEFAULT_MAX_PERCENT_OR_ROOM_MIN"):
+        bad()
+    if dep["type"] != "FULL_PAYMENT":
+        p = num(dep.get("percentage"))
+        if not (0 < p <= 1):
+            bad()
+        mp = dep.get("minimum_per_room") or {}
+        num(mp.get("amount"))
+        if mp.get("currency") not in CCY:
+            bad()
+    pol = ctx.get("policy") or {}
+    if not isinstance(pol, dict):
+        bad()
+    nd = pol.get("review_notice_days")
+    if nd is not None and (not is_int(nd) or nd < 0):
+        bad()
+    rates = ctx.get("rates")
+    if not isinstance(rates, list):
+        bad()
+    for r in rates:
+        if not isinstance(r, dict):
+            bad()
+        if r.get("unit") in (None, ""):
+            raise Stop("UNIT_UNDEFINED")
+        for k in ("id", "revision", "hotel_id", "provider_id", "room_type_id", "stay_from", "stay_until_exclusive", "currency"):
+            if r.get(k) in (None, ""):
+                bad()
+        if not isinstance(r.get("placeholder"), bool) or not isinstance(r.get("is_active"), bool):
+            bad()
+        pdate(r["stay_from"]); pdate(r["stay_until_exclusive"])
+        if r["currency"] not in CCY or not isinstance(r["unit"], str):
+            bad()
+        occ = r.get("occupancy_rates")
+        if occ is not None:
+            if not isinstance(occ, dict) or any(k not in OCC_LABEL.values() for k in occ):
+                bad()
+            for v in occ.values():
+                num(v)
+        ap = r.get("age_policy")
+        if ap is not None:
+            if not isinstance(ap, dict):
+                bad()
+            afa = ap.get("adult_from_age")
+            if afa is not None and (not is_int(afa) or not 1 <= afa <= 18):
+                bad()
+            bands = ap.get("bands", [])
+            if not isinstance(bands, list):
+                bad()
+            for b in bands:
+                if not isinstance(b, dict) or not b.get("label"):
+                    bad()
+                if not is_int(b.get("from_age")) or not is_int(b.get("to_age")) or not 0 <= b["from_age"] <= b["to_age"] <= 17:
+                    bad()
+                pr = b.get("price")
+                if not isinstance(pr, dict) or pr.get("mode") not in PRICE_MODES:
+                    bad()
+                if pr["mode"] == "FREE":
+                    if pr.get("value") is not None:
+                        bad()
+                else:
+                    v = num(pr.get("value"))
+                    if pr["mode"] == "PERCENT_OF_DBL" and v > 100:
+                        bad()
+                for k in ("max_per_room", "min_adults"):
+                    if b.get(k) is not None and (not is_int(b[k]) or b[k] < 0):
+                        bad()
+        cap = r.get("capacity")
+        if cap is not None:
+            if not isinstance(cap, dict):
+                bad()
+            for k in ("max_total", "max_adults", "max_children"):
+                if cap.get(k) is not None and (not is_int(cap[k]) or cap[k] < 0):
+                    bad()
+        cn = r.get("condition_notes")
+        if cn is not None:
+            if not isinstance(cn, list):
+                bad()
+            for c in cn:
+                if not isinstance(c, dict) or not c.get("id"):
+                    bad()
+                if c.get("expires_on") is not None:
+                    pdate(c["expires_on"])
+        su = r.get("sale_until_exclusive")
+        if su is not None:
+            pts(su)
+    if missing_age:
+        raise Stop("CHILD_AGE_MISSING")
+    return ci, co, now
+
+
+# ---------------------------------------------------------------- calculo por noche
+def night_amount(r, adults, ages):
+    """R3/R4/R5: clasifica, valida capacidad, elige base por adultos y precia ninos. Sin valores por defecto."""
+    ap = r.get("age_policy")
+    if ages:
+        afa = (ap or {}).get("adult_from_age")
+        if afa is None:
+            raise Stop("AGE_POLICY_UNDEFINED")
+        teens = sorted(g for g in ages if g >= afa)
+        kids = sorted(g for g in ages if g < afa)
+    else:
+        teens, kids = [], []
+    eff = adults + len(teens)
+    cap = r.get("capacity")
+    if not isinstance(cap, dict) or cap.get("max_total") is None or cap.get("max_adults") is None:
+        raise Stop("CAPACITY_UNKNOWN")
+    if kids and cap.get("max_children") is None:
+        raise Stop("CAPACITY_UNKNOWN")
+    if eff > cap["max_adults"] or len(kids) > (cap.get("max_children") or 0) or eff + len(kids) > cap["max_total"]:
+        raise Stop("CAPACITY_EXCEEDED")
+    label = OCC_LABEL.get(eff)
+    if label is None:
+        raise Stop("OCCUPANCY_PRICE_UNDEFINED")
+    occ = r.get("occupancy_rates") or {}
+    if occ.get(label) is None:
+        raise Stop("OCCUPANCY_PRICE_UNDEFINED")
+    p = num(occ[label])
+    if p <= 0:
+        raise Stop("PRICE_ZERO_NOT_ACCEPTED")
+    adult_total = p * eff
+    child_total = Fraction(0)
+    child_lines = []
+    if kids:
+        bands = sorted((ap or {}).get("bands") or [], key=lambda b: b["from_age"])
+        for a, b in zip(bands, bands[1:]):
+            if b["from_age"] <= a["to_age"]:
+                raise Stop("CHILD_BANDS_AMBIGUOUS")
+        assigned = []
+        for g in kids:
+            hit = [b for b in bands if b["from_age"] <= g <= b["to_age"]]
+            if not hit:
+                raise Stop("CHILD_PRICE_UNDEFINED")
+            assigned.append((g, hit[0]))
+        count = {}
+        for _, b in assigned:
+            count[b["label"]] = count.get(b["label"], 0) + 1
+        for _, b in assigned:
+            if b.get("min_adults") is not None and eff < b["min_adults"]:
+                raise Stop("CHILD_PRICE_UNDEFINED")
+            if b["price"]["mode"] == "FREE" and b.get("max_per_room") is None:
+                raise Stop("CHILD_PRICE_UNDEFINED")  # gratis sin tope declarado no se asume
+            if b.get("max_per_room") is not None and count[b["label"]] > b["max_per_room"]:
+                raise Stop("CHILD_PRICE_UNDEFINED")
+        for g, b in assigned:
+            pr = b["price"]
+            if pr["mode"] == "FREE":
+                amt = Fraction(0)
+            elif pr["mode"] == "FIXED_AMOUNT":
+                amt = num(pr["value"])
+                if amt <= 0:
+                    raise Stop("PRICE_ZERO_NOT_ACCEPTED")
+            else:
+                if occ.get("DBL") is None:
+                    raise Stop("CHILD_PRICE_UNDEFINED")
+                dbl = num(occ["DBL"])
+                pct = num(pr["value"])
+                if dbl <= 0 or pct <= 0:
+                    raise Stop("PRICE_ZERO_NOT_ACCEPTED")
+                amt = dbl * pct / 100
+            child_total += amt
+            child_lines.append({"age": g, "band": b["label"], "mode": pr["mode"], "amount": dfmt(q2_half_up(amt))})
+    line = {"row_id": r["id"], "revision": r["revision"], "base": label, "adults_declared": adults,
+            "adults_effective": eff, "reclassified_ages": teens,
+            "adult_unit_amount": dfmt(q2_half_up(p)), "adult_amount": dfmt(q2_half_up(adult_total)),
+            "children": child_lines}
+    return adult_total + child_total, line
+
+
+def cond_status(exp_s, today, notice):
+    if exp_s is None:
+        return "VIGENTE"
+    exp = pdate(exp_s)
+    if today > exp:
+        return "VENCIDA"
+    if notice is not None and (exp - today).days <= notice:
+        return "POR_VENCER"
+    return "VIGENTE"
+
+
+def evaluate(case):
+    req, ctx = case["request"], case["context"]
+    out = {"engine_version": ENGINE_VERSION, "collection_allowed": False}
+    cur = None
+    try:
+        _r0 = (ctx.get("rates") or [None])[0] if isinstance(ctx, dict) else None
+        cur = _r0.get("currency") if isinstance(_r0, dict) else None
+        ci, co, now = validate(req, ctx)
+        if co <= ci:
+            raise Stop("STAY_INVALID", "INVALID")
+        today = now.date()
+        notice = (ctx.get("policy") or {}).get("review_notice_days")
+        rooms = req["rooms"]
+        src_ccy = None
+        exact = Fraction(0)
+        nightly = {n: Fraction(0) for n in nights(ci, co)}
+        warnings = []
+        may = True
+        exposable = True
+        breakdown = []
+        used_all = {}
+        for ridx, room in enumerate(rooms):
+            cand = [r for r in ctx["rates"]
+                    if r["hotel_id"] == req["hotel_id"] and r["provider_id"] == req["provider_id"]
+                    and r["room_type_id"] == room["room_type_id"]
+                    and (not req.get("plan") or not r.get("plan") or r["plan"] == req["plan"])]
+            if not cand:
+                raise Stop("ROOM_MAPPING_UNRESOLVED")
+            adults, ages = room["adults"], room.get("child_ages", [])
+            night_lines = []
+            for n in nights(ci, co):
+                app = [r for r in cand if pdate(r["stay_from"]) <= n < pdate(r["stay_until_exclusive"])]
+                if not app:
+                    raise Stop("RATE_COVERAGE_GAP")
+                if len(app) > 1:
+                    raise Stop("RATE_AMBIGUOUS")
+                r = app[0]
+                if r["placeholder"]:
+                    raise Stop("PLACEHOLDER_RATE")
+                if not r["is_active"]:
+                    raise Stop("RATE_NOT_ACTIVE")
+                vs = r.get("verification_status")
+                if vs is None:
+                    raise Stop("VERIFICATION_MISSING")
+                if vs != "VERIFIED" or not r.get("review_evidence_ref") or not r.get("source_document_id"):
+                    raise Stop("RATE_ORIGIN_NOT_VERIFIED")
+                if src_ccy is None:
+                    src_ccy = r["currency"]
+                elif src_ccy != r["currency"]:
+                    raise Stop("MIXED_SOURCE_CURRENCY")
+                if r["unit"] != "PERSON_NIGHT":
+                    raise Stop("UNIT_NOT_SUPPORTED_V2_2")  # R1: solo precio por persona por noche
+                used_all[r["id"]] = r
+                amt, line = night_amount(r, adults, ages)
+                line["night"] = n.isoformat()
+                night_lines.append(line)
+                exact += amt
+                nightly[n] += amt
+            breakdown.append({"room_index": ridx, "nights": night_lines})
+        if exact >= MAX_TOTAL:
+            bad()
+        # base: R2 impuestos solo nota; la base NET (comision) sigue siendo no exponible al cliente
+        for r in used_all.values():
+            if r.get("price_basis") != "CLIENT_FINAL":
+                exposable = False
+                if "NET_BASIS_NOT_CLIENT_PRICE" not in warnings:
+                    warnings.append("NET_BASIS_NOT_CLIENT_PRICE")
+            elif r.get("taxes_included") is not True and "TAX_NOTE_SEE_INVOICE" not in warnings:
+                warnings.append("TAX_NOTE_SEE_INVOICE")
+        # R2: suplementos como notas, jamas al calculo
+        notes, seen_n = [], set()
+        for r in sorted(used_all.values(), key=lambda x: x["id"]):
+            for s in r.get("mandatory_supplements") or []:
+                if not isinstance(s, dict):
+                    continue
+                try:
+                    d = pdate(s.get("date"))
+                except Stop:
+                    if "SUPPLEMENT_NOTE_DATE_INVALID" not in warnings:
+                        warnings.append("SUPPLEMENT_NOTE_DATE_INVALID")
+                    continue
+                key = (s.get("obligation_id"), s["date"])
+                if ci <= d <= co and key not in seen_n:
+                    seen_n.add(key)
+                    notes.append({"obligation_id": s.get("obligation_id"), "date": s["date"], "note_only": True})
+        # R6: condiciones con estado; no alteran el monto
+        conds = []
+        for r in sorted(used_all.values(), key=lambda x: x["id"]):
+            for c in r.get("condition_notes") or []:
+                st = cond_status(c.get("expires_on"), today, notice)
+                conds.append({"row_id": r["id"], "id": c["id"], "text": c.get("text"), "expires_on": c.get("expires_on"),
+                              "status": st, "review_required": st in ("VENCIDA", "POR_VENCER")})
+            su = r.get("sale_until_exclusive")
+            if su:
+                st = "VENCIDA" if now >= pts(su) else "VIGENTE"
+                conds.append({"row_id": r["id"], "id": "SALE_WINDOW", "text": None, "expires_on": su,
+                              "status": st, "review_required": st == "VENCIDA"})
+        if any(c["status"] == "VENCIDA" for c in conds):
+            warnings.append("CONDITION_EXPIRED_CONFIRM_WITH_PROVIDER")
+        if any(c["status"] == "POR_VENCER" for c in conds):
+            warnings.append("CONDITION_EXPIRING_CONFIRM_WITH_PROVIDER")
+        # restricciones que viajan
+        for r in ctx["rates"]:
+            gm = r.get("group_min_rooms")
+            if gm and len(rooms) < gm and r["hotel_id"] == req["hotel_id"] and any(x["room_type_id"] == r["room_type_id"] for x in rooms):
+                may = False
+                if "GROUP_MINIMUM_NOT_MET" not in warnings:
+                    warnings.append("GROUP_MINIMUM_NOT_MET")
+        sd = ctx.get("source_document") or {}
+        if sd.get("signature_required_for_sale") and sd.get("signature_status") != "SIGNED":
+            may = False
+            warnings.append("SIGNATURE_CONDITION_FOR_SALE_UNVERIFIED")
+        # moneda y tasa (sin cambios respecto de v2.1)
+        pay = req["payment_currency"]
+        if pay not in ctx["accepted_payment_currencies"]:
+            raise Stop("PAYMENT_CURRENCY_NOT_ALLOWED")
+        dep = ctx["deposit_policy"]
+        needs_fx = pay != src_ccy or (dep["type"] != "FULL_PAYMENT" and dep["minimum_per_room"]["currency"] != pay)
+        fxr = None
+        if needs_fx:
+            fx_all = [f for f in ctx.get("fx", []) if f.get("pair") == "USD_DOP"]
+            if not fx_all:
+                raise Stop("FX_MISSING")
+            pol = ctx.get("policy") or {}
+            mh = pol.get("max_fx_window_hours", FX_MAX_HOURS)
+            if isinstance(mh, bool) or not isinstance(mh, int) or not 1 <= mh <= FX_MAX_HOURS:
+                bad()
+            inwin, future = [], False
+            for f in fx_all:
+                ef, eu = pts(f["effective_from"]), pts(f["effective_until_exclusive"])
+                if f.get("active") and ef <= now < eu:
+                    inwin.append((f, ef, eu))
+                elif f.get("active") and ef > now:
+                    future = True
+            if not inwin:
+                raise Stop("FX_NOT_EFFECTIVE" if future else "FX_EXPIRED")
+            for f, ef, eu in inwin:
+                try:
+                    pos = num(f.get("rate_sell")) > 0
+                except Stop:
+                    pos = False
+                if not pos or f.get("direction") != "DOP_PER_USD":
+                    raise Stop("FX_INVALID")
+                if not f.get("approved_by_ref") or not f.get("source_ref") or not f.get("source_version"):
+                    raise Stop("FX_UNAPPROVED")
+                if eu - ef > timedelta(hours=mh):
+                    raise Stop("FX_WINDOW_TOO_LONG")
+            if len(inwin) > 1:
+                raise Stop("FX_AMBIGUOUS")
+            fxr = num(inwin[0][0]["rate_sell"])
+
+        def conv(a, frm, to):
+            if frm == to:
+                return a
+            if (frm, to) == ("USD", "DOP"):
+                return a * fxr
+            if (frm, to) == ("DOP", "USD"):
+                return a / fxr
+            raise Stop("FX_PAIR_UNSUPPORTED")
+
+        src_total = q2_half_up(exact)
+        base = {"collection_allowed": False, "engine_version": ENGINE_VERSION,
+                "source_currency": src_ccy, "source_subtotal": dfmt(src_total)}
+        if not exposable:
+            base.update({"calculation_status": "SOURCE_SUBTOTAL_ONLY", "commercial_use": "INTERNAL_REFERENCE_ONLY",
+                         "client_price_exposable": False, "payment_total": None, "deposit_preview": None,
+                         "warnings": warnings, "may_request_booking": False})
+            return base
+        pay_total = src_total if pay == src_ccy else q2_half_up(conv(exact, src_ccy, pay))
+        if dep["type"] == "FULL_PAYMENT":
+            dp = pay_total
+        else:
+            pct = q2_ceil(pay_total * num(dep["percentage"]))
+            mn = q2_ceil(conv(num(dep["minimum_per_room"]["amount"]), dep["minimum_per_room"]["currency"], pay) * len(rooms))
+            dp = min(pay_total, max(pct, mn))
+        out.update(base)
+        out.update({"calculation_status": "COMPLETE", "commercial_use": "REFERENCE_ONLY", "display_label": DISPLAY_LABEL,
+                    "client_price_exposable": True, "payment_currency": pay, "source_total": dfmt(src_total),
+                    "payment_total": dfmt(pay_total), "deposit_preview": dfmt(dp), "room_breakdown": breakdown,
+                    "sources_used": [{"row_id": r["id"], "revision": r["revision"],
+                                      "source_document_id": r.get("source_document_id"),
+                                      "review_evidence_ref": r.get("review_evidence_ref")}
+                                     for r in sorted(used_all.values(), key=lambda x: x["id"])]})
+        if conds:
+            out["conditions"] = conds
+        if notes:
+            out["supplement_notes"] = notes
+        if warnings:
+            out["warnings"] = warnings
+            out["may_request_booking"] = may
+        shown = [q2_half_up(v) for _, v in sorted(nightly.items())]
+        out["displayed_nightly_amounts"] = [dfmt(x) for x in shown]
+        adj = src_total - sum(shown)
+        if adj != 0:
+            out["exact_source_total"] = d4(exact)
+            out["rounding_adjustment"] = ("-" if adj < 0 else "") + dfmt(abs(adj))
+    except Stop as e:
+        out.update({"calculation_status": e.status, "commercial_use": "NO_COMPLETE_QUOTE", "payment_total": None,
+                    "deposit_preview": None, "error_code": e.code, "source_currency": cur})
+    return out
+
+
+def compare(exp, got):
+    diffs = {}
+    for k, v in exp.items():
+        if k == "fixture_status":
+            continue
+        if got.get(k) != v:
+            diffs[k] = {"expected": v, "got": got.get(k)}
+    return diffs
+
+
+def main(argv):
+    path = argv[1]
+    jout = argv[argv.index("--json-out") + 1] if "--json-out" in argv else None
+    d = json.load(open(path))
+    ok, rows = 0, []
+    for c in d["cases"]:
+        got = evaluate(c)
+        diffs = compare(c["expected"], got)
+        st = "PASS" if not diffs else "FAIL"
+        ok += st == "PASS"
+        rows.append({"id": c["id"], "status": st, "diffs": diffs, "got": got})
+        print(c["id"], st, "" if st == "PASS" else json.dumps(diffs, ensure_ascii=False))
+    print(f"FILE {path.split('/')[-1]} : {ok}/{len(rows)} cases match their own expected fields (model only)")
+    if jout:
+        json.dump(rows, open(jout, "w"), indent=1, ensure_ascii=False)
+    return 0 if ok == len(rows) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

@@ -1,0 +1,503 @@
+#!/usr/bin/env python3
+"""Server scenarios for consumer-adapter-v1.1.1 (SIMULATED; model v2.2.3 as engine). Positive and negative case per change.
+Exit code != 0 on any failure or if the exact scenario count differs. Writes nothing in the repo; --dump PATH writes DTOs
+(only to a path given by the caller, e.g. a temp dir) for the client tests. Does NOT prove SQL, RPC, UI, portal or production."""
+import copy, json, os, re, sys, importlib.util
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+spec = importlib.util.spec_from_file_location("sim", os.path.join(HERE, "..", "server", "consumer_server_sim.py.inert"),
+                                              loader=importlib.machinery.SourceFileLoader("sim", os.path.join(HERE, "..", "server", "consumer_server_sim.py.inert"))) if False else None
+import importlib.machinery
+loader = importlib.machinery.SourceFileLoader("sim", os.path.join(HERE, "..", "server", "consumer_server_sim.py.inert"))
+S = importlib.util.module_from_spec(importlib.util.spec_from_loader("sim", loader)); loader.exec_module(S)
+EXPECTED = 43
+
+ROW = {"id": "R1", "revision": 1, "hotel_id": "H1", "provider_id": "P1", "room_type_id": "RT1", "stay_from": "2027-03-01", "stay_until_exclusive": "2027-04-01",
+       "currency": "USD", "unit": "PERSON_NIGHT", "placeholder": False, "is_active": True, "verification_status": "VERIFIED", "review_evidence_ref": "SYNTH-REVIEW",
+       "source_document_id": "SYNTH-DOC", "price_basis": "CLIENT_FINAL", "taxes_included": True, "occupancy_rates": {"SGL": "150", "DBL": "100", "TPL": "90"},
+       "age_policy": {"adult_from_age": 13, "bands": [{"label": "INFANT", "from_age": 0, "to_age": 2, "price": {"mode": "FREE"}, "max_per_room": 1},
+                                                       {"label": "CHILD", "from_age": 3, "to_age": 12, "price": {"mode": "PERCENT_OF_DBL", "value": "50"}}]},
+       "capacity": {"max_total": 4, "max_adults": 3, "max_children": 2}, "received_at": "2026-09-01T09:00:00Z"}
+FXA = {"id": "FXA1", "pair": "USD_DOP", "exchange_rate_ref": "FXG1", "active": True, "effective_from": "2026-10-23T00:00:00Z", "effective_until_exclusive": "2026-10-23T23:00:00Z",
+       "approved_by_ref": "SYNTH-APPROVER", "source_ref": "SYNTH-SRC", "source_version": "SYNTH-V1", "rate_observed": "62"}
+FXG = {"FXG1": {"version": "SYNTH-V1", "rate_sell": "62", "direction": "DOP_PER_USD"}}
+
+def state(**kw):
+    st = {"now": "2026-10-23T14:00:00Z", "hotels": {"H-REF": {"hotel_id": "H1"}}, "provider_plans": {"PP1": {"hotel_ref": "H-REF", "provider_id": "P1"}},
+          "rooms": {"RM1": {"provider_plan_ref": "PP1", "product": "CORE1", "room_type_id": "RT1", "room_row_hotel_id": "H1", "map_hotel_id": "H1"}},
+          "rates": [copy.deepcopy(ROW)], "fx_approvals": [], "fx_governed": {}, "source_document": {},
+          "policy": {"deposit_policy": {"type": "FULL_PAYMENT"}, "accepted_payment_currencies": ["USD", "DOP"], "quote_ttl_minutes": 30, "review_notice_days": None},
+          "capabilities": {"assisted_channel_accredited": True}, "context_schema": S.CONTEXT_SCHEMA}
+    st.update(kw); return st
+
+def req(adults=2, ages=None, pay="USD", **kw):
+    room = {"room_ref": "RM1", "adults": adults, "child_ages": ages or []}
+    if ages: room["ages_confirmed"] = True
+    r = {"request_id": "Q1", "contract_version": S.CONTRACT, "channel": "PORTAL", "hotel_ref": "H-REF", "provider_plan_ref": "PP1", "rooms": [room],
+         "check_in": "2027-03-28", "check_out": "2027-03-29", "payment_currency": pay}
+    r.update(kw); return r
+
+def row(**kw):
+    r = copy.deepcopy(ROW); r.update(kw); return r
+def codes(d): return [c["code"] for c in d.get("conditions", [])]
+def internal(rq, st, actor="OPERATOR"): return S.quote_internal(rq, st, actor)
+
+DTOS = {}; results = {}; ALL = []
+def sc(name):
+    def deco(f):
+        try:
+            ok, detail = f()
+        except Exception as e:  # noqa: BLE001
+            ok, detail = False, f"EXC {e.__class__.__name__}: {e}"
+        results[name] = (bool(ok), "" if ok else str(detail)); return f
+    return deco
+def Q(rq, st, key=None):
+    d = S.quote_public(rq, st); ALL.append(d)
+    if key: DTOS[key] = d
+    return d
+
+@sc("S01_base_reference_not_payable_not_certified_no_enablement")
+def _():
+    d = Q(req(), state(), "base")
+    p = d.get("price") or {}
+    return (d["status"] == "PRICE_REFERENCE" and p["reference_total"] == {"amount": "200.00", "currency": "USD"} and p["payable"] is False and p["total_certified"] is False
+            and d["collection_allowed"] is False and d["booking_enablement"] == {"derived_from_reference": False, "status": "REQUIRES_OPERATOR"} and "may_request_booking" not in d, d)
+
+@sc("S02_age15_reclassified_as_adult_3_billed_270")
+def _():
+    d = Q(req(ages=[15]), state(), "reclass")
+    r = d["selection"]["rooms"][0]
+    return d["price"]["reference_total"]["amount"] == "270.00" and r["adults_billed"] == 3 and r["children_billed"] == 0 and r["child_count"] == 1 and "AGE_RECLASSIFIED_AS_ADULT" in codes(d), d
+
+@sc("S03_age12_not_reclassified_child_pays_percent_250")
+def _():
+    d = Q(req(ages=[12]), state(), "child12")
+    r = d["selection"]["rooms"][0]
+    return d["price"]["reference_total"]["amount"] == "250.00" and r["adults_billed"] == 2 and r["children_billed"] == 1 and "AGE_RECLASSIFIED_AS_ADULT" not in codes(d), d
+
+@sc("S04_non_integer_or_out_of_range_ages_rejected")
+def _():
+    for bad in ([5.5], [5.0], ["5"], [True], [18], [-1], [None]):
+        rq = req(); rq["rooms"][0]["child_ages"] = bad; rq["rooms"][0]["ages_confirmed"] = True
+        d = Q(rq, state())
+        if d["reason"] != "AGE_INVALID" or d["price"] is not None: return False, (bad, d)
+    d = Q(req(ages=[0, 17]), state()); return d["status"] == "PRICE_REFERENCE" or d["reason"] == "OCCUPANCY_NOT_SUPPORTED", d   # 0 and 17 are valid integers
+
+@sc("S05_ages_must_be_confirmed")
+def _():
+    rq = req(); rq["rooms"][0]["child_ages"] = [5]
+    d = Q(rq, state(), "ages_unconfirmed")
+    ok = Q(req(ages=[5]), state())
+    return d["reason"] == "AGES_NOT_CONFIRMED" and d["price"] is None and ok["status"] == "PRICE_REFERENCE", (d, ok)
+
+@sc("S06_capacity_exceeded_or_unknown_consult_no_price")
+def _():
+    a = Q(req(adults=3, ages=[15]), state(), "cap_exceeded")
+    r2 = row(); r2.pop("capacity")
+    b = Q(req(), state(rates=[r2]), "cap_unknown")
+    return a["reason"] == "OCCUPANCY_NOT_SUPPORTED" and a["price"] is None and b["reason"] == "OCCUPANCY_NOT_SUPPORTED" and b["price"] is None, (a, b)
+
+DOPROW = lambda: row(currency="DOP", occupancy_rates={"SGL": "9000", "DBL": "6000", "TPL": "5400"})
+@sc("S07_same_currency_selection_prices_without_fx_even_with_drifting_fx_approval")
+def _():
+    drift = {"FXG1": {"version": "SYNTH-V2", "rate_sell": "63", "direction": "DOP_PER_USD"}}
+    d = Q(req(pay="DOP"), state(rates=[DOPROW()], fx_approvals=[dict(FXA)], fx_governed=drift), "dop_same")
+    return d["status"] == "PRICE_REFERENCE" and d["price"]["reference_total"] == {"amount": "12000.00", "currency": "DOP"}, d
+
+@sc("S08_cross_currency_without_fx_consult_no_invented_rate")
+def _():
+    d = Q(req(pay="USD"), state(rates=[DOPROW()]), "dop_to_usd_nofx")
+    return d["status"] == "CONSULT" and d["reason"] == "CURRENCY_CONVERSION_UNAVAILABLE" and d["price"] is None, d
+
+@sc("S09_usd_to_dop_with_governed_fx_12400_valid_until_fx_window")
+def _():
+    d = Q(req(pay="DOP"), state(fx_approvals=[dict(FXA)], fx_governed=copy.deepcopy(FXG)), "fx_ok")
+    return d["price"]["reference_total"] == {"amount": "12400.00", "currency": "DOP"} and d["valid_until"] == "2026-10-23T14:30:00Z", d
+
+@sc("S10_fx_drift_when_conversion_needed_consult")
+def _():
+    drift = {"FXG1": {"version": "SYNTH-V2", "rate_sell": "63", "direction": "DOP_PER_USD"}}
+    d = Q(req(pay="DOP"), state(fx_approvals=[dict(FXA)], fx_governed=drift), "fx_drift")
+    return d["status"] == "CONSULT" and d["reason"] == "FX_DRIFT" and d["price"] is None, d
+
+@sc("S11_net_basis_public_consult_provider_amount_internal_only")
+def _():
+    st = state(rates=[row(price_basis="NET_PROVIDER")])
+    d = Q(req(), st, "net")
+    v = internal(req(), st)["view"]; pa = v["provider_amount"]
+    return (d["status"] == "CONSULT" and d["reason"] == "PENDING_REVIEW" and d["price"] is None and "200" not in json.dumps(d)
+            and pa["amount"] == "200.00" and pa["label"] == "INTERNAL_PROVIDER_AMOUNT_NOT_CLIENT_PRICE" and v["source_subtotal"]["basis_warning"] == "NET_BASIS_NOT_CLIENT_PRICE"
+            and v["final_price_confirmed"] is None), (d, v)
+
+@sc("S12_unknown_taxes_note_without_certifying_total")
+def _():
+    st = state(rates=[row(taxes_included=None)])
+    d = Q(req(), st, "tax_unknown"); ok = Q(req(), state(), None)
+    v = internal(req(), st)["view"]
+    return ("TAX_NOTE" in codes(d) and d["price"]["total_certified"] is False and d["price"]["reference_total"]["amount"] == "200.00"
+            and "TAX_NOTE" not in codes(ok) and "TAX_NOTE_SEE_INVOICE" in v["warnings"] and "TAX_NOTE_SEE_INVOICE" not in json.dumps(d)), (d, v)
+
+@sc("S13_supplements_are_public_generic_note_internal_has_detail")
+def _():
+    sup = [{"obligation_id": "OB-GALA", "date": "2027-03-28", "adult_amount": "10.00"}]
+    st = state(rates=[row(mandatory_supplements=sup)])
+    d = Q(req(), st, "supplement"); v = internal(req(), st)["view"]
+    return ("SUPPLEMENT_NOTE" in codes(d) and d["price"]["reference_total"]["amount"] == "200.00" and "OB-GALA" not in json.dumps(d) and "10.00" not in json.dumps(d)
+            and v["supplement_notes"][0]["obligation_id"] == "OB-GALA"), (d, v)
+
+@sc("S14_expired_condition_keeps_amount_public_hides_text_internal_alerts")
+def _():
+    cond = [{"id": "C1", "text": "Nino a 35 hasta 20-Oct", "expires_on": "2026-10-20"}]
+    st = state(rates=[row(condition_notes=cond)])
+    d = Q(req(), st, "cond_expired"); v = internal(req(), st, "AI_SELLER")["view"]
+    soon = state(rates=[row(condition_notes=[{"id": "C1", "text": "x", "expires_on": "2026-11-01"}])]); soon["policy"]["review_notice_days"] = 14
+    v2 = internal(req(), soon)["view"]
+    return (d["price"]["reference_total"]["amount"] == "200.00" and "Nino a 35" not in json.dumps(d) and "expires_on" not in json.dumps(d)
+            and v["conditions"][0]["status"] == "VENCIDA" and v["operator_alerts"][0]["code"] == "CONSULT_PROVIDER_ABOUT_CONDITION" and "CONDITION_EXPIRED_CONFIRM_WITH_PROVIDER" in v["warnings"]
+            and v2["conditions"][0]["status"] == "POR_VENCER" and v2["operator_alerts"][0]["status"] == "POR_VENCER"), (d, v, v2)
+
+@sc("S15_overlap_newest_ingestion_wins_public_hides_rows_internal_traces_supersession")
+def _():
+    r2 = row(id="R2", received_at="2026-10-01T09:00:00Z"); r2["occupancy_rates"] = {"SGL": "150", "DBL": "120", "TPL": "90"}
+    st = state(rates=[row(), r2])
+    d = Q(req(), st, "overlap"); v = internal(req(), st)["view"]
+    return (d["price"]["reference_total"]["amount"] == "240.00" and "R1" not in json.dumps(d) and "R2" not in json.dumps(d)
+            and v["superseded_rates"] == [{"row_id": "R2", "supersedes": ["R1"]}]), (d, v)
+
+@sc("S16_overlap_tie_or_missing_instant_consult")
+def _():
+    r2 = row(id="R2"); r2["occupancy_rates"] = {"SGL": "150", "DBL": "120", "TPL": "90"}
+    tie = Q(req(), state(rates=[row(), r2]), "overlap_tie")
+    r3 = row(id="R2"); r3.pop("received_at"); r3["occupancy_rates"] = {"SGL": "150", "DBL": "120", "TPL": "90"}
+    miss = Q(req(), state(rates=[row(), r3]), None)
+    return tie["status"] == "CONSULT" and tie["reason"] == "NO_RATE_FOR_DATES" and tie["price"] is None and miss["reason"] == "NO_RATE_FOR_DATES", (tie, miss)
+
+@sc("S17_future_received_at_row_is_ignored_older_valid_row_wins")
+def _():
+    fut = row(id="R2", received_at="2026-12-01T00:00:00Z"); fut["occupancy_rates"] = {"SGL": "150", "DBL": "999", "TPL": "90"}
+    st = state(rates=[row(), fut])
+    d = Q(req(), st, "future_ignored"); v = internal(req(), st)["view"]
+    only = Q(req(), state(rates=[row(received_at="2026-12-01T00:00:00Z")]), "future_only")
+    return (d["price"]["reference_total"]["amount"] == "200.00" and any(a["code"] == "RECEIVED_AT_IN_FUTURE_ROW_IGNORED" for a in v["internal_alerts"])
+            and only["status"] == "CONSULT" and only["reason"] == "SELECTION_UNAVAILABLE" and only["price"] is None), (d, v, only)   # no eligible row left => engine finds no mapped rate: consult, no price
+
+@sc("S18_v1_contract_request_is_rejected_not_translated")
+def _():
+    d = Q(req(contract_version="CORE1-PRICE-CONSUMER-ADAPTER-v1"), state(), "contract_v1")
+    return d["reason"] == "CONTRACT_VERSION_UNSUPPORTED" and d["price"] is None, d
+
+@sc("S19_incompatible_engine_version_refused")
+def _():
+    class Old:
+        @staticmethod
+        def evaluate(case):
+            out = S.ENGINE.evaluate(case); out = dict(out); out["engine_version"] = "CORE1-PRICE-ENGINE-v2.1"; return out
+    d = S.quote_public(req(), state(), engine=Old); ALL.append(d); DTOS["engine_mismatch"] = d
+    ok = S.quote_public(req(), state())
+    return d["status"] == "CONSULT" and d["reason"] == "VERSION_MISMATCH" and d["price"] is None and ok["status"] == "PRICE_REFERENCE", d
+
+@sc("S20_incompatible_context_schema_refused")
+def _():
+    d = Q(req(), state(context_schema="CORE1-PRICE-CONTEXT-v2.1"), "context_mismatch")
+    return d["status"] == "CONSULT" and d["reason"] == "PRICE_UNAVAILABLE" and d["price"] is None, d
+
+@sc("S21_client_cannot_impose_authority_fields")
+def _():
+    for extra in ({"received_at": "2027-01-01T00:00:00Z"}, {"total": "1.00"}, {"fx": "10"}, {"margin": "0"}):
+        d = Q(req(**extra), state())
+        if d["reason"] != "FORBIDDEN_FIELD" or d["price"] is not None: return False, (extra, d)
+    rq = req(); rq["rooms"][0]["rate"] = "1"
+    d = Q(rq, state(), "forbidden_field")
+    return d["reason"] == "FORBIDDEN_FIELD", d
+
+@sc("S22_internal_view_only_for_operator_or_ai_seller")
+def _():
+    st = state()
+    for a in (None, "PUBLIC", "CLIENT", "ANON"):
+        if S.quote_internal(req(), st, a) != {"ok": False, "code": "FORBIDDEN_ACTOR"}: return False, a
+    return all(S.quote_internal(req(), st, a)["ok"] for a in ("OPERATOR", "AI_SELLER")), None
+
+@sc("S23_internal_view_never_confirms_final_price_or_enables_collection")
+def _():
+    v = internal(req(), state())["view"]
+    v2 = internal(req(), state(rates=[row(price_basis="NET_PROVIDER")]))["view"]
+    return (v["final_price_confirmed"] is None and "NOT_CONFIRMED" in v["final_price_note"] and v["collection_allowed"] is False and v["provider_amount"] is None
+            and v["source_subtotal"]["label"] == "INTERNAL_SOURCE_SUBTOTAL" and v2["provider_amount"]["label"].startswith("INTERNAL")), (v, v2)
+
+@sc("S24_group_min_or_signature_does_not_enable_or_change_enablement")
+def _():
+    st = state(rates=[row(group_min_rooms=2)]); d = Q(req(), st, "group_min")
+    v = internal(req(), st)["view"]
+    st2 = state(source_document={"signature_required_for_sale": True, "signature_status": "PENDING"}); d2 = Q(req(), st2)
+    return (d["booking_enablement"]["derived_from_reference"] is False and d2["booking_enablement"]["derived_from_reference"] is False and "may_request_booking" not in d
+            and "GROUP_MINIMUM_NOT_MET" in v["warnings"]), (d, d2)
+
+@sc("S25_rpc_failure_and_paused_service_no_price_no_fallback")
+def _():
+    a = Q(req(), state(rpc_fail=True), "rpc_fail"); b = Q(req(), state(consumer_enabled=False), "paused")
+    return a["reason"] == "PRICE_UNAVAILABLE" and a["price"] is None and b["reason"] == "SERVICE_PAUSED" and b["price"] is None, (a, b)
+
+@sc("S26_every_engine_error_code_maps_to_a_safe_reason")
+def _():
+    src = open(S._MODEL).read()
+    found = set(re.findall(r'(?:Stop|bad)\("([A-Z_]+)"', src)) | {"FX_EXPIRED", "FX_NOT_EFFECTIVE", "STAY_INVALID", "INPUT_INVALID"}
+    miss = sorted(c for c in found if c not in S.SAFE_REASON)
+    bad_vals = sorted(v for v in S.SAFE_REASON.values() if v not in S.REASON_ES)
+    return not miss and not bad_vals and len(found) >= 25, (miss, bad_vals, len(found))
+
+@sc("S27_non_core1_product_or_other_hotel_room_not_quoted")
+def _():
+    st = state(); st["rooms"]["RM1"]["product"] = "CORE2"
+    a = Q(req(), st, "core2")
+    st2 = state(); st2["rooms"]["RM1"]["map_hotel_id"] = "H9"
+    b = Q(req(), st2, "other_hotel")
+    c = Q(req(rooms=[]), state(), "no_room")
+    return a["reason"] == "PRODUCT_NOT_SUPPORTED" and b["reason"] == "SELECTION_INVALID" and c["reason"] == "ROOM_NOT_SELECTED" and all(x["price"] is None for x in (a, b, c)), (a, b, c)
+
+@sc("S28_fingerprint_stable_changes_with_revision_instant_and_snapshot_reaccept")
+def _():
+    a = S.quote_public(req(), state()); b = S.quote_public(req(), state())
+    c = S.quote_public(req(), state(rates=[row(received_at="2026-09-02T09:00:00Z")]))
+    snap = {"valid_until": a["valid_until"], "fingerprint": a["fingerprint"]}
+    still = S.reaccept_snapshot(snap, req(), state())["action"]
+    late = state(now="2026-10-23T15:00:00Z"); expired = S.reaccept_snapshot(snap, req(), late)["action"]
+    changed = S.reaccept_snapshot(snap, req(), state(rates=[row(received_at="2026-09-02T09:00:00Z")]))["action"]
+    return a["fingerprint"] == b["fingerprint"] != c["fingerprint"] and still == "SNAPSHOT_STILL_VALID" and expired == "REQUOTE_REQUIRED" and changed == "REQUOTE_REQUIRED", (still, expired, changed)
+
+FORBIDDEN_KEYS = {"source_subtotal", "source_total", "source_currency", "provider_amount", "row_id", "source_document_id", "review_evidence_ref", "sources_used", "superseded_rates",
+                  "condition_notes", "expires_on", "text", "obligation_id", "warnings", "error_code", "engine_version", "rate_sell", "margin", "may_request_booking", "deposit_preview"}
+FORBIDDEN_STR = ("SYNTH-DOC", "SYNTH-REVIEW", "Nino a 35", "OB-GALA", "NET_BASIS", "TAX_NOTE_SEE_INVOICE", "CAPACITY_EXCEEDED", "RATE_AMBIGUOUS", "FX_MISSING", "CLIENT_FINAL")
+def _keys(o):
+    if isinstance(o, dict):
+        for k, v in o.items(): yield k; yield from _keys(v)
+    elif isinstance(o, list):
+        for v in o: yield from _keys(v)
+TOP_ALLOWED = {"dto_version", "mechanism_version", "request_id", "fingerprint", "status", "reason", "message_es", "computed_at", "valid_until", "selection", "price", "conditions", "channel", "booking_enablement", "collection_allowed"}
+
+@sc("S29_no_public_dto_leaks_internal_keys_or_text_and_matches_allowed_shape")
+def _():
+    bad = []
+    for d in ALL:
+        ks = set(_keys(d)); s = json.dumps(d, ensure_ascii=False)
+        if ks & FORBIDDEN_KEYS: bad.append(("key", sorted(ks & FORBIDDEN_KEYS)))
+        if [t for t in FORBIDDEN_STR if t in s]: bad.append(("str", [t for t in FORBIDDEN_STR if t in s]))
+        if set(d) - TOP_ALLOWED: bad.append(("top", sorted(set(d) - TOP_ALLOWED)))
+        if d.get("collection_allowed") is not False: bad.append("collection")
+        if d.get("booking_enablement") != {"derived_from_reference": False, "status": "REQUIRES_OPERATOR"}: bad.append("enablement")
+        if d["status"] != "PRICE_REFERENCE" and d.get("price") is not None: bad.append("price_on_non_price")
+    return not bad and len(ALL) >= 30, (bad[:3], len(ALL))
+
+@sc("S30_mutation_probe_leak_detector_detects_a_leaky_dto")
+def _():
+    leaky = copy.deepcopy(DTOS["base"]); leaky["provider_amount"] = {"amount": "200.00"}; leaky["price"]["note"] = "SYNTH-DOC"
+    ks = set(_keys(leaky)); s = json.dumps(leaky)
+    return bool(ks & FORBIDDEN_KEYS) and "SYNTH-DOC" in s and bool(set(leaky) - TOP_ALLOWED), None
+
+# ---------------------------------------------------------------- OBS-208 V11-R1..R5 (v1.1.1)
+NET = lambda **kw: row(price_basis="NET_PROVIDER", **kw)
+COND_EXP = [{"id": "C1", "text": "Nino a 35 hasta 01-Oct", "expires_on": "2026-10-01"}]
+GALA = [{"obligation_id": "OB-GALA", "date": "2027-03-28", "adult_amount": "10.00"}]
+
+@sc("S31_R1_net_keeps_expiry_supplement_source_and_basis_for_operator_public_stays_blind")
+def _():
+    st = state(rates=[NET(condition_notes=COND_EXP, mandatory_supplements=GALA)])
+    d = Q(req(), st, "net_full"); v = internal(req(), st)["view"]; pub = json.dumps(d)
+    return (d["status"] == "CONSULT" and d["price"] is None and "Nino a 35" not in pub and "OB-GALA" not in pub and "SYNTH-DOC" not in pub and "NET_PROVIDER" not in pub
+            and v["calculation_status"] == "SOURCE_SUBTOTAL_ONLY" and v["conditions"][0]["status"] == "VENCIDA" and v["operator_alerts"][0]["code"] == "CONSULT_PROVIDER_ABOUT_CONDITION"
+            and v["supplement_notes"][0]["obligation_id"] == "OB-GALA" and v["traceability"][0]["price_basis"] == "NET_PROVIDER" and v["traceability"][0]["source_document_id"] == "SYNTH-DOC"), (d, v)
+
+@sc("S32_R1_net_por_vencer_and_supersession_reach_the_operator")
+def _():
+    soon = state(rates=[NET(condition_notes=[{"id": "C1", "text": "x", "expires_on": "2026-11-01"}])]); soon["policy"]["review_notice_days"] = 14
+    v = internal(req(), soon)["view"]
+    r2 = NET(id="R2", received_at="2026-10-01T09:00:00Z"); r2["occupancy_rates"] = {"SGL": "150", "DBL": "120", "TPL": "90"}
+    v2 = internal(req(), state(rates=[NET(), r2]))["view"]
+    return v["operator_alerts"][0]["status"] == "POR_VENCER" and v2["superseded_rates"] == [{"row_id": "R2", "supersedes": ["R1"]}] and v2["source_subtotal"]["amount"] == "240.00", (v, v2)
+
+DOPOUT = lambda **kw: row(id="RD", currency="DOP", stay_from="2026-01-01", stay_until_exclusive="2026-02-01", occupancy_rates={"SGL": "9000", "DBL": "6000", "TPL": "5400"}, **kw)
+DRIFT = {"FXG1": {"version": "SYNTH-V2", "rate_sell": "63", "direction": "DOP_PER_USD"}}
+@sc("S33_R2_exact_probe_row_outside_dates_does_not_create_fx_drift")
+def _():
+    d = Q(req(pay="USD"), state(rates=[row(), DOPOUT()], fx_approvals=[dict(FXA)], fx_governed=copy.deepcopy(DRIFT)), "fx_probe")
+    return d["status"] == "PRICE_REFERENCE" and d["price"]["reference_total"] == {"amount": "200.00", "currency": "USD"}, d
+
+@sc("S34_R2_inactive_or_superseded_or_other_plan_rows_create_no_fx_dependency")
+def _():
+    base_ = dict(fx_approvals=[dict(FXA)], fx_governed=copy.deepcopy(DRIFT))
+    inactive = row(id="RD", currency="DOP", is_active=False, occupancy_rates={"SGL": "9000", "DBL": "6000", "TPL": "5400"}, received_at="2026-08-01T09:00:00Z")
+    a = Q(req(pay="USD"), state(rates=[row(), inactive], **base_), None)
+    older = row(id="RD", currency="DOP", occupancy_rates={"SGL": "9000", "DBL": "6000", "TPL": "5400"}, received_at="2026-08-01T09:00:00Z")   # superseded by newer USD row R1 (09-01)
+    b = Q(req(pay="USD"), state(rates=[row(), older], **base_), None)
+    st = state(rates=[row()], **base_); st["provider_plans"]["PP2"] = {"hotel_ref": "H-REF", "provider_id": "P2"}
+    c = Q(req(pay="USD"), st, None)
+    return all(x["status"] == "PRICE_REFERENCE" for x in (a, b, c)), (a["reason"], b["reason"], c["reason"])
+
+@sc("S35_R2_real_conversion_or_applicable_deposit_minimum_still_blocks_on_drift_and_works_without_it")
+def _():
+    base_ = dict(fx_approvals=[dict(FXA)], fx_governed=copy.deepcopy(DRIFT))
+    conv = Q(req(pay="DOP"), state(**base_), None)
+    st = state(**base_); st["policy"]["deposit_policy"] = {"type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN", "percentage": "0.30", "minimum_per_room": {"amount": "6000", "currency": "DOP"}}
+    dep = Q(req(pay="USD"), st, None)
+    ok = Q(req(pay="DOP"), state(fx_approvals=[dict(FXA)], fx_governed=copy.deepcopy(FXG)), None)
+    net_conv = Q(req(pay="DOP"), state(rates=[NET()], **base_), None)
+    return conv["reason"] == "FX_DRIFT" and dep["reason"] == "FX_DRIFT" and net_conv["reason"] == "FX_DRIFT" and ok["price"]["reference_total"]["amount"] == "12400.00", (conv["reason"], dep["reason"], net_conv["reason"])
+
+@sc("S36_R3_child_ages_present_must_be_array_no_silent_normalisation")
+def _():
+    for bad_ in ({}, "", 0, False, None, (), 1, "[]"):
+        rq = req(); rq["rooms"][0]["child_ages"] = bad_
+        d = Q(rq, state())
+        if d["reason"] != "AGE_INVALID" or d["price"] is not None: return False, (bad_, d)
+    rq = req(); rq["rooms"][0].pop("child_ages")
+    d = Q(rq, state(), "ages_absent")
+    ok = Q(req(), state())
+    return d["reason"] == "AGE_INVALID" and d["price"] is None and ok["status"] == "PRICE_REFERENCE", d
+
+@sc("S37_R3_ages_confirmed_must_be_boolean")
+def _():
+    a = req(ages=[5]); a["rooms"][0]["ages_confirmed"] = "yes"
+    b = req(); b["rooms"][0]["ages_confirmed"] = {}
+    ra, rb = Q(a, state()), Q(b, state())
+    return ra["reason"] == "AGES_NOT_CONFIRMED" and rb["reason"] == "REQUEST_INVALID" and ra["price"] is None and rb["price"] is None, (ra, rb)
+
+@sc("S38_R4_provider_amount_only_when_every_used_row_declares_net_provider")
+def _():
+    out = {}
+    for name, rows in (("client_final", [row()]), ("net", [NET()]), ("unknown", [row(price_basis="DESCONOCIDA")])):
+        out[name] = internal(req(), state(rates=rows))["view"]
+    mixed_r2 = NET(id="R2", received_at="2026-10-01T09:00:00Z", stay_from="2027-03-28", stay_until_exclusive="2027-03-29")
+    r1 = row(id="R1", stay_from="2027-03-01", stay_until_exclusive="2027-03-28")
+    rq = req(); rq["check_in"] = "2027-03-27"; rq["check_out"] = "2027-03-29"
+    out["mixed"] = internal(rq, state(rates=[r1, mixed_r2]))["view"]
+    cf, nt, un, mx = out["client_final"], out["net"], out["unknown"], out["mixed"]
+    return (cf["provider_amount"] is None and cf["provider_amount_status"] == "NOT_ACCREDITED_CLIENT_FINAL" and cf["source_subtotal"]["basis"] == "CLIENT_FINAL"
+            and nt["provider_amount"]["amount"] == "200.00" and nt["provider_amount_status"] == "ACCREDITED"
+            and un["provider_amount"] is None and un["provider_amount_status"] == "NOT_ACCREDITED_UNKNOWN" and un["source_subtotal"]["basis"] == "UNKNOWN"
+            and mx["provider_amount"] is None and mx["provider_amount_status"] == "NOT_ACCREDITED_MIXED"), out
+
+@sc("S39_R4_no_margin_fx_or_final_price_invented_and_public_never_sees_bases")
+def _():
+    views = [internal(req(), state(rates=rs))["view"] for rs in ([row()], [NET()], [row(price_basis="X")])]
+    keys = set(); [keys.update(_keys(v)) for v in views]
+    pubs = [S.quote_public(req(), state(rates=rs)) for rs in ([row()], [NET()], [row(price_basis="X")])]
+    s_ = json.dumps(pubs)
+    return (not any("margin" in k or "markup" in k for k in keys) and all(v["final_price_confirmed"] is None for v in views)
+            and "CLIENT_FINAL" not in s_ and "NET_PROVIDER" not in s_ and "INTERNAL_" not in s_ and "basis" not in s_), (sorted(keys)[:5], s_[:80])
+
+# ---- R5: schema validation (real jsonschema if importable; otherwise a built-in subset validator, labelled)
+SCHEMA = json.load(open(os.path.join(HERE, "..", "CORE1-PRICE-PUBLIC-DTO-v1.1.1.schema.json.inert")))
+try:
+    import jsonschema
+    import importlib.metadata as _im; VALIDATOR = "jsonschema " + _im.version("jsonschema")
+    jsonschema.Draft202012Validator.check_schema(SCHEMA)
+    def valid(doc): return jsonschema.Draft202012Validator(SCHEMA).is_valid(doc)
+except ImportError:                              # offline fallback: declared, never silent
+    VALIDATOR = "builtin-subset (jsonschema library NOT available)"
+    import re as _re
+    def _v(doc, sc_):
+        if "oneOf" in sc_: return sum(_v(doc, x) for x in sc_["oneOf"]) == 1
+        if "const" in sc_ and doc != sc_["const"]: return False
+        if "enum" in sc_ and doc not in sc_["enum"]: return False
+        t = sc_.get("type")
+        if t:
+            ok = {"object": isinstance(doc, dict), "array": isinstance(doc, list), "string": isinstance(doc, str), "null": doc is None,
+                  "integer": isinstance(doc, int) and not isinstance(doc, bool)}[t]
+            if not ok: return False
+        if isinstance(doc, str):
+            if "pattern" in sc_ and not _re.search(sc_["pattern"], doc): return False
+            if "minLength" in sc_ and len(doc) < sc_["minLength"]: return False
+        if isinstance(doc, int) and not isinstance(doc, bool) and "minimum" in sc_ and doc < sc_["minimum"]: return False
+        if isinstance(doc, list):
+            if "minItems" in sc_ and len(doc) < sc_["minItems"]: return False
+            if "maxItems" in sc_ and len(doc) > sc_["maxItems"]: return False
+            if "items" in sc_ and not all(_v(x, sc_["items"]) for x in doc): return False
+        if isinstance(doc, dict):
+            if any(k not in doc for k in sc_.get("required", [])): return False
+            props = sc_.get("properties", {})
+            if sc_.get("additionalProperties") is False and set(doc) - set(props): return False
+            if not all(_v(doc[k], props[k]) for k in doc if k in props): return False
+        return True
+    def valid(doc): return _v(doc, SCHEMA)
+print("SCHEMA VALIDATOR:", VALIDATOR)
+
+@sc("S40_R5_every_real_public_dto_validates_against_the_closed_schema")
+def _():
+    bad_ = [(d.get("request_id"), d.get("reason")) for d in ALL if not valid(d)]
+    return not bad_ and len(ALL) >= 40, (bad_[:3], len(ALL))
+
+def _mut(doc, fn):
+    m = copy.deepcopy(doc); fn(m); return m
+@sc("S41_R5_nested_mutations_of_a_priced_dto_are_rejected")
+def _():
+    b = DTOS["base"]
+    muts = {
+        "provider_amount_in_price": lambda m: m["price"].update(provider_amount={"amount": "1.00", "currency": "USD"}),
+        "extra_in_reference_total": lambda m: m["price"]["reference_total"].update(basis="NET_PROVIDER"),
+        "extra_in_average": lambda m: m["price"]["derived_average_per_night"].update(x=1),
+        "extra_in_selection_room": lambda m: m["selection"]["rooms"][0].update(row_id="R1"),
+        "extra_in_selection": lambda m: m["selection"].update(received_at="2026-01-01T00:00:00Z"),
+        "internal_text_in_condition": lambda m: m["conditions"].append({"code": "REFERENCE_SUBJECT_TO_CONFIRMATION", "message_es": "x", "text": "Nino a 35"}),
+        "unknown_condition_code": lambda m: m["conditions"].append({"code": "CONDITION_EXPIRED", "message_es": "x"}),
+        "booking_enablement_empty": lambda m: m.update(booking_enablement={}),
+        "booking_enablement_true": lambda m: m["booking_enablement"].update(derived_from_reference=True),
+        "booking_enablement_missing_status": lambda m: m["booking_enablement"].pop("status"),
+        "payable_true": lambda m: m["price"].update(payable=True),
+        "total_certified_true": lambda m: m["price"].update(total_certified=True),
+        "bad_amount_format": lambda m: m["price"]["reference_total"].update(amount="200"),
+        "bad_currency": lambda m: m["price"]["reference_total"].update(currency="EUR"),
+        "collection_true": lambda m: m.update(collection_allowed=True),
+        "channel_extra": lambda m: m["channel"].update(token="x"),
+        "missing_price": lambda m: m.pop("price"),
+        "reason_not_null_on_price": lambda m: m.update(reason="PRICE_UNAVAILABLE"),
+    }
+    leaked = [k for k, f in muts.items() if valid(_mut(b, f))]
+    return valid(b) and not leaked, leaked
+
+@sc("S42_R5_no_price_branch_mutations_are_rejected")
+def _():
+    c = DTOS["cap_exceeded"]
+    muts = {
+        "price_not_null": lambda m: m.update(price={"reference_total": {"amount": "1.00", "currency": "USD"}}),
+        "selection_present": lambda m: m.update(selection={}),
+        "reason_unknown_raw_code": lambda m: m.update(reason="CAPACITY_EXCEEDED"),
+        "reason_null_on_consult": lambda m: m.update(reason=None),
+        "channel_present": lambda m: m.update(channel={"mode": "ASSISTED", "status": "ACCREDITED"}),
+        "fingerprint_on_consult": lambda m: m.update(fingerprint="0" * 24),
+        "enablement_true": lambda m: m["booking_enablement"].update(derived_from_reference=True),
+        "condition_on_consult": lambda m: m.update(conditions=[{"code": "TAX_NOTE", "message_es": "x"}]),
+        "extra_key": lambda m: m.update(warnings=["NET_BASIS_NOT_CLIENT_PRICE"]),
+        "status_priced_without_price": lambda m: m.update(status="PRICE_REFERENCE"),
+    }
+    leaked = [k for k, f in muts.items() if valid(_mut(c, f))]
+    return valid(c) and valid(DTOS["paused"]) and not leaked, leaked
+
+@sc("S43_R5_schema_audit_every_object_is_closed_with_required_and_every_string_is_constrained")
+def _():
+    problems = []
+    def walk(n, path):
+        if isinstance(n, dict):
+            if n.get("type") == "object":
+                if n.get("additionalProperties") is not False: problems.append(path + ": object not closed")
+                if "required" not in n: problems.append(path + ": object without required")
+                if set(n.get("properties", {})) != set(n.get("required", [])): problems.append(path + ": required != properties")
+            if n.get("type") == "string" and not any(k in n for k in ("pattern", "enum", "const", "minLength")): problems.append(path + ": free string")
+            if n.get("type") == "array" and "items" not in n: problems.append(path + ": array without items")
+            for k, v in n.items(): walk(v, path + "/" + k)
+        elif isinstance(n, list):
+            for i, v in enumerate(n): walk(v, path + f"[{i}]")
+    walk(SCHEMA, "#")
+    return not problems, problems[:5]
+
+bad = sorted(k for k, (ok, _) in results.items() if not ok)
+for k, (ok, d) in results.items(): print(k, "PASS" if ok else "FAIL", "" if ok else d)
+total = len(results)
+print(f"SERVER SCENARIOS v1.1.1 (simulated): {total - len(bad)}/{total} PASS; failing={json.dumps(bad)}")
+if total != EXPECTED: print(f"COUNT MISMATCH: {total} scenarios, expected {EXPECTED}"); sys.exit(2)
+if "--dump" in sys.argv:
+    json.dump({"dtos": DTOS}, open(sys.argv[sys.argv.index("--dump") + 1], "w"), indent=1, ensure_ascii=False, sort_keys=True)
+    ivs = {"expired_condition": internal(req(), state(rates=[row(condition_notes=[{"id": "C1", "text": "Nino a 35 hasta 20-Oct", "expires_on": "2026-10-20"}])]))["view"],
+           "net": internal(req(), state(rates=[row(price_basis="NET_PROVIDER")]))["view"],
+           "net_expired": internal(req(), state(rates=[row(price_basis="NET_PROVIDER", condition_notes=COND_EXP, mandatory_supplements=GALA)]))["view"],
+           "client_final": internal(req(), state())["view"]}
+    json.dump(ivs, open(sys.argv[sys.argv.index("--dump") + 1].replace(".json", "-internal.json"), "w"), indent=1, ensure_ascii=False, sort_keys=True)
+sys.exit(1 if bad else 0)

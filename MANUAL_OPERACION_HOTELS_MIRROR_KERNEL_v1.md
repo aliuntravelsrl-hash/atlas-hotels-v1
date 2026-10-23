@@ -41,3 +41,14 @@
    - Telemetría hacia Ariadne Data o Atlas Intel.
    debe documentarse inmediatamente en `history/INTEGRITY-STATE-LOG.md` con su fecha, commit, justificación y resultado de auditoría.
 3. **Invariante de No-Regresión:** Ningún cambio en el Mirror Kernel puede desplegarse en producción sin que `npm test` pase al 100% y se conserve la copia histórica del estado previo.
+
+---
+
+## 5. 🧮 Core 1 — Precio de referencia (custodia de mecanismos)
+
+1. **Ubicación:** `core1-price/` (lógica versionada, contratos, vectores sintéticos, reglas del Director, prompts para el ejecutor). Ver `core1-price/README.md` y `core1-price/VERSION-MAP.md`.
+2. **Autoridad de reglas:** `core1-price/rules/DIRECTOR-RULES-CORE1-20261023.md`. Mandan sobre cualquier versión.
+3. **Versionado:** una versión publicada no se edita; un mecanismo modificado genera versión nueva, entrada en `VERSION-MAP.md` y entrada en `history/INTEGRITY-STATE-LOG.md`.
+4. **Verificación de custodia:** `sha256sum -c core1-price/MANIFEST.sha256` y `npm run test:core1:all` (modelos, adaptador simulado y 30 comprobaciones del runner: 28 negativas, 1 reproducción del defecto y 1 control positivo (más adaptadores simulados v1.1 30+24 y v1.1.1 43+27; modelos hasta v2.2.3 con 120 vectores); código de salida real; no prueba SQL ni Admin ni web ni ejecuta audit:live).
+5. **Sin datos reales:** las tarifas viven en Supabase; este repositorio no guarda tarifas, secretos, JWT, IDs de chat ni PII.
+6. **Hallazgo abierto:** `core1-price/KERNEL-ALIGNMENT-FINDINGS.md` (el kernel actual completa datos con valores por defecto; decisión pendiente del Curador).

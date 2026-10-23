@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Harness v2.1 for a FRESH LOCAL PostgreSQL cluster created by the operator (Antigravity, when convened by the Director).
+NOT executed by ATLAS-TECH (no PostgreSQL/Docker/credentials available here). Contains no credentials.
+
+Connection: C1_LOCAL_DSN must point to a unix socket directory or 127.0.0.1/::1/localhost. There is NO env override for remote hosts.
+The DSN is never printed; connection errors print only the exception class.
+Usage:
+  C1_LOCAL_DSN='host=/path/to/socket dbname=c1_disposable_<id> user=<local-owner>' C1_MARKER='<id>' \
+  python3 -I run_disposable_db_v2_1.py MANIFEST.json
+Everything runs in ONE transaction and is rolled back in `finally`; pre/post catalog fingerprints must be equal.
+Outputs per-case diffs (expected fields AND model output); never a global OK.
+"""
+import hashlib, json, os, re, sys
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, ".."))
+
+def die(msg):
+    print("REFUSED:", msg); sys.exit(2)
+
+try:
+    import psycopg
+except ImportError:
+    die("psycopg missing (pip install 'psycopg[binary]') in the operator environment")
+try:
+    import pglast
+except ImportError:
+    pglast = None
+
+manifest = json.load(open(sys.argv[1]))
+# 1) file integrity against the manifest (snapshot of the files under review)
+for rel, sha in manifest["files_sha256"].items():
+    if hashlib.sha256(open(os.path.join(ROOT, rel), "rb").read()).hexdigest() != sha:
+        die(f"file hash differs from manifest: {rel}")
+
+dsn = os.environ.get("C1_LOCAL_DSN", "")
+marker = os.environ.get("C1_MARKER", "")
+if not dsn or not re.fullmatch(r"[A-Za-z0-9_-]{6,40}", marker):
+    die("C1_LOCAL_DSN and C1_MARKER (6-40 chars [A-Za-z0-9_-]) are required")
+kv = dict(p.split("=", 1) for p in dsn.split() if "=" in p)
+host = kv.get("host", "")
+if not (host.startswith("/") or host in ("127.0.0.1", "::1", "localhost")):
+    die("only a unix socket directory or loopback host is accepted (no remote host option exists)")
+if not kv.get("dbname", "").startswith("c1_disposable_"):
+    die("dbname must start with c1_disposable_")
+
+def stmts_ok(sql):
+    """Reject transaction control in applied files (the harness owns the transaction)."""
+    if pglast is None:
+        return not re.search(r"^\s*(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|END)\b", sql, re.I | re.M)
+    for st in pglast.parse_sql(sql):
+        if type(st.stmt).__name__ == "TransactionStmt":
+            return False
+    return True
+
+def fingerprint(cx):
+    q = ("SELECT (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema')),"
+         "(SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema','pg_toast')),"
+         "(SELECT count(*) FROM pg_roles WHERE rolname !~ '^pg_'),(SELECT count(*) FROM pg_extension)")
+    return cx.execute(q).fetchone()
+
+def main():
+    try:
+        cx = psycopg.connect(dsn, autocommit=False)
+    except Exception as e:  # sanitized: class name only
+        die(f"connection failed ({type(e).__name__})")
+    results = {"environment": {}, "cases": {}, "schema": {}, "acl": {}, "rollback_gates": {}}
+    fails = 0
+    try:
+        # 2) identity of the fresh local cluster
+        db, owner, ver, recov = cx.execute("SELECT current_database(), current_user, current_setting('server_version'), pg_is_in_recovery()").fetchone()
+        addr = cx.execute("SELECT inet_server_addr()::text").fetchone()[0]
+        comment = cx.execute("SELECT shobj_description(oid,'pg_database') FROM pg_database WHERE datname=current_database()").fetchone()[0]
+        dbs = {r[0] for r in cx.execute("SELECT datname FROM pg_database")}
+        roles = {r[0] for r in cx.execute("SELECT rolname FROM pg_roles WHERE rolname !~ '^pg_'")}
+        usertabs = cx.execute("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema','pg_toast') AND c.relkind IN ('r','v','m','f','p')").fetchone()[0]
+        if not db.startswith("c1_disposable_"): die("database name")
+        if comment != "C1-DISPOSABLE-FIXTURE:" + marker: die("database marker comment missing/mismatch")
+        if recov: die("server is a replica")
+        if addr not in (None, "127.0.0.1", "::1"): die("server address not loopback/socket")
+        if not all(d in ("postgres", "template0", "template1") or d.startswith("c1_disposable_") for d in dbs): die("cluster has foreign databases (not fresh)")
+        if usertabs != 0: die("database is not empty")
+        if not roles <= {owner, "postgres", "anon", "authenticated", "service_role"}: die("cluster has foreign roles (not fresh)")
+        results["environment"] = {"database": db, "server_version_observed": ver, "owner": owner, "empty": True, "marker_ok": True}
+        pre = fingerprint(cx)
+        # 3) roles + stubs (inside the transaction)
+        for r in ("anon", "authenticated", "service_role"):
+            cx.execute(f"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='{r}') THEN CREATE ROLE {r} NOLOGIN; END IF; END $$")
+        cx.execute("CREATE EXTENSION IF NOT EXISTS btree_gist")
+        cx.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+        cx.execute("CREATE TABLE public.hotels_master (id uuid PRIMARY KEY DEFAULT gen_random_uuid())")
+        cx.execute("CREATE TABLE public.rooms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), hotel_id uuid REFERENCES public.hotels_master(id))")
+        cx.execute("GRANT SELECT ON public.rooms, public.hotels_master TO service_role")
+        cx.execute("GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role")
+        # 4) apply files (no transaction control allowed)
+        for rel in manifest["apply_order"]:
+            sql = open(os.path.join(ROOT, rel)).read()
+            if not stmts_ok(sql): die(f"transaction control found in {rel}")
+            cx.execute(sql)
+        # 5) function cases: expected fields AND model output
+        src = open(os.path.join(ROOT, "core1_reference_model_v2_1.py.inert")).read()
+        m2 = type(sys)("m2"); exec(compile(src, "m2", "exec"), m2.__dict__)
+        for spec in manifest["case_sets"]:
+            cases = json.load(open(os.path.join(ROOT, spec["file"])))["cases"]
+            for c in cases:
+                cc = m2.upgrade_legacy(c) if spec.get("upgrade_legacy") else c
+                cx.execute("SAVEPOINT s")
+                try:
+                    got = cx.execute("SELECT public.core1_price_pure_v2_1(%s::jsonb,%s::jsonb)", (json.dumps(cc["request"]), json.dumps(cc["context"]))).fetchone()[0]
+                except Exception as e:
+                    cx.execute("ROLLBACK TO s"); got = {"_db_error": type(e).__name__}
+                cx.execute("RELEASE s")
+                d1, d2 = m2.compare(c["expected"], got), m2.compare(m2.evaluate(cc), got)
+                st = "PASS" if not d1 and not d2 else "FAIL"; fails += st == "FAIL"
+                results["cases"][c["id"]] = {"status": st, "vs_expected": d1, "vs_model": d2}
+        # 6) schema + ACL + gate probes
+        exec(compile(open(os.path.join(HERE, "schema_acl_probes_v2_1.py.inert")).read(), "probes", "exec"), {"cx": cx, "results": results, "json": json, "os": os, "ROOT": ROOT})
+        fails += sum(1 for sec in ("schema", "acl", "rollback_gates") for v in results[sec].values() if v["status"] == "FAIL")
+    finally:
+        try: cx.rollback()
+        except Exception: pass
+        try:
+            post = fingerprint(cx)
+            results["rollback_effective"] = {"pre": list(pre), "post": list(post), "equal": list(pre) == list(post)} if "pre" in dir() else None
+        except Exception:
+            pass
+        cx.close()
+    print(json.dumps(results, indent=1, ensure_ascii=False, default=str))
+    bad = [k for k, v in results["cases"].items() if v["status"] == "FAIL"]
+    print(f"FAILS total={fails}; failing function cases={bad}; nothing committed")
+    sys.exit(1 if fails or (results.get("rollback_effective") or {}).get("equal") is False else 0)
+
+main()

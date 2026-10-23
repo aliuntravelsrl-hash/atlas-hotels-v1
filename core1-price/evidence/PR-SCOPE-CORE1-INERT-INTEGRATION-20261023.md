@@ -1,0 +1,6 @@
+# Alcance propuesto de PR inerte — Core 1 precio de referencia (PREPARADO, NO ABIERTO, NO FUSIONADO)
+Rama origen: `atlas-tech/core1-price-mechanisms` → destino `main` del vault. Base de revisión: `ded02ded9065c8b6a9cf0cca9d8f60ee5c1cca70` + commit de esta finalización documental.
+**Qué incluye:** carpeta `core1-price/` (reglas del Director, procedencia, versiones v1…v2.2.3 y adaptadores v1/v1.1/v1.1.1 inertes con extensión `.inert`, runners, evidencia, custodia como propuesta), bitácora `history/INTEGRITY-STATE-LOG.md`, manual §5, `.gitignore`, scripts `test:core1*` en `package.json`.
+**Qué NO incluye ni autoriza:** SQL (nunca ejecutado; no existe SQL v2.2.x), Supabase/n8n/apps/credenciales/producción, adopción de versión alguna, acto de custodia firmado, tag del kernel v1, implementación de kernel v2, rotación §118. Kernel v1 sin cambios.
+**Manifest de revisión:** `sha256sum -c core1-price/MANIFEST.sha256`; `npm test`; `npm run test:core1:all` (modelos 120/115/107/97, adaptador v1 31+28, v1.1 30+24, v1.1.1 43+27, runner 30 comprobaciones). Carpetas congeladas sin diff contra `8ab0ced`.
+**Decisiones separadas (DG):** fusión del PR; acto de custodia; tag v1; convocatoria de implementación de kernel. Abiertos: A/B §253, F-SEC-01, FIN-ID-001, `rates.created_at` (UNK). Piloto documental propuesto por el Curator: Viva Miches, sin habilitar venta.

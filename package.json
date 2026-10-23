@@ -5,7 +5,10 @@
   "main": "kernel/index.js",
   "scripts": {
     "test": "node tests/kernel_evaluation.test.js && node tests/variable_accumulation.test.js",
-    "audit:live": "node scripts/audit_live_supabase_hotels.js"
+    "audit:live": "node scripts/audit_live_supabase_hotels.js",
+    "test:core1": "python3 -I core1-price/runners/run_core1_checks.py",
+    "test:core1:runner": "python3 -I core1-price/runners/test_runner_fault_injection.py",
+    "test:core1:all": "npm run -s test:core1 && npm run -s test:core1:runner"
   },
   "keywords": [
     "atlas",

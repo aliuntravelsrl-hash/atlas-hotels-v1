@@ -1,0 +1,4409 @@
+{
+  "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+  "status": "CANDIDATE_ACCEPTANCE_VECTORS_NOT_EXECUTED",
+  "synthetic": true,
+  "scope": "Pure input/output scenarios. Not a DB import or tariff load. No actual supplier source or confirmation.",
+  "cases": [
+    {
+      "id": "C1P01",
+      "title": "USD100 documented is a genuine rate, not a placeholder",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P01",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "200.00",
+        "payment_total": "200.00",
+        "deposit_preview": "60.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P02",
+      "title": "Night-by-night cross-range pricing",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P02",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-04-02",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2027-01-02",
+            "stay_until_exclusive": "2027-03-31",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "236.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          },
+          {
+            "id": "SYNTH-RATE-B",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2027-03-31",
+            "stay_until_exclusive": "2027-05-01",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "194.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "1720.00",
+        "payment_total": "1720.00",
+        "deposit_preview": "516.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P03",
+      "title": "Requested room wins over cheaper room",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P03",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "120.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          },
+          {
+            "id": "SYNTH-CHEAPER",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-B",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "80.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "240.00",
+        "payment_total": "240.00",
+        "deposit_preview": "72.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P04",
+      "title": "Room-night rate is not multiplied by three adults",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P04",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-31",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 3,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "ROOM_NIGHT",
+            "currency": "USD",
+            "max_adults": 3,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false,
+            "amount": "150.00",
+            "occupancy_included": {
+              "max_adults": 3,
+              "max_children": 0
+            }
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "300.00",
+        "payment_total": "300.00",
+        "deposit_preview": "90.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P05",
+      "title": "Person-stay rate is not multiplied by nights",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P05",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-04-02",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_STAY",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "400.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "800.00",
+        "payment_total": "800.00",
+        "deposit_preview": "240.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P06",
+      "title": "Room-stay rate is not multiplied by persons or nights",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P06",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-04-02",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "ROOM_STAY",
+            "currency": "USD",
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false,
+            "amount": "400.00",
+            "occupancy_included": {
+              "max_adults": 2,
+              "max_children": 0
+            }
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "400.00",
+        "payment_total": "400.00",
+        "deposit_preview": "120.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P07",
+      "title": "Documented child fixed rate",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P07",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-31",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": [
+              7
+            ]
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "510.00",
+        "payment_total": "510.00",
+        "deposit_preview": "153.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P08",
+      "title": "Documented free infant is zero without inventing adult discount",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P08",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": [
+              2
+            ]
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "200.00",
+        "payment_total": "200.00",
+        "deposit_preview": "60.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P09",
+      "title": "Third-adult rule absent",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P09",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 3,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 3,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "OCCUPANCY_PRICE_UNDEFINED",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P10",
+      "title": "Third adult only with explicit extra-adult rule",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P10",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-31",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 3,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "BASE_PLUS_EXTRA",
+              "base_adults": 2,
+              "base_amount_per_adult": "100.00",
+              "extra_adult_amount": "50.00"
+            },
+            "max_adults": 3,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "500.00",
+        "payment_total": "500.00",
+        "deposit_preview": "150.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P11",
+      "title": "Mandatory gala applies once under explicit synthetic rule",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P11",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2026-12-31",
+        "check_out": "2027-01-01",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [
+              {
+                "id": "SYNTH-GALA",
+                "unit": "PERSON_EVENT",
+                "date": "2026-12-31",
+                "applicability": "NIGHT_IN_STAY_EXPLICIT",
+                "adult_amount": "60.00",
+                "child_amount": "30.00",
+                "currency": "USD"
+              }
+            ],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "320.00",
+        "payment_total": "320.00",
+        "deposit_preview": "96.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P12",
+      "title": "Checkout date excluded from explicit night-based event",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P12",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2026-12-30",
+        "check_out": "2026-12-31",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [
+              {
+                "id": "SYNTH-GALA",
+                "unit": "PERSON_EVENT",
+                "date": "2026-12-31",
+                "applicability": "NIGHT_IN_STAY_EXPLICIT",
+                "adult_amount": "60.00",
+                "currency": "USD"
+              }
+            ],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "200.00",
+        "payment_total": "200.00",
+        "deposit_preview": "60.00",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P13",
+      "title": "Gala applicability unknown must not be assumed",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P13",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2026-12-31",
+        "check_out": "2027-01-01",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [
+              {
+                "id": "SYNTH-GALA",
+                "unit": "PERSON_EVENT",
+                "date": "2026-12-31",
+                "applicability": "UNKNOWN",
+                "adult_amount": "60.00",
+                "currency": "USD"
+              }
+            ],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "SUPPLEMENT_RULE_UNVERIFIED",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P14",
+      "title": "Age12 is outside explicit child band",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P14",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": [
+              12
+            ]
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "AGE_PRICE_UNDEFINED",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P15",
+      "title": "Missing one night of tariff coverage",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P15",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-31",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-03-30",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "RATE_COVERAGE_GAP",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P16",
+      "title": "Overlapping applicable rate revisions without precedence",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P16",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          },
+          {
+            "id": "SYNTH-CONFLICT",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "110.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "RATE_AMBIGUOUS",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P17",
+      "title": "FX absent: no payment quote or deposit fallback",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P17",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "DOP",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "FX_MISSING",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P18",
+      "title": "Two active FX candidates are not resolved by last row",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P18",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          },
+          {
+            "id": "SYNTH-FX-2",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "63.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "FX_AMBIGUOUS",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P19",
+      "title": "Expired FX despite active flag",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P19",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-21T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "FX_EXPIRED",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P20",
+      "title": "USD quote converted to DOP at frozen rate",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P20",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-04-02",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "DOP",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2027-01-02",
+            "stay_until_exclusive": "2027-03-31",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "236.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          },
+          {
+            "id": "SYNTH-RATE-B",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2027-03-31",
+            "stay_until_exclusive": "2027-05-01",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "194.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "1720.00",
+        "payment_total": "106640.00",
+        "deposit_preview": "31992.00",
+        "payment_currency": "DOP",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P21",
+      "title": "Two rooms charged once each, percentage exceeds room minimum",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P21",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          },
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "DOP",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "400.00",
+        "payment_total": "24800.00",
+        "deposit_preview": "7440.00",
+        "payment_currency": "DOP",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P22",
+      "title": "Per-room minimum dominates percentage",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P22",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          },
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "DOP",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "ROOM_STAY",
+            "currency": "DOP",
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false,
+            "amount": "5000.00",
+            "occupancy_included": {
+              "max_adults": 2,
+              "max_children": 0
+            }
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "10000.00",
+        "payment_total": "10000.00",
+        "deposit_preview": "4000.00",
+        "payment_currency": "DOP",
+        "source_currency": "DOP"
+      }
+    },
+    {
+      "id": "C1P23",
+      "title": "Deposit capped at total",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P23",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "DOP",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "ROOM_STAY",
+            "currency": "DOP",
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false,
+            "amount": "1500.00",
+            "occupancy_included": {
+              "max_adults": 2,
+              "max_children": 0
+            }
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "1500.00",
+        "payment_total": "1500.00",
+        "deposit_preview": "1500.00",
+        "payment_currency": "DOP",
+        "source_currency": "DOP"
+      }
+    },
+    {
+      "id": "C1P24",
+      "title": "Explicit full-payment product overrides fallback",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P24",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "DOP",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "ROOM_STAY",
+            "currency": "DOP",
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false,
+            "amount": "10000.00",
+            "occupancy_included": {
+              "max_adults": 2,
+              "max_children": 0
+            }
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-FULL",
+          "revision": "1",
+          "type": "FULL_PAYMENT"
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "10000.00",
+        "payment_total": "10000.00",
+        "deposit_preview": "10000.00",
+        "payment_currency": "DOP",
+        "source_currency": "DOP"
+      }
+    },
+    {
+      "id": "C1P25",
+      "title": "Unit absent: no silent person/room conversion",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P25",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "UNIT_UNDEFINED",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P26",
+      "title": "Sale window expired: keep source, no new usable quote",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P26",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false,
+            "sale_until_exclusive": "2026-10-21T00:00:00Z"
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "SALE_WINDOW_CLOSED",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P27",
+      "title": "Unsigned source may support reference while sale condition remains unresolved",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P27",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": true
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "200.00",
+        "payment_total": "200.00",
+        "deposit_preview": "60.00",
+        "payment_currency": "USD",
+        "warnings": [
+          "SIGNATURE_CONDITION_FOR_SALE_UNVERIFIED"
+        ],
+        "may_request_booking": false,
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P28",
+      "title": "Unresolved room mapping",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P28",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-UNRESOLVED",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "ROOM_MAPPING_UNRESOLVED",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P29",
+      "title": "Zero-length stay rejected",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P29",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-29",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INVALID",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "STAY_INVALID",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P30",
+      "title": "USD100 placeholder is excluded by provenance, not by value",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P30",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": true
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "PLACEHOLDER_RATE",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P31",
+      "title": "Exact arithmetic and visible reconciliation of rounded breakdown",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P31",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-31",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "33.3333"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "133.33",
+        "payment_total": "133.33",
+        "deposit_preview": "40.00",
+        "payment_currency": "USD",
+        "exact_source_total": "133.3332",
+        "displayed_nightly_amounts": [
+          "66.67",
+          "66.67"
+        ],
+        "rounding_adjustment": "-0.01",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P32",
+      "title": "Deposit minimum conversion rounds up to currency minor unit",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P32",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "ROOM_STAY",
+            "currency": "USD",
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false,
+            "amount": "100.00",
+            "occupancy_included": {
+              "max_adults": 2,
+              "max_children": 0
+            }
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "100.00",
+        "payment_total": "100.00",
+        "deposit_preview": "32.26",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P33",
+      "title": "Percentage minimum rounds upward, not below approved percentage",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P33",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "DOP",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "ROOM_STAY",
+            "currency": "DOP",
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false,
+            "amount": "10000.01",
+            "occupancy_included": {
+              "max_adults": 2,
+              "max_children": 0
+            }
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "10000.01",
+        "payment_total": "10000.01",
+        "deposit_preview": "3000.01",
+        "payment_currency": "DOP",
+        "source_currency": "DOP"
+      }
+    },
+    {
+      "id": "C1P34",
+      "title": "Chosen payment currency must be enabled for product",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P34",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "DOP",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "INCOMPLETE",
+        "commercial_use": "NO_COMPLETE_QUOTE",
+        "payment_total": null,
+        "deposit_preview": null,
+        "error_code": "PAYMENT_CURRENCY_NOT_ALLOWED",
+        "source_currency": "USD"
+      }
+    },
+    {
+      "id": "C1P35",
+      "title": "Cross-year rates are selected by each civil night",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P35",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2026-12-30",
+        "check_out": "2027-01-03",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": []
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-01-02",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "275.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          },
+          {
+            "id": "SYNTH-RATE-B",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2027-01-02",
+            "stay_until_exclusive": "2027-03-31",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "236.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_currency": "USD",
+        "source_total": "2122.00",
+        "payment_currency": "USD",
+        "payment_total": "2122.00",
+        "deposit_preview": "636.60",
+        "collection_allowed": false
+      }
+    },
+    {
+      "id": "C1P36",
+      "title": "Child band lower boundary age3 charges fixed child rate",
+      "schema_version": "CORE1-PRICE-ACCEPTANCE-v1",
+      "synthetic": true,
+      "request": {
+        "request_id": "C1P36",
+        "operation": "CALCULATE_REFERENCE",
+        "hotel_id": "SYNTH-HOTEL",
+        "provider_id": "SYNTH-PROVIDER",
+        "check_in": "2027-03-29",
+        "check_out": "2027-03-30",
+        "rooms": [
+          {
+            "room_type_id": "SYNTH-ROOM-A",
+            "adults": 2,
+            "child_ages": [
+              3
+            ]
+          }
+        ],
+        "payment_currency": "USD",
+        "server_now": "2026-10-22T12:00:00Z"
+      },
+      "context": {
+        "property_timezone": "Etc/UTC",
+        "source_document": {
+          "id": "SYNTH-DOC",
+          "revision": "1",
+          "fixture_only": true,
+          "official_source_declared": true,
+          "verified_for_extraction": true,
+          "signature_status": "UNKNOWN",
+          "signature_required_for_reference": false,
+          "signature_required_for_sale": false
+        },
+        "rates": [
+          {
+            "id": "SYNTH-RATE",
+            "revision": "1",
+            "hotel_id": "SYNTH-HOTEL",
+            "provider_id": "SYNTH-PROVIDER",
+            "room_type_id": "SYNTH-ROOM-A",
+            "stay_from": "2026-12-24",
+            "stay_until_exclusive": "2027-12-24",
+            "unit": "PERSON_NIGHT",
+            "currency": "USD",
+            "adult_pricing": {
+              "mode": "TIER_PER_ADULT",
+              "tier_by_adult_count": {
+                "1": "150.00",
+                "2": "100.00"
+              }
+            },
+            "max_adults": 2,
+            "max_children": 2,
+            "child_pricing": {
+              "age_evaluation": "CHECK_IN",
+              "bands": [
+                {
+                  "from_inclusive": 0,
+                  "to_exclusive": 3,
+                  "amount": "0.00",
+                  "min_adults": 2
+                },
+                {
+                  "from_inclusive": 3,
+                  "to_exclusive": 12,
+                  "amount": "55.00",
+                  "min_adults": 2
+                }
+              ]
+            },
+            "taxes_included": true,
+            "mandatory_supplements": [],
+            "rate_origin": "SYNTHETIC_VERIFIED",
+            "placeholder": false
+          }
+        ],
+        "fx": [
+          {
+            "id": "SYNTH-FX",
+            "pair": "USD_DOP",
+            "direction": "DOP_PER_USD",
+            "rate_sell": "62.00",
+            "active": true,
+            "effective_from": "2026-10-22T00:00:00Z",
+            "effective_until_exclusive": "2026-10-23T00:00:00Z"
+          }
+        ],
+        "deposit_policy": {
+          "id": "SYNTH-DEFAULT",
+          "revision": "1",
+          "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN",
+          "percentage": "0.30",
+          "minimum_per_room": {
+            "amount": "2000.00",
+            "currency": "DOP"
+          }
+        },
+        "provider_confirmation": "NOT_CHECKED",
+        "accepted_payment_currencies": [
+          "USD",
+          "DOP"
+        ]
+      },
+      "expected": {
+        "fixture_status": "SPECIFIED_NOT_EXECUTED",
+        "collection_allowed": false,
+        "calculation_status": "COMPLETE",
+        "commercial_use": "REFERENCE_ONLY",
+        "source_total": "255.00",
+        "payment_total": "255.00",
+        "deposit_preview": "76.50",
+        "payment_currency": "USD",
+        "source_currency": "USD"
+      }
+    }
+  ]
+}

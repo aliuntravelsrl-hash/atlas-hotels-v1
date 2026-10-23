@@ -1,0 +1,103 @@
+# Executed by run_disposable_db_v2_1.py via exec(); uses `cx` (psycopg connection inside the single test transaction) and `results`.
+# Each probe uses a SAVEPOINT so an expected failure does not abort the transaction. Nothing is committed.
+def expect_error(section, name, sql, params=(), needle=None):
+    cx.execute("SAVEPOINT p")
+    try:
+        cx.execute(sql, params)
+        cx.execute("ROLLBACK TO p"); cx.execute("RELEASE p")
+        results[section][name] = {"status": "FAIL", "detail": "statement unexpectedly succeeded"}
+    except Exception as e:
+        cx.execute("ROLLBACK TO p"); cx.execute("RELEASE p")
+        ok = needle is None or needle in str(e)
+        results[section][name] = {"status": "PASS" if ok else "FAIL", "detail": type(e).__name__ + ("" if ok else " (unexpected message)")}
+
+def expect_ok(section, name, sql, params=()):
+    cx.execute("SAVEPOINT p")
+    try:
+        cx.execute(sql, params); cx.execute("RELEASE p")
+        results[section][name] = {"status": "PASS"}
+    except Exception as e:
+        cx.execute("ROLLBACK TO p"); cx.execute("RELEASE p")
+        results[section][name] = {"status": "FAIL", "detail": type(e).__name__}
+
+S = "schema"
+hA = cx.execute("INSERT INTO public.hotels_master DEFAULT VALUES RETURNING id").fetchone()[0]
+hB = cx.execute("INSERT INTO public.hotels_master DEFAULT VALUES RETURNING id").fetchone()[0]
+rA = cx.execute("INSERT INTO public.rooms (hotel_id) VALUES (%s) RETURNING id", (hA,)).fetchone()[0]
+rB = cx.execute("INSERT INTO public.rooms (hotel_id) VALUES (%s) RETURNING id", (hB,)).fetchone()[0]
+doc = cx.execute("INSERT INTO public.core1_source_documents (contract_code,revision,sha256,size_bytes) VALUES ('SYNTH','1',repeat('a',64),1) RETURNING id").fetchone()[0]
+# V2-T2: negative test with a stub that exercises the REAL link (room of hotel B mapped under hotel A)
+expect_error(S, "T2_room_of_other_hotel_rejected",
+    "INSERT INTO public.core1_room_map (hotel_id,provider_id,room_id,source_room_label) VALUES (%s,'P',%s,'x')", (hA, rB), "CORE1_ROOM_HOTEL_MISMATCH")
+expect_ok(S, "T2_matching_room_accepted",
+    "INSERT INTO public.core1_room_map (hotel_id,provider_id,plan,room_id,source_room_label) VALUES (%s,'P','AI',%s,'ok')", (hA, rA))
+mid = cx.execute("SELECT id FROM public.core1_room_map WHERE room_id=%s", (rA,)).fetchone()[0]
+expect_error(S, "T2_update_to_other_room_rejected", "UPDATE public.core1_room_map SET room_id=%s WHERE id=%s", (rB, mid), "CORE1_ROOM_HOTEL_MISMATCH")
+# post-hoc drift: rooms is writable by anon in production, so the serving-time check must see it
+cx.execute("UPDATE public.rooms SET hotel_id=%s WHERE id=%s", (hB, rA))
+n = cx.execute("SELECT count(*) FROM public.core1_room_map_mismatches_v2_1()").fetchone()[0]
+results[S]["T2_drift_detected_by_mismatch_function"] = {"status": "PASS" if n == 1 else "FAIL", "detail": f"mismatches={n}"}
+cx.execute("UPDATE public.rooms SET hotel_id=%s WHERE id=%s", (hA, rA))
+base = ("INSERT INTO public.core1_base_rates (hotel_id,provider_id,room_map_id,stay_from,stay_until_exclusive,source_range_text,source_range_end_inclusive,"
+        "unit,currency,adult_pricing,provenance_kind,source_document_id,source_ref{extra}) VALUES (%s,'P',%s,%s,%s,'t',false,'PERSON_NIGHT','USD',"
+        "'{{\"mode\":\"TIER_PER_ADULT\",\"tier_by_adult_count\":{{\"2\":\"100.00\"}}}}','SYNTH',%s,'p1'{vals})")
+expect_ok(S, "rate_inactive_pending_accepted", base.format(extra="", vals=""), (hA, mid, "2027-01-01", "2027-02-01", doc))
+expect_error(S, "rate_active_without_verification_rejected",
+    base.format(extra=",is_active", vals=",true"), (hA, mid, "2027-03-01", "2027-04-01", doc))
+expect_error(S, "rate_verified_without_evidence_rejected",
+    base.format(extra=",verification_status", vals=",'VERIFIED'"), (hA, mid, "2027-05-01", "2027-06-01", doc))
+expect_ok(S, "rate_active_with_full_record_accepted",
+    base.format(extra=",verification_status,reviewed_by,reviewed_at,review_evidence_ref,is_active,activated_by,activated_at,activation_evidence_ref",
+                vals=",'VERIFIED','r',now(),'e',true,'a',now(),'e2'"), (hA, mid, "2027-07-01", "2027-08-01", doc))
+expect_error(S, "overlapping_active_rates_rejected",
+    base.format(extra=",verification_status,reviewed_by,reviewed_at,review_evidence_ref,is_active,activated_by,activated_at,activation_evidence_ref",
+                vals=",'VERIFIED','r',now(),'e',true,'a',now(),'e2'"), (hA, mid, "2027-07-15", "2027-08-15", doc))
+fx = ("INSERT INTO public.core1_fx_approvals (pair,direction,exchange_rate_ref,source_version,rate_observed,effective_from,effective_until_exclusive,approved_by_ref,source_ref,active)"
+      " VALUES ('USD_DOP','DOP_PER_USD','r1','v1',62,%s,%s,'ap','src',%s)")
+expect_error(S, "fx_window_over_24h_rejected", fx, ("2026-10-22T00:00:00Z", "2026-10-24T00:00:00Z", False))
+expect_ok(S, "fx_window_24h_accepted", fx, ("2026-10-22T00:00:00Z", "2026-10-23T00:00:00Z", True))
+expect_error(S, "fx_overlapping_active_rejected", fx, ("2026-10-22T12:00:00Z", "2026-10-23T12:00:00Z", True))
+
+A = "acl"
+tables = ["core1_source_documents", "core1_room_map", "core1_base_rates", "core1_fx_approvals"]
+want = {"anon": set(), "authenticated": set(), "service_role": {"SELECT", "INSERT", "UPDATE"}}
+for role in want:
+    for t in tables:
+        got = {p for p in ("SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER")
+               if cx.execute("SELECT has_table_privilege(%s, %s, %s)", (role, "public." + t, p)).fetchone()[0]}
+        results[A][f"table:{role}:{t}"] = {"status": "PASS" if got == want[role] else "FAIL", "detail": sorted(got)}
+# no grant to PUBLIC (grantee 0) on any core1 relation or function
+n_pub = cx.execute("SELECT (SELECT count(*) FROM pg_class c, aclexplode(c.relacl) a WHERE c.relname LIKE 'core1\\_%' AND a.grantee=0)"
+                   " + (SELECT count(*) FROM pg_proc p, aclexplode(p.proacl) a WHERE p.proname LIKE 'core1\\_%' AND a.grantee=0)").fetchone()[0]
+results[A]["no_PUBLIC_grants_on_core1_objects"] = {"status": "PASS" if n_pub == 0 else "FAIL", "detail": n_pub}
+# functions without any ACL entry would still default to PUBLIC EXECUTE: require non-null proacl for every core1 function
+nulls = cx.execute("SELECT count(*) FROM pg_proc WHERE proname LIKE 'core1\\_%' AND proacl IS NULL").fetchone()[0]
+results[A]["every_core1_function_has_explicit_acl"] = {"status": "PASS" if nulls == 0 else "FAIL", "detail": nulls}
+for (fname, ident) in cx.execute("SELECT proname, oid::regprocedure::text FROM pg_proc WHERE proname LIKE 'core1\\_%'").fetchall():
+    for role in ("anon", "authenticated", "service_role"):
+        ok = cx.execute("SELECT has_function_privilege(%s, %s::regprocedure, 'EXECUTE')", (role, ident)).fetchone()[0]
+        exp = role == "service_role" and fname != "core1_room_map_check_v2_1"
+        results[A][f"exec:{role}:{ident}"] = {"status": "PASS" if ok == exp else "FAIL", "detail": ok}
+# behavioural: SET ROLE anon cannot read or call
+for role in ("anon", "authenticated"):
+    cx.execute("SAVEPOINT r")
+    try:
+        cx.execute(f"SET LOCAL ROLE {role}"); cx.execute("SELECT count(*) FROM public.core1_base_rates")
+        results[A][f"behaviour:{role}:select"] = {"status": "FAIL", "detail": "read succeeded"}
+    except Exception as e:
+        results[A][f"behaviour:{role}:select"] = {"status": "PASS", "detail": type(e).__name__}
+    cx.execute("ROLLBACK TO r"); cx.execute("RELEASE r")
+
+G = "rollback_gates"
+rb = open(os.path.join(ROOT, "04-rollback-v2_1.sql.inert")).read()
+if True:
+    # without any attestation the first DO block must raise and drop nothing
+    cx.execute("SAVEPOINT g")
+    before = cx.execute("SELECT count(*) FROM pg_proc WHERE proname='core1_price_pure_v2_1'").fetchone()[0]
+    try:
+        cx.execute(rb); results[G]["no_attestation_blocks_drop"] = {"status": "FAIL", "detail": "script ran"}
+    except Exception as e:
+        cx.execute("ROLLBACK TO g")
+        after = cx.execute("SELECT count(*) FROM pg_proc WHERE proname='core1_price_pure_v2_1'").fetchone()[0]
+        results[G]["no_attestation_blocks_drop"] = {"status": "PASS" if (before, after) == (1, 1) and "ROLLBACK_STOP" in str(e) else "FAIL", "detail": [before, after]}
+    cx.execute("RELEASE g")

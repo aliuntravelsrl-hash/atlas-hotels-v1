@@ -1,0 +1,41 @@
+-- INERT / NOT APPLIED. Author: ATLAS-TECH (AP-03) · 2026-10-22. TEMPLATE ONLY: contains no commercial dataset.
+-- The 21 real rows live in the restricted batch prepared by Antigravity (not read by Atlas-Tech; see report §2).
+-- Hotel (existing): 2916133e-d19c-40d0-a4ec-e14bf97409b8 (viva-miches). The 14 existing rooms and 14 existing rates
+-- are KEPT untouched (no delete, no merge, no deactivation).
+
+-- 1) New room candidate for the third document type. Capacity is NOT invented: NULL, and the room stays inactive
+--    until capacity/attributes are accredited by the provider. Defaults in public.rooms (capacity_adults=2,
+--    capacity=2, view_category='GARDEN') must be overridden explicitly with NULL where unknown.
+--    OBS-AT: public.rooms has two overlapping columns, capacity_kids and capacity_children; a unique key (hotel_id, name).
+-- INSERT INTO public.rooms (hotel_id, name, capacity_adults, capacity_kids, capacity_children, capacity, view_category, view_multiplier, is_active)
+-- VALUES ('2916133e-d19c-40d0-a4ec-e14bf97409b8', 'Splash Garden View Room', NULL, NULL, NULL, NULL, NULL, 1.00, false);
+--    GATE: do not run until (a) the mapping evidence of report §4 exists and (b) the room name/category is confirmed by the provider.
+
+-- 2) One source-document row (hashes are public file fingerprints, not personal data)
+-- INSERT INTO public.core1_source_documents (contract_code, form_code, revision, sha256, size_bytes, signature_status, signature_required_for_reference, signature_required_for_sale, notes)
+-- VALUES ('MIDOSI0389', 'VA-FO-03', '2026-10-22',
+--         'c8f575bc34bd14d481cf2cb996bb03d377d8aba2e134bad23ad40e75b31c12d4', 293425,
+--         'UNKNOWN', false, true, 'Official tariff PDF; contact data of the provider deliberately omitted');
+
+-- 3) Rate row shape (ILLUSTRATIVE VALUES ONLY — not a source row). One row per room/range; inactive and PENDING_REVIEW on load.
+-- INSERT INTO public.core1_base_rates (
+--   hotel_id, room_id, stay_from, stay_until_exclusive, source_range_text, source_range_end_inclusive,
+--   unit, currency, adult_pricing, child_pricing, mandatory_supplements, extra_pax_literal,
+--   max_adults, max_children, taxes_included, sale_until_exclusive, property_timezone, group_min_rooms, cutoff_policy,
+--   provenance_kind, verification_status, captured_by, source_document_id, source_ref, is_active)
+-- VALUES (
+--   '<hotel_id>', '<room_id resolved by evidence>', DATE '2027-01-02', DATE '2027-03-31', '<literal source range text>', true,
+--   'PERSON_NIGHT', 'USD',
+--   '{"mode":"TIER_PER_ADULT","tier_by_adult_count":{"1":"<single literal>","2":"<double literal>"}}'::jsonb,
+--   '{"age_evaluation":"CHECK_IN","bands":[{"from_inclusive":0,"to_exclusive":3,"amount":"0.00","min_adults":2},
+--                                          {"from_inclusive":3,"to_exclusive":12,"amount":"55.00","min_adults":2}]}'::jsonb,
+--   '[{"id":"GALA-24DEC","unit":"PERSON_EVENT","date":"2026-12-24","applicability":"UNKNOWN","adult_amount":"60.00","child_amount":"30.00","currency":"USD"}]'::jsonb,
+--   '{"amount":"<EXTRA PAX literal>","interpretation":"UNK"}'::jsonb,
+--   NULL, NULL, NULL,                                  -- capacity not accredited, taxes unknown
+--   TIMESTAMPTZ '2026-11-01 00:00:00-04',              -- end of 31-Oct-2026 in property time (candidate; contract extreme UNK)
+--   'America/Santo_Domingo', 10, 'ACCORDING_TO_CONTRACT',
+--   'SUPPLIER_OFFICIAL_PDF', 'PENDING_REVIEW', 'atlas-tech', '<source_document_id>', 'p1 table1 row1', false);
+-- Notes: age band edges follow "[from, to)" (3 to 11.99 => from 3 inclusive, to 12 exclusive: C1P36 / C1P14).
+--        EXTRA PAX is preserved as a literal and never mapped to a third-adult price (C1P09).
+--        With max_adults NULL the calculator fails closed (CAPACITY_UNKNOWN, regression R03) until capacity is accredited.
+--        Activation (is_active=true) and verification (VERIFIED + reviewer + evidence) are separate, authorised steps.
