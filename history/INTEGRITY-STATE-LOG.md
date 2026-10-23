@@ -45,3 +45,10 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Estado de integridad:** `KERNEL SIN CAMBIOS`; `npm test` y `npm run test:core1:all` (offline) pasan. Sin auditoría en vivo.
 * **Rastros añadidos:** runners con código de salida real y prueba de inyección de fallos (VLT-01/02), etiquetas de estado (VLT-03), aviso del prompt (VLT-04), procedencia literal (VLT-05), inventario y plantilla de custodia.
 * **Autor:** ATLAS-TECH (AP-03). Pendiente de revisión del Curator Constitucional; custodia no transferida.
+
+### 🏷️ Core 1 v2.2.2 — Desempate por instante de ingesta (candidata)
+* **Fecha:** 23 de Octubre de 2026 · **Naturaleza:** mecanismo modificado ⇒ versión nueva (`core1-price/versions/v2.2.2`); v2.2.1 queda intacta como histórica.
+* **Cambio:** el solape se resuelve por `received_at` (instante UTC) en lugar de `received_on` (fecha). Sin instante o empate exacto ⇒ "Consultar". Decisión del Director (23-Oct 10:45 y 11:39); el campo lo delegó a ATLAS-TECH.
+* **Pruebas:** 115/115 vectores sintéticos del modelo; mutación (min en vez de max) detectada 110/115. `test:core1:all` actualizado. Sin SQL, sin Supabase, sin cambios en el kernel.
+* **Estado:** candidata, NO adoptada, NO desplegada. Autor: ATLAS-TECH (AP-03). Pendiente de revisión del Curator.
+

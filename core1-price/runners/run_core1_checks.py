@@ -27,6 +27,7 @@ DEFAULT_ROOT = os.path.abspath(os.path.join(HERE, ".."))
 
 # (carpeta, modelo, vectores, casos esperados)
 MODELS = [
+    ("v2.2.2", "core1_reference_model_v2_2_2.py.inert", "CORE1-BASE-PRICE-REGRESSION-v2.2.2-ATLAS-TECH.json", 115),
     ("v2.2.1", "core1_reference_model_v2_2_1.py.inert", "CORE1-BASE-PRICE-REGRESSION-v2.2.1-ATLAS-TECH.json", 107),
     ("v2.2", "core1_reference_model_v2_2.py.inert", "CORE1-BASE-PRICE-REGRESSION-v2.2-ATLAS-TECH.json", 97),
 ]

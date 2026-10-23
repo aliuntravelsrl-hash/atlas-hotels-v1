@@ -34,7 +34,7 @@ def record(name, ok, detail=""):
 def fresh_root():
     t = tempfile.mkdtemp(prefix="core1-fault-")
     os.makedirs(os.path.join(t, "versions"))
-    for d in ("v2.2.1", "v2.2", "v2.1", "consumer-adapter-v1"):
+    for d in ("v2.2.2", "v2.2.1", "v2.2", "v2.1", "consumer-adapter-v1"):
         shutil.copytree(os.path.join(ROOT, "versions", d), os.path.join(t, "versions", d))
     return t
 
