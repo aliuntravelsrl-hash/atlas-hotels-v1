@@ -82,3 +82,14 @@ Adjuntó como ejemplo un voucher de proveedor (reglas del hotel, horarios, tarif
 | S2 impuestos | **Cerrada en lo esencial:** impuestos y cargos extra viajan como nota de voucher/factura; el monto de Core 1 es el que se paga al proveedor. Un impuesto desconocido no bloquea; se conserva `TAX_NOTE_SEE_INVOICE`. El bloqueo por base NET/comisión es otro concepto y sigue. Si hace falta, el impuesto se agrega como dato declarado en una versión posterior. |
 | Cargos extra y daños | Responsabilidad del usuario según las reglas del proveedor; pertenece a políticas por propiedad (tramo posterior), no al cálculo. |
 Reservas S1, S6, S7, S9, S11 siguen como estaban. La adopción formal sigue siendo del Curador.
+
+## 6. Decisiones posteriores del Director (23-Oct, 11:39) — cierran S6 y S7; precisan moneda y tasa
+**M23 (extracto fiel):** "condicion vencida no bloquea , se notifica , proveedor corrige en consulta , desempate es por ingesta la mas reciente manda ,  el monto fijo no debe ser en dolares eso lo dicta la naturaleza de la reserva como fue gestionada , y quiero dejar claro que el precio base de todo cambio de tasa en el sistema lo decide el nucleo msion control" (siguió un recorte de la tarjeta "Tasa del Dólar · Owner: finanzas · Tasa Banco Popular hoy").
+| Tema | Resultado | Efecto técnico |
+|---|---|---|
+| S6 condición vencida | **Cerrada:** no bloquea; se notifica; el proveedor corrige en la consulta | Coincide con v2.2/v2.2.1 (estado `VENCIDA`, nota visible, monto sin cambio). Sin versión nueva. |
+| S7 desempate | **Cerrada en principio:** manda la ingesta más reciente | v2.2.1 usa `received_on` (fecha); el mismo día da "Consultar". Para cumplirlo por completo hace falta marca de tiempo de ingesta ⇒ **v2.2.2 pendiente** (mecanismo modificado ⇒ versión nueva). No creada aún. |
+| Monto fijo | **No es siempre dólares:** la moneda la dicta la naturaleza de la reserva/gestión | El modelo ya toma la moneda de la fila de tarifa (`currency` USD o DOP), sin moneda fija; el monto fijo del niño hereda la de su fila. Pendiente de comprobar con un vector que lo pruebe explícitamente. |
+| Tasa de cambio | **Autoridad:** el núcleo Mission Control (tarjeta Tasa del Dólar, owner finanzas, Banco Popular) decide toda tasa del sistema | Coincide con FIN-ID-001 (`exchange_rates.rate_sell`). El modelo no tiene tasa propia: la recibe en el contexto (`fx`) con tope de antigüedad de 24 h; sin tasa vigente ⇒ "Consultar" en la otra moneda. |
+Nota: el calendario de cancelación del voucher de muestra con monto en dólares es política de la propiedad (tramo posterior), no un valor de Core 1.
+
