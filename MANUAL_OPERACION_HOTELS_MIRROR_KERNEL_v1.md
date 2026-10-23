@@ -59,3 +59,6 @@
 ### 6.1 Kernel v2.0.1-candidate (correcciones OBS-216)
 `kernel-v2.0.1/` revisa v2.0.0-candidate sin editarlo. Verificación: `npm run test:kernel201:all` (61 pruebas + 19 mutaciones, control y propagación de salida). Modelo/simulación offline con fixtures sintéticos y cotizaciones emparejadas del candidato Core 1; no prueba SQL, Admin, portal, backend ni producción. Contrato de entrada y GAPs: `kernel-v2.0.1/README.md`.
 
+### 6.2 Kernel v2.0.2-candidate (residuales OBS-217)
+`kernel-v2.0.2/` revisa v2.0.1 sin editarla: vínculo completo por snapshot de evaluación (edades exactas, hotel y perfil usado; consistencia, no autenticidad) y contrato público completo (catálogos, valores anidados, motivos externos genéricos). Verificación: `npm run test:kernel202:all` (82 pruebas + 32 mutaciones, control y propagación). Modelo/simulación offline; no prueba SQL, Admin, portal, backend ni producción. Detalle y GAPs: `kernel-v2.0.2/README.md`.
+

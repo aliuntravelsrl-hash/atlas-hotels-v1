@@ -14,7 +14,10 @@
     "test:kernel2:all": "npm run -s test:kernel2 && npm run -s test:kernel2:faults",
     "test:kernel201": "node kernel-v2.0.1/tests/run_kernel_v201_tests.js",
     "test:kernel201:faults": "node kernel-v2.0.1/tests/run_fault_injection_v201.js",
-    "test:kernel201:all": "npm run -s test:kernel201 && npm run -s test:kernel201:faults"
+    "test:kernel201:all": "npm run -s test:kernel201 && npm run -s test:kernel201:faults",
+    "test:kernel202": "node kernel-v2.0.2/tests/run_kernel_v202_tests.js",
+    "test:kernel202:faults": "node kernel-v2.0.2/tests/run_fault_injection_v202.js",
+    "test:kernel202:all": "npm run -s test:kernel202 && npm run -s test:kernel202:faults"
   },
   "keywords": [
     "atlas",

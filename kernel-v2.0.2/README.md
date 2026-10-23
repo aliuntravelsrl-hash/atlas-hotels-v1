@@ -1,0 +1,16 @@
+# HOTEL-INTEGRITY v2.0.2-candidate — MODELO/SIMULACIÓN OFFLINE; NO DESPLEGADO; NO ADOPTADO
+ATLAS-TECH (AP-03), 2026-10-23. Revisión candidata de `kernel-v2.0.1/` (v2.0.1-candidate, commit `ef426b91edb40b5a24590e2837cc3f2854a4cf61`, **intacta** y recuperable). `kernel-v2/` (v2.0.0, `8c6f5b9`), `kernel/` (v1) y las versiones Core 1 congeladas, sin cambios. Origen: dictamen OBS-217 (dos grupos residuales). Core 1 no se reabrió. Entrada predeterminada del producto: sigue v1.
+## Contrato de entrada
+`evaluate(hotel, request, quote, ctx)`: `request` = la misma petición enviada a Core 1 (adaptador v1.1.1, una sola habitación, **edades exactas**); `quote` = `{public_dto, internal_view, context_evidence}` de esa cotización, donde `context_evidence` ahora incluye `evaluation_snapshot` (ver G1); `ctx` = `{now, fx_authorities, actor?}`.
+## Qué corrige (solo los dos grupos residuales)
+| Grupo | Residual en v2.0.1 (reproducido) | Corrección v2.0.2 |
+|---|---|---|
+| G1 vínculo incompleto | edad 1→12 con la misma cantidad seguía LISTO/200 USD; perfil local de otro hotel aceptado | `evaluation_snapshot` emitido por el servidor con huellas canónicas SHA-256 de la solicitud exacta (edades incluidas), huella del DTO, de la vista interna, del depósito, de la FX y del perfil usado (hotel, plan, habitación, versión, edad adulta, bandas, capacidad). El kernel recalcula las huellas y compara contra el paquete y el perfil local. Snapshot ausente ⇒ CONSULTAR `EVALUATION_SNAPSHOT_ABSENT` (sin total; C `NO_PREPARADA`). Huellas/identidad que no coinciden ⇒ RECHAZADO (`SNAPSHOT_*`, `LOCAL_PROFILE_HOTEL_MISMATCH`). Versión/regla local distinta de la usada (solo porción aplicable) ⇒ CONSULTAR `PROFILE_SNAPSHOT_DIVERGES` |
+| G2 contrato público incompleto | un motivo arbitrario llegaba a la salida pública; valores anidados inválidos aceptados | `catalog.js` local: motivos, condiciones (código + mensaje exacto, sin duplicados), estado de reserva, canal, unidad. Importe/moneda/`is_rate` del promedio, noches vs fechas y valores de selección validados. Motivo externo desconocido ⇒ `CORE1_REASON_UNRECOGNIZED` (detalle truncado solo en `diagnostics` interno). La salida pública solo emite códigos propios con formato seguro (defensa en profundidad) |
+## Límites y GAPs declarados (las limitaciones producen estado incompleto, no LISTO)
+1. El snapshot prueba **consistencia** del paquete, no **autenticidad** del emisor: fingerprint/DTO/snapshot auténticos y permisos reales son UNK (backend). No existe booleano "firmado".
+2. Core 1 v2.2.3/adaptador v1.1.1 no exporta evidencia de uso de FX ni el snapshot: lo emite el generador sintético (`tools/gen_paired_quotes_v202.py.inert`); su emisión real es de backend/Core 1 futuro. Sin snapshot ⇒ no LISTO.
+3. El DTO no incluye edades ni versión de perfil: el vínculo de edades se apoya en la huella de solicitud del snapshot.
+4. `profile_version` y datos locales sintéticos (`fx2`); no es Viva Miches ni hotel real.
+## Pruebas
+`npm run test:kernel202` (82, incluye regresión v1, v2.0.0, y fuzz con centinelas en cada cadena del paquete) y `npm run test:kernel202:faults` (32 mutaciones + control + propagación de salida = 34). Generador: `tools/gen_paired_quotes_v202.py.inert` (lee el simulador; no lo modifica; huellas canónicas idénticas a `canonical.js`).

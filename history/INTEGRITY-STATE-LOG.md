@@ -79,3 +79,9 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Correcciones:** vínculo selección↔cotización, vigencia con reloj de servidor, aplicabilidad/evidencia FX ligada, esquema cerrado y proyección pública positiva, ocupación/capacidad efectivas, validación semántica de valores, propuesta C neutral. GAPs declarados en `kernel-v2.0.1/README.md`.
 * **Pruebas offline:** `test:kernel201` 61/61 (cotizaciones emparejadas genuinas; incluye regresión de v1 y de v2.0.0 38/38); `test:kernel201:faults` 21/21 (19 mutaciones + control + propagación de salida). Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción. Tag v1 sigue pendiente de publicación.
 
+
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-217 — kernel v2.0.2-candidate (dos grupos residuales), offline, NO desplegado
+* **Versión nueva (mecanismo modificado ⇒ versión nueva):** `kernel-v2.0.2/` = `HOTEL-INTEGRITY v2.0.2-candidate`. `kernel-v2.0.1/` (snapshot `ef426b9`), `kernel-v2/` (`8c6f5b9`), `kernel/` v1 y Core 1 congelado sin cambios; entrada del producto sigue en v1. Core 1 no se reabrió.
+* **G1 vínculo:** snapshot de evaluación del servidor con huellas canónicas (solicitud con edades exactas, DTO, vista, depósito, FX, perfil usado); hotel local verificado; ausente ⇒ CONSULTAR. Consistencia, no autenticidad (UNK backend).
+* **G2 contrato público:** catálogos locales, valores anidados validados, motivo externo desconocido ⇒ `CORE1_REASON_UNRECOGNIZED`, salida pública solo con códigos propios.
+* **Pruebas offline:** `test:kernel202` 82/82; `test:kernel202:faults` 34/34 (32 mutaciones + control + propagación). Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción. Tag v1 sigue pendiente de publicación.
