@@ -25,7 +25,7 @@ Una versión publicada **no se edita**. Mecanismo modificado => versión nueva. 
 `CORE1-PRICE-CONTEXT-v2` → `…-v2.1`(compat. legacy) → `…-v2.2` → `…-v2.2.1` → `…-v2.2.2` → `…-v2.2.3` (el modelo v2.2.3 y el servidor del adaptador v1.1.1 exigen `CORE1-PRICE-CONTEXT-v2.2.3`; un contexto v2.2.2 se rechaza con `CONTEXT_VERSION_MISMATCH`, igual que v1.1 rechaza contextos de otras versiones). Cada contexto nuevo **no** es retrocompatible con el anterior.
 
 ## Notas de la última versión
-- v2.2.3 no cambia contrato de contexto ni precio base; solo la rama NET deja de perder metadatos (V11-R1). 120 vectores.
+- v2.2.3 sube el contrato de contexto a `CORE1-PRICE-CONTEXT-v2.2.3` (no retrocompatible con v2.2.2); no cambia el cálculo del precio base; la rama NET deja de perder metadatos (V11-R1). 120 vectores.
 - v2.2.2 desempata por `received_at` (instante UTC; candidato `rates.created_at`). Un empate exacto o la ausencia del instante responde "Consultar". El campo de base de datos definitivo y su mapeo los fija quien implemente el SQL (no existe aún).
 - No existe versión SQL de v2.2/v2.2.1/v2.2.2/v2.2.3: depende del dictamen técnico del Curator y convocatoria del Director sobre fuente única (extender tablas existentes con procedencia vs. tablas cerradas).
 
