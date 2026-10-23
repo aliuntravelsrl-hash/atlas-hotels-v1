@@ -85,3 +85,8 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **G1 vínculo:** snapshot de evaluación del servidor con huellas canónicas (solicitud con edades exactas, DTO, vista, depósito, FX, perfil usado); hotel local verificado; ausente ⇒ CONSULTAR. Consistencia, no autenticidad (UNK backend).
 * **G2 contrato público:** catálogos locales, valores anidados validados, motivo externo desconocido ⇒ `CORE1_REASON_UNRECOGNIZED`, salida pública solo con códigos propios.
 * **Pruebas offline:** `test:kernel202` 82/82; `test:kernel202:faults` 34/34 (32 mutaciones + control + propagación). Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción. Tag v1 sigue pendiente de publicación.
+
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-218 — kernel v2.0.3-candidate (huella completa del DTO), offline, NO desplegado
+* **Versión nueva:** `kernel-v2.0.3/` = `HOTEL-INTEGRITY v2.0.3-candidate`; `kernel-v2.0.2/` (commit `cea9729`) y carpetas históricas intactas; entrada del producto sigue en v1. Core 1 no se reabrió.
+* **Residual G1:** el snapshot de v2.0.2 comparaba el `fingerprint` opaco; alterar total/promedio a 9999 USD seguía dando LISTO. Ahora `dto_digest` (SHA-256 canónico del DTO completo) se recalcula; ausencia/malformación/mismatch no producen LISTO; contrato v1 ⇒ CONSULTAR. Fe de erratas sobre la redacción "huellas del DTO" de v2.0.2.
+* **Pruebas offline:** `test:kernel203` 88/88; `test:kernel203:faults` 38/38. Sin SQL, apps, producción ni adopción.

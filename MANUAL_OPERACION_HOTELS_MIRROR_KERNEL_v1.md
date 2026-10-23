@@ -62,3 +62,6 @@
 ### 6.2 Kernel v2.0.2-candidate (residuales OBS-217)
 `kernel-v2.0.2/` revisa v2.0.1 sin editarla: vínculo completo por snapshot de evaluación (edades exactas, hotel y perfil usado; consistencia, no autenticidad) y contrato público completo (catálogos, valores anidados, motivos externos genéricos). Verificación: `npm run test:kernel202:all` (82 pruebas + 32 mutaciones, control y propagación). Modelo/simulación offline; no prueba SQL, Admin, portal, backend ni producción. Detalle y GAPs: `kernel-v2.0.2/README.md`.
 
+### 6.3 Kernel v2.0.3-candidate (huella completa del DTO, OBS-218)
+`kernel-v2.0.3/` revisa v2.0.2 sin editarla: el snapshot (`EVAL-SNAPSHOT-v2`) incluye `dto_digest`, SHA-256 canónico del DTO completo, recalculado por el kernel. **Fe de erratas:** §6.2 y el README de v2.0.2 hablan de "huellas del DTO"; en v2.0.2 solo se comparaba el `fingerprint` opaco. Verificación: `npm run test:kernel203:all` (88 pruebas + 36 mutaciones, control y propagación). Consistencia, no autenticidad (UNK backend). Detalle: `kernel-v2.0.3/README.md`.
+
