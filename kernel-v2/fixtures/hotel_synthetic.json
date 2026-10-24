@@ -1,0 +1,31 @@
+{
+  "_nota": "SINTÉTICO. No es Viva Miches ni ningún hotel real; códigos, capacidades y reglas son ficticios para pruebas offline.",
+  "hotel_ref": {"value": "H-REF", "origin": "SYNTH", "version": "fx1"},
+  "name": {"value": "Hotel Sintético", "origin": "SYNTH", "version": "fx1"},
+  "is_active": {"value": true, "origin": "SYNTH", "version": "fx1"},
+  "photos": {"value": ["https://cdn.example/1.jpg", "https://cdn.example/2.jpg", "https://cdn.example/3.jpg"], "origin": "SYNTH", "version": "fx1"},
+  "stars": {"state": "AUSENTE"},
+  "policies": {
+    "check_in": {"value": "15:00", "origin": "SYNTH", "version": "fx1"},
+    "check_out": {"value": "12:00", "origin": "SYNTH", "version": "fx1"},
+    "cancellation": {"value": "ver voucher del proveedor", "origin": "SYNTH", "version": "fx1"}
+  },
+  "age_policy": {
+    "adult_from_age": {"value": 13, "origin": "SYNTH", "version": "fx1"},
+    "bands": [
+      {"from": 0, "to": 2, "rule": {"kind": "FREE"}},
+      {"from": 3, "to": 12, "rule": {"kind": "PERCENT", "value": "50", "origin": "SYNTH", "version": "fx1"}}
+    ]
+  },
+  "rooms": [
+    {"room_ref": "RM1", "name": "Habitación sintética 1",
+     "capacity": {"adults_max": {"value": 3, "origin": "SYNTH", "version": "fx1"}, "children_max": {"value": 2, "origin": "SYNTH", "version": "fx1"}},
+     "occupancies": {"SGL": {"value": true, "origin": "SYNTH", "version": "fx1"}, "DBL": {"value": true, "origin": "SYNTH", "version": "fx1"}, "TPL": {"value": true, "origin": "SYNTH", "version": "fx1"}}},
+    {"room_ref": "RM2", "name": "Habitación sintética 2 (sin capacidad)",
+     "capacity": {"adults_max": {"state": "AUSENTE"}},
+     "occupancies": {"DBL": {"value": true, "origin": "SYNTH", "version": "fx1"}}},
+    {"room_ref": "RM3", "name": "Habitación sintética 3 (solo DBL)",
+     "capacity": {"adults_max": {"value": 2, "origin": "SYNTH", "version": "fx1"}, "children_max": {"value": 1, "origin": "SYNTH", "version": "fx1"}},
+     "occupancies": {"DBL": {"value": true, "origin": "SYNTH", "version": "fx1"}, "TPL": {"state": "NO_APLICABLE"}}}
+  ]
+}

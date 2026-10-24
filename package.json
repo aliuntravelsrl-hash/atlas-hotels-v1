@@ -8,7 +8,19 @@
     "audit:live": "node scripts/audit_live_supabase_hotels.js",
     "test:core1": "python3 -I core1-price/runners/run_core1_checks.py",
     "test:core1:runner": "python3 -I core1-price/runners/test_runner_fault_injection.py",
-    "test:core1:all": "npm run -s test:core1 && npm run -s test:core1:runner"
+    "test:core1:all": "npm run -s test:core1 && npm run -s test:core1:runner",
+    "test:kernel2": "node kernel-v2/tests/run_kernel_v2_tests.js",
+    "test:kernel2:faults": "node kernel-v2/tests/run_fault_injection.js",
+    "test:kernel2:all": "npm run -s test:kernel2 && npm run -s test:kernel2:faults",
+    "test:kernel201": "node kernel-v2.0.1/tests/run_kernel_v201_tests.js",
+    "test:kernel201:faults": "node kernel-v2.0.1/tests/run_fault_injection_v201.js",
+    "test:kernel201:all": "npm run -s test:kernel201 && npm run -s test:kernel201:faults",
+    "test:kernel202": "node kernel-v2.0.2/tests/run_kernel_v202_tests.js",
+    "test:kernel202:faults": "node kernel-v2.0.2/tests/run_fault_injection_v202.js",
+    "test:kernel202:all": "npm run -s test:kernel202 && npm run -s test:kernel202:faults",
+    "test:kernel203": "node kernel-v2.0.3/tests/run_kernel_v203_tests.js",
+    "test:kernel203:faults": "node kernel-v2.0.3/tests/run_fault_injection_v203.js",
+    "test:kernel203:all": "npm run -s test:kernel203 && npm run -s test:kernel203:faults"
   },
   "keywords": [
     "atlas",

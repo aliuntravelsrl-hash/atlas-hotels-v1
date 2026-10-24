@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Genera cotizaciones EMPAREJADAS (misma request, mismo estado): DTO público + vista interna del candidato Core 1 v2.2.3 / adaptador v1.1.1
+(SIMULADO, sintético) y, v2.0.2, un SNAPSHOT DE EVALUACIÓN con huellas canónicas de la MISMA evaluación (solicitud exacta con edades, DTO, vista interna, depósito, FX y perfil usado). Prueba CONSISTENCIA, no autenticidad. Lee el simulador, no lo modifica; escribe solo en la ruta dada. Uso: python3 -I gen_paired_quotes_v202.py.inert <ruta_core1_price_versions> <salida.json>"""
+import copy, hashlib, importlib.machinery, importlib.util, json, os, sys
+V = os.path.abspath(sys.argv[1]); OUT = sys.argv[2]
+loader = importlib.machinery.SourceFileLoader("sim", os.path.join(V, "consumer-adapter-v1.1.1", "server", "consumer_server_sim.py.inert"))
+S = importlib.util.module_from_spec(importlib.util.spec_from_loader("sim", loader)); loader.exec_module(S)
+ROW = {"id": "R1", "revision": 1, "hotel_id": "H1", "provider_id": "P1", "room_type_id": "RT1", "stay_from": "2027-03-01", "stay_until_exclusive": "2027-04-01",
+       "currency": "USD", "unit": "PERSON_NIGHT", "placeholder": False, "is_active": True, "verification_status": "VERIFIED", "review_evidence_ref": "SYNTH-REVIEW",
+       "source_document_id": "SYNTH-DOC", "price_basis": "CLIENT_FINAL", "taxes_included": True, "occupancy_rates": {"SGL": "150", "DBL": "100", "TPL": "90"},
+       "age_policy": {"adult_from_age": 13, "bands": [{"label": "INFANT", "from_age": 0, "to_age": 2, "price": {"mode": "FREE"}, "max_per_room": 1},
+                                                       {"label": "CHILD", "from_age": 3, "to_age": 12, "price": {"mode": "PERCENT_OF_DBL", "value": "50"}}]},
+       "capacity": {"max_total": 4, "max_adults": 3, "max_children": 2}, "received_at": "2026-09-01T09:00:00Z"}
+FXA = {"id": "FXA1", "pair": "USD_DOP", "exchange_rate_ref": "FXG1", "active": True, "effective_from": "2026-10-23T00:00:00Z", "effective_until_exclusive": "2026-10-23T23:00:00Z",
+       "approved_by_ref": "SYNTH-APPROVER", "source_ref": "SYNTH-SRC", "source_version": "SYNTH-V1", "rate_observed": "62"}
+FXG = {"FXG1": {"version": "SYNTH-V1", "rate_sell": "62", "direction": "DOP_PER_USD"}}
+
+PROFILE_VERSION = "fx2"
+def canon(v): return json.dumps(v, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+def digest(v): return hashlib.sha256(canon(v).encode("utf-8")).hexdigest()
+def req_canon(rq):
+    return {"hotel_ref": rq["hotel_ref"], "provider_plan_ref": rq["provider_plan_ref"], "check_in": rq["check_in"], "check_out": rq["check_out"], "payment_currency": rq["payment_currency"],
+            "rooms": [{"room_ref": r["room_ref"], "adults": r["adults"], "child_ages": list(r["child_ages"])} for r in rq["rooms"]]}
+def profile_of(rq, st):
+    room = rq["rooms"][0]; rt = st["rooms"][room["room_ref"]]["room_type_id"]
+    row_ = next(r for r in st["rates"] if r["room_type_id"] == rt); ap = row_["age_policy"]; cap = row_["capacity"]
+    bands = [{"from": b["from_age"], "to": b["to_age"], "mode": b["price"]["mode"], "value": b["price"].get("value")} for b in ap["bands"]]
+    return {"hotel_ref": rq["hotel_ref"], "provider_plan_ref": rq["provider_plan_ref"], "room_ref": room["room_ref"], "profile_version": PROFILE_VERSION,
+            "adult_from_age": ap["adult_from_age"], "bands": bands, "capacity": {"adults_max": cap["max_adults"], "children_max": cap["max_children"], "total_max": cap["max_total"]}}
+def row(**kw): r = copy.deepcopy(ROW); r.update(kw); return r
+def state(**kw):
+    st = {"now": "2026-10-23T14:00:00Z", "hotels": {"H-REF": {"hotel_id": "H1"}}, "provider_plans": {"PP1": {"hotel_ref": "H-REF", "provider_id": "P1"}},
+          "rooms": {"RM1": {"provider_plan_ref": "PP1", "product": "CORE1", "room_type_id": "RT1", "room_row_hotel_id": "H1", "map_hotel_id": "H1"},
+                    "RM3": {"provider_plan_ref": "PP1", "product": "CORE1", "room_type_id": "RT3", "room_row_hotel_id": "H1", "map_hotel_id": "H1"}},
+          "rates": [row()], "fx_approvals": [], "fx_governed": {}, "source_document": {},
+          "policy": {"deposit_policy": {"type": "FULL_PAYMENT"}, "accepted_payment_currencies": ["USD", "DOP"], "quote_ttl_minutes": 30, "review_notice_days": None},
+          "capabilities": {"assisted_channel_accredited": True}, "context_schema": S.CONTEXT_SCHEMA}
+    st.update(kw); return st
+def req(rid, adults=2, ages=None, pay="USD", room="RM1"):
+    r = {"room_ref": room, "adults": adults, "child_ages": ages or []}
+    if ages: r["ages_confirmed"] = True
+    return {"request_id": rid, "contract_version": S.CONTRACT, "channel": "PORTAL", "hotel_ref": "H-REF", "provider_plan_ref": "PP1", "rooms": [r],
+            "check_in": "2027-03-28", "check_out": "2027-03-29", "payment_currency": pay}
+COND_EXP = [{"id": "C1", "text": "Nino a 35 hasta 01-Oct", "expires_on": "2026-10-01"}]
+FXSTATE = dict(fx_approvals=[dict(FXA)], fx_governed=copy.deepcopy(FXG))
+DEP = {"type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN", "percentage": "0.30", "minimum_per_room": {"amount": "6000", "currency": "DOP"}}
+def with_dep(**kw):
+    st = state(**kw); st["policy"]["deposit_policy"] = copy.deepcopy(DEP); return st
+RT3 = row(id="R3", room_type_id="RT3", occupancy_rates={"SGL": "120", "DBL": "80", "TPL": "70"}, capacity={"max_total": 3, "max_adults": 2, "max_children": 1})
+SC = [
+ ("base", req("Q-base"), state()),
+ ("adults3", req("Q-adults3", adults=3), state()),
+ ("child12", req("Q-child12", ages=[12]), state()),
+ ("infant1", req("Q-infant1", ages=[1]), state()),
+ ("reclass15", req("Q-reclass15", ages=[15]), state()),
+ ("fx_total_dop", req("Q-fx-total", pay="DOP"), state(**FXSTATE)),
+ ("same_ccy_dop", req("Q-dop-same", pay="DOP"), state(rates=[row(currency="DOP", occupancy_rates={"SGL": "9000", "DBL": "6000", "TPL": "5400"})])),
+ ("deposit_conv", req("Q-dep-conv"), with_dep(**FXSTATE)),
+ ("expired_condition", req("Q-expired-cond"), state(rates=[row(condition_notes=COND_EXP)])),
+ ("net_consult", req("Q-net"), state(rates=[row(price_basis="NET_PROVIDER")])),
+ ("rm3_dbl", req("Q-rm3", room="RM3"), state(rates=[row(), RT3])),
+]
+out = []
+for name, rq, st in SC:
+    pub = S.quote_public(rq, st); iv = S.quote_internal(rq, st, "OPERATOR")
+    view = iv.get("view") if isinstance(iv, dict) else None
+    ev = {"deposit_policy": copy.deepcopy(st["policy"]["deposit_policy"]), "quote_request_id": rq["request_id"], "fx": None}
+    if st["fx_approvals"]:
+        a = st["fx_approvals"][0]; g = st["fx_governed"][a["exchange_rate_ref"]]
+        ev["fx"] = {"quote_request_id": rq["request_id"], "pair": a["pair"], "direction": g["direction"], "rate_ref": a["exchange_rate_ref"], "version": g["version"],
+                    "approved_by_ref": a["approved_by_ref"], "source_ref": a["source_ref"], "effective_from": a["effective_from"], "effective_until_exclusive": a["effective_until_exclusive"]}
+    prof = profile_of(rq, st)
+    ev["evaluation_snapshot"] = {"snapshot_version": "EVAL-SNAPSHOT-v1", "request_id": rq["request_id"], "request_digest": digest(req_canon(rq)), "dto_fingerprint": pub.get("fingerprint"),
+        "internal_view_digest": digest(view), "deposit_policy_digest": digest(ev["deposit_policy"]), "fx_digest": digest(ev["fx"]) if ev["fx"] else None, "profile": prof, "profile_digest": digest(prof)}
+    out.append({"name": name, "request": rq, "public_dto": pub, "internal_view": view, "context_evidence": ev})
+json.dump({"_nota": "SINTÉTICO. Cotizaciones emparejadas de una misma request/estado con snapshot de evaluación (consistencia; autenticidad UNK); salida simulada del candidato Core 1 v2.2.3 / adaptador v1.1.1.", "quotes": out}, open(OUT, "w"), indent=1, sort_keys=True, ensure_ascii=False)
+for q in out: print(q["name"], q["public_dto"]["status"], q["public_dto"].get("reason"), (q["public_dto"].get("price") or {}).get("reference_total"), "internal" if q["internal_view"] else "-")

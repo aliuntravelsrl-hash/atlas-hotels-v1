@@ -1,0 +1,225 @@
+{
+ "client_final": {
+  "calculation_status": "COMPLETE",
+  "collection_allowed": false,
+  "conditions": [],
+  "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+  "error_code": null,
+  "final_price_confirmed": null,
+  "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+  "internal_alerts": [],
+  "operator_alerts": [],
+  "provider_amount": null,
+  "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+  "reclassified": [],
+  "request_id": "Q1",
+  "source_basis": {
+   "bases": [
+    "CLIENT_FINAL"
+   ],
+   "status": "CLIENT_FINAL"
+  },
+  "source_subtotal": {
+   "amount": "200.00",
+   "basis": "CLIENT_FINAL",
+   "basis_warning": null,
+   "currency": "USD",
+   "label": "INTERNAL_SOURCE_SUBTOTAL"
+  },
+  "superseded_rates": [],
+  "supplement_notes": [],
+  "traceability": [
+   {
+    "price_basis": "CLIENT_FINAL",
+    "review_evidence_ref": "SYNTH-REVIEW",
+    "revision": 1,
+    "row_id": "R1",
+    "source_document_id": "SYNTH-DOC",
+    "taxes_included": true
+   }
+  ],
+  "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+  "warnings": []
+ },
+ "expired_condition": {
+  "calculation_status": "COMPLETE",
+  "collection_allowed": false,
+  "conditions": [
+   {
+    "expires_on": "2026-10-20",
+    "id": "C1",
+    "review_required": true,
+    "row_id": "R1",
+    "status": "VENCIDA",
+    "text": "Nino a 35 hasta 20-Oct"
+   }
+  ],
+  "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+  "error_code": null,
+  "final_price_confirmed": null,
+  "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+  "internal_alerts": [],
+  "operator_alerts": [
+   {
+    "code": "CONSULT_PROVIDER_ABOUT_CONDITION",
+    "condition_id": "C1",
+    "expires_on": "2026-10-20",
+    "status": "VENCIDA"
+   }
+  ],
+  "provider_amount": null,
+  "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+  "reclassified": [],
+  "request_id": "Q1",
+  "source_basis": {
+   "bases": [
+    "CLIENT_FINAL"
+   ],
+   "status": "CLIENT_FINAL"
+  },
+  "source_subtotal": {
+   "amount": "200.00",
+   "basis": "CLIENT_FINAL",
+   "basis_warning": null,
+   "currency": "USD",
+   "label": "INTERNAL_SOURCE_SUBTOTAL"
+  },
+  "superseded_rates": [],
+  "supplement_notes": [],
+  "traceability": [
+   {
+    "price_basis": "CLIENT_FINAL",
+    "review_evidence_ref": "SYNTH-REVIEW",
+    "revision": 1,
+    "row_id": "R1",
+    "source_document_id": "SYNTH-DOC",
+    "taxes_included": true
+   }
+  ],
+  "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+  "warnings": [
+   "CONDITION_EXPIRED_CONFIRM_WITH_PROVIDER"
+  ]
+ },
+ "net": {
+  "calculation_status": "SOURCE_SUBTOTAL_ONLY",
+  "collection_allowed": false,
+  "conditions": [],
+  "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+  "error_code": null,
+  "final_price_confirmed": null,
+  "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+  "internal_alerts": [],
+  "operator_alerts": [],
+  "provider_amount": {
+   "accredited_by": "price_basis=NET_PROVIDER on every used row",
+   "amount": "200.00",
+   "currency": "USD",
+   "label": "INTERNAL_PROVIDER_AMOUNT_NOT_CLIENT_PRICE"
+  },
+  "provider_amount_status": "ACCREDITED",
+  "reclassified": [],
+  "request_id": "Q1",
+  "source_basis": {
+   "bases": [
+    "NET_PROVIDER"
+   ],
+   "status": "NET_PROVIDER"
+  },
+  "source_subtotal": {
+   "amount": "200.00",
+   "basis": "NET_PROVIDER",
+   "basis_warning": "NET_BASIS_NOT_CLIENT_PRICE",
+   "currency": "USD",
+   "label": "INTERNAL_SOURCE_SUBTOTAL"
+  },
+  "superseded_rates": [],
+  "supplement_notes": [],
+  "traceability": [
+   {
+    "price_basis": "NET_PROVIDER",
+    "review_evidence_ref": "SYNTH-REVIEW",
+    "revision": 1,
+    "row_id": "R1",
+    "source_document_id": "SYNTH-DOC",
+    "taxes_included": true
+   }
+  ],
+  "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+  "warnings": [
+   "NET_BASIS_NOT_CLIENT_PRICE"
+  ]
+ },
+ "net_expired": {
+  "calculation_status": "SOURCE_SUBTOTAL_ONLY",
+  "collection_allowed": false,
+  "conditions": [
+   {
+    "expires_on": "2026-10-01",
+    "id": "C1",
+    "review_required": true,
+    "row_id": "R1",
+    "status": "VENCIDA",
+    "text": "Nino a 35 hasta 01-Oct"
+   }
+  ],
+  "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+  "error_code": null,
+  "final_price_confirmed": null,
+  "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+  "internal_alerts": [],
+  "operator_alerts": [
+   {
+    "code": "CONSULT_PROVIDER_ABOUT_CONDITION",
+    "condition_id": "C1",
+    "expires_on": "2026-10-01",
+    "status": "VENCIDA"
+   }
+  ],
+  "provider_amount": {
+   "accredited_by": "price_basis=NET_PROVIDER on every used row",
+   "amount": "200.00",
+   "currency": "USD",
+   "label": "INTERNAL_PROVIDER_AMOUNT_NOT_CLIENT_PRICE"
+  },
+  "provider_amount_status": "ACCREDITED",
+  "reclassified": [],
+  "request_id": "Q1",
+  "source_basis": {
+   "bases": [
+    "NET_PROVIDER"
+   ],
+   "status": "NET_PROVIDER"
+  },
+  "source_subtotal": {
+   "amount": "200.00",
+   "basis": "NET_PROVIDER",
+   "basis_warning": "NET_BASIS_NOT_CLIENT_PRICE",
+   "currency": "USD",
+   "label": "INTERNAL_SOURCE_SUBTOTAL"
+  },
+  "superseded_rates": [],
+  "supplement_notes": [
+   {
+    "date": "2027-03-28",
+    "note_only": true,
+    "obligation_id": "OB-GALA"
+   }
+  ],
+  "traceability": [
+   {
+    "price_basis": "NET_PROVIDER",
+    "review_evidence_ref": "SYNTH-REVIEW",
+    "revision": 1,
+    "row_id": "R1",
+    "source_document_id": "SYNTH-DOC",
+    "taxes_included": true
+   }
+  ],
+  "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+  "warnings": [
+   "NET_BASIS_NOT_CLIENT_PRICE",
+   "CONDITION_EXPIRED_CONFIRM_WITH_PROVIDER"
+  ]
+ }
+}
