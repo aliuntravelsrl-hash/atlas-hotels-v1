@@ -100,3 +100,13 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Versión nueva:** `core1-producer-v1.1/` (rama `atlas-tech/core1-server-producer-inert-r2`, base `80f59fe`); `core1-producer/` v1 intacto y recuperable; carpetas congeladas y kernel v1 sin cambios.
 * **Correcciones:** catálogos públicos cerrados por frontera; ausencia de bytecode falsable con controles negativos; filas usadas por `traceability` del motor (otras temporadas/inactivas/futuras/reemplazadas no contaminan; usada sin recepción probada cierra); H-E1 en hospedaje. Sonda del kernel separada en `kernel-probes/`.
 * Pruebas y mutaciones: ver informe Office. Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción.
+
+## 2026-10-24 — ATLAS-TECH (AP-03): SCOPE-CORE1-KERNEL-INTERNAL-ENUM-HARDENING — kernel v2.0.4-candidate (offline, NO desplegado)
+* **Versión nueva:** `kernel-v2.0.4/` (rama `atlas-tech/core1-kernel-v2.0.4-enum-hardening`, base main `928c745`); `kernel-v2.0.3/`, `core1-price/`, productores v1/v1.1 y kernel v1 sin cambios.
+* **Corrección:** cierre por catálogo de `calculation_status` y `provider_amount_status` en `validateInternalView`; procedencia en `docs/ENUM-PROVENANCE.md`. Hallazgo separado no corregido: sin matriz de coherencia entre campos.
+* Pruebas y mutaciones: ver informe Office. Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción.
+
+## 2026-10-24 — ATLAS-TECH (AP-03): addendum A5 — coherencia mínima en kernel v2.0.4-candidate (PR #11, offline, NO desplegado)
+* Commits adicionales sobre `b4a7d4a5` (historia conservada); `kernel-v2.0.3`, `core1-price`, productores, sonda y kernel v1 sin cambios.
+* Regla: PRICE_REFERENCE + SOURCE_SUBTOTAL_ONLY/INCOMPLETE/INVALID ⇒ RECHAZADO (`INTERNAL_VIEW_SHAPE_INVALID`). Matriz general y provider_amount_status ↔ DTO siguen abiertos. Evidencia en el suplemento de Office.
+
