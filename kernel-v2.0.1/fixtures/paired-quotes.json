@@ -1,0 +1,1411 @@
+{
+ "_nota": "SINTÉTICO. Cotizaciones emparejadas de una misma request/estado; salida simulada del candidato Core 1 v2.2.3 / adaptador v1.1.1.",
+ "quotes": [
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-base"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-base",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "200.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "base",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "796368b378f29a918713b2d1",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "200.00",
+      "currency": "USD",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "200.00",
+      "currency": "USD"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-base",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 2,
+       "adults_requested": 2,
+       "child_count": 0,
+       "children_billed": 0,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-base",
+    "rooms": [
+     {
+      "adults": 2,
+      "child_ages": [],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-adults3"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-adults3",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "270.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "adults3",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "a3a5a8dc584150ad40a6a4a8",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "270.00",
+      "currency": "USD",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "270.00",
+      "currency": "USD"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-adults3",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 3,
+       "adults_requested": 3,
+       "child_count": 0,
+       "children_billed": 0,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-adults3",
+    "rooms": [
+     {
+      "adults": 3,
+      "child_ages": [],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-child12"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-child12",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "250.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "child12",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "b66d32dec86d84d28bea89f0",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "250.00",
+      "currency": "USD",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "250.00",
+      "currency": "USD"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-child12",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 2,
+       "adults_requested": 2,
+       "child_count": 1,
+       "children_billed": 1,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-child12",
+    "rooms": [
+     {
+      "adults": 2,
+      "ages_confirmed": true,
+      "child_ages": [
+       12
+      ],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-infant1"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-infant1",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "200.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "infant1",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "37776890fbe720dec118a09d",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "200.00",
+      "currency": "USD",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "200.00",
+      "currency": "USD"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-infant1",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 2,
+       "adults_requested": 2,
+       "child_count": 1,
+       "children_billed": 1,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-infant1",
+    "rooms": [
+     {
+      "adults": 2,
+      "ages_confirmed": true,
+      "child_ages": [
+       1
+      ],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-reclass15"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [
+     {
+      "ages": [
+       15
+      ],
+      "room_index": 0
+     }
+    ],
+    "request_id": "Q-reclass15",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "270.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "reclass15",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     },
+     {
+      "code": "AGE_RECLASSIFIED_AS_ADULT",
+      "message_es": "Los menores desde la edad de adulto del hotel se cotizan como adultos."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "fb5bfbbd6d54241e3f56f2f9",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "270.00",
+      "currency": "USD",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "270.00",
+      "currency": "USD"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-reclass15",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 3,
+       "adults_requested": 2,
+       "child_count": 1,
+       "children_billed": 0,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-reclass15",
+    "rooms": [
+     {
+      "adults": 2,
+      "ages_confirmed": true,
+      "child_ages": [
+       15
+      ],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": {
+     "approved_by_ref": "SYNTH-APPROVER",
+     "direction": "DOP_PER_USD",
+     "effective_from": "2026-10-23T00:00:00Z",
+     "effective_until_exclusive": "2026-10-23T23:00:00Z",
+     "pair": "USD_DOP",
+     "quote_request_id": "Q-fx-total",
+     "rate_ref": "FXG1",
+     "source_ref": "SYNTH-SRC",
+     "version": "SYNTH-V1"
+    },
+    "quote_request_id": "Q-fx-total"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-fx-total",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "200.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "fx_total_dop",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "62d79139ba7bf6d7be0f8436",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "12400.00",
+      "currency": "DOP",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "12400.00",
+      "currency": "DOP"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-fx-total",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 2,
+       "adults_requested": 2,
+       "child_count": 0,
+       "children_billed": 0,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "DOP",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-fx-total",
+    "rooms": [
+     {
+      "adults": 2,
+      "child_ages": [],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-dop-same"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-dop-same",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "12000.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "DOP",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "same_ccy_dop",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "c0f13c704b40d5eee0ea6bed",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "12000.00",
+      "currency": "DOP",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "12000.00",
+      "currency": "DOP"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-dop-same",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 2,
+       "adults_requested": 2,
+       "child_count": 0,
+       "children_billed": 0,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "DOP",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-dop-same",
+    "rooms": [
+     {
+      "adults": 2,
+      "child_ages": [],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "minimum_per_room": {
+      "amount": "6000",
+      "currency": "DOP"
+     },
+     "percentage": "0.30",
+     "type": "DEFAULT_MAX_PERCENT_OR_ROOM_MIN"
+    },
+    "fx": {
+     "approved_by_ref": "SYNTH-APPROVER",
+     "direction": "DOP_PER_USD",
+     "effective_from": "2026-10-23T00:00:00Z",
+     "effective_until_exclusive": "2026-10-23T23:00:00Z",
+     "pair": "USD_DOP",
+     "quote_request_id": "Q-dep-conv",
+     "rate_ref": "FXG1",
+     "source_ref": "SYNTH-SRC",
+     "version": "SYNTH-V1"
+    },
+    "quote_request_id": "Q-dep-conv"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-dep-conv",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "200.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "deposit_conv",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "43dff4890355d359b8a38e39",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "200.00",
+      "currency": "USD",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "200.00",
+      "currency": "USD"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-dep-conv",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 2,
+       "adults_requested": 2,
+       "child_count": 0,
+       "children_billed": 0,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-dep-conv",
+    "rooms": [
+     {
+      "adults": 2,
+      "child_ages": [],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-expired-cond"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [
+     {
+      "expires_on": "2026-10-01",
+      "id": "C1",
+      "review_required": true,
+      "row_id": "R1",
+      "status": "VENCIDA",
+      "text": "Nino a 35 hasta 01-Oct"
+     }
+    ],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [
+     {
+      "code": "CONSULT_PROVIDER_ABOUT_CONDITION",
+      "condition_id": "C1",
+      "expires_on": "2026-10-01",
+      "status": "VENCIDA"
+     }
+    ],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-expired-cond",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "200.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": [
+     "CONDITION_EXPIRED_CONFIRM_WITH_PROVIDER"
+    ]
+   },
+   "name": "expired_condition",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "12d93e8090b7afe86d4fccc8",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "200.00",
+      "currency": "USD",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "200.00",
+      "currency": "USD"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-expired-cond",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 2,
+       "adults_requested": 2,
+       "child_count": 0,
+       "children_billed": 0,
+       "room_ref": "RM1"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-expired-cond",
+    "rooms": [
+     {
+      "adults": 2,
+      "child_ages": [],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-net"
+   },
+   "internal_view": {
+    "calculation_status": "SOURCE_SUBTOTAL_ONLY",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": {
+     "accredited_by": "price_basis=NET_PROVIDER on every used row",
+     "amount": "200.00",
+     "currency": "USD",
+     "label": "INTERNAL_PROVIDER_AMOUNT_NOT_CLIENT_PRICE"
+    },
+    "provider_amount_status": "ACCREDITED",
+    "reclassified": [],
+    "request_id": "Q-net",
+    "source_basis": {
+     "bases": [
+      "NET_PROVIDER"
+     ],
+     "status": "NET_PROVIDER"
+    },
+    "source_subtotal": {
+     "amount": "200.00",
+     "basis": "NET_PROVIDER",
+     "basis_warning": "NET_BASIS_NOT_CLIENT_PRICE",
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "NET_PROVIDER",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R1",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": [
+     "NET_BASIS_NOT_CLIENT_PRICE"
+    ]
+   },
+   "name": "net_consult",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": null,
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Tarifa en revisión; consulte.",
+    "price": null,
+    "reason": "PENDING_REVIEW",
+    "request_id": "Q-net",
+    "status": "CONSULT"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-net",
+    "rooms": [
+     {
+      "adults": 2,
+      "child_ages": [],
+      "room_ref": "RM1"
+     }
+    ]
+   }
+  },
+  {
+   "context_evidence": {
+    "deposit_policy": {
+     "type": "FULL_PAYMENT"
+    },
+    "fx": null,
+    "quote_request_id": "Q-rm3"
+   },
+   "internal_view": {
+    "calculation_status": "COMPLETE",
+    "collection_allowed": false,
+    "conditions": [],
+    "engine_version": "CORE1-PRICE-ENGINE-v2.2.3",
+    "error_code": null,
+    "final_price_confirmed": null,
+    "final_price_note": "NOT_CONFIRMED: a confirmed final price is a human/contract act, not produced by this layer",
+    "internal_alerts": [],
+    "operator_alerts": [],
+    "provider_amount": null,
+    "provider_amount_status": "NOT_ACCREDITED_CLIENT_FINAL",
+    "reclassified": [],
+    "request_id": "Q-rm3",
+    "source_basis": {
+     "bases": [
+      "CLIENT_FINAL"
+     ],
+     "status": "CLIENT_FINAL"
+    },
+    "source_subtotal": {
+     "amount": "160.00",
+     "basis": "CLIENT_FINAL",
+     "basis_warning": null,
+     "currency": "USD",
+     "label": "INTERNAL_SOURCE_SUBTOTAL"
+    },
+    "superseded_rates": [],
+    "supplement_notes": [],
+    "traceability": [
+     {
+      "price_basis": "CLIENT_FINAL",
+      "review_evidence_ref": "SYNTH-REVIEW",
+      "revision": 1,
+      "row_id": "R3",
+      "source_document_id": "SYNTH-DOC",
+      "taxes_included": true
+     }
+    ],
+    "view_version": "CORE1-PRICE-INTERNAL-VIEW-v1.1.1",
+    "warnings": []
+   },
+   "name": "rm3_dbl",
+   "public_dto": {
+    "booking_enablement": {
+     "derived_from_reference": false,
+     "status": "REQUIRES_OPERATOR"
+    },
+    "channel": {
+     "mode": "ASSISTED",
+     "status": "ACCREDITED"
+    },
+    "collection_allowed": false,
+    "computed_at": "2026-10-23T14:00:00Z",
+    "conditions": [
+     {
+      "code": "REFERENCE_SUBJECT_TO_CONFIRMATION",
+      "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro."
+     }
+    ],
+    "dto_version": "CORE1-PRICE-PUBLIC-DTO-v1.1.1",
+    "fingerprint": "3b3c20c88f2a49c6fa7f28a3",
+    "mechanism_version": "core1_price_pure_v2_2_3",
+    "message_es": "Referencia sujeta a confirmación. No es una reserva ni un cobro.",
+    "price": {
+     "derived_average_per_night": {
+      "amount": "160.00",
+      "currency": "USD",
+      "is_rate": false
+     },
+     "nights": 1,
+     "payable": false,
+     "reference_total": {
+      "amount": "160.00",
+      "currency": "USD"
+     },
+     "total_certified": false,
+     "unit": "STAY_TOTAL"
+    },
+    "reason": null,
+    "request_id": "Q-rm3",
+    "selection": {
+     "check_in": "2027-03-28",
+     "check_out": "2027-03-29",
+     "hotel_ref": "H-REF",
+     "provider_plan_ref": "PP1",
+     "rooms": [
+      {
+       "adults_billed": 2,
+       "adults_requested": 2,
+       "child_count": 0,
+       "children_billed": 0,
+       "room_ref": "RM3"
+      }
+     ]
+    },
+    "status": "PRICE_REFERENCE",
+    "valid_until": "2026-10-23T14:30:00Z"
+   },
+   "request": {
+    "channel": "PORTAL",
+    "check_in": "2027-03-28",
+    "check_out": "2027-03-29",
+    "contract_version": "CORE1-PRICE-CONSUMER-ADAPTER-v1.1.1",
+    "hotel_ref": "H-REF",
+    "payment_currency": "USD",
+    "provider_plan_ref": "PP1",
+    "request_id": "Q-rm3",
+    "rooms": [
+     {
+      "adults": 2,
+      "child_ages": [],
+      "room_ref": "RM3"
+     }
+    ]
+   }
+  }
+ ]
+}

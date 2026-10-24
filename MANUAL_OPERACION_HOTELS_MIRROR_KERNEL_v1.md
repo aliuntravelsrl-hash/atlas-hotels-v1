@@ -52,3 +52,16 @@
 4. **Verificación de custodia:** `sha256sum -c core1-price/MANIFEST.sha256` y `npm run test:core1:all` (modelos, adaptador simulado y 30 comprobaciones del runner: 28 negativas, 1 reproducción del defecto y 1 control positivo (más adaptadores simulados v1.1 30+24 y v1.1.1 43+27; modelos hasta v2.2.3 con 120 vectores); código de salida real; no prueba SQL ni Admin ni web ni ejecuta audit:live).
 5. **Sin datos reales:** las tarifas viven en Supabase; este repositorio no guarda tarifas, secretos, JWT, IDs de chat ni PII.
 6. **Hallazgo abierto:** `core1-price/KERNEL-ALIGNMENT-FINDINGS.md` (el kernel actual completa datos con valores por defecto; decisión pendiente del Curador).
+
+## 6. 🧱 Kernel v2 aislado (candidato, offline)
+`kernel-v2/` contiene `HOTEL-INTEGRITY v2.0.0-candidate` (no desplegado, no adoptado; `kernel/` v1 intacto y es la entrada del producto). Verificación: `npm run test:kernel2:all` (38 pruebas + 12 mutaciones y control). Son pruebas del kernel sobre fixtures sintéticos y salidas simuladas de Core 1; no prueban SQL, Admin, portal ni producción. Preservación de v1: manifiesto de recuperación + `core1-price/evidence/V1-RECOVERY-EQUIVALENCE-GATE-20261023.md`; el tag v1 sigue pendiente de publicación.
+
+### 6.1 Kernel v2.0.1-candidate (correcciones OBS-216)
+`kernel-v2.0.1/` revisa v2.0.0-candidate sin editarlo. Verificación: `npm run test:kernel201:all` (61 pruebas + 19 mutaciones, control y propagación de salida). Modelo/simulación offline con fixtures sintéticos y cotizaciones emparejadas del candidato Core 1; no prueba SQL, Admin, portal, backend ni producción. Contrato de entrada y GAPs: `kernel-v2.0.1/README.md`.
+
+### 6.2 Kernel v2.0.2-candidate (residuales OBS-217)
+`kernel-v2.0.2/` revisa v2.0.1 sin editarla: vínculo completo por snapshot de evaluación (edades exactas, hotel y perfil usado; consistencia, no autenticidad) y contrato público completo (catálogos, valores anidados, motivos externos genéricos). Verificación: `npm run test:kernel202:all` (82 pruebas + 32 mutaciones, control y propagación). Modelo/simulación offline; no prueba SQL, Admin, portal, backend ni producción. Detalle y GAPs: `kernel-v2.0.2/README.md`.
+
+### 6.3 Kernel v2.0.3-candidate (huella completa del DTO, OBS-218)
+`kernel-v2.0.3/` revisa v2.0.2 sin editarla: el snapshot (`EVAL-SNAPSHOT-v2`) incluye `dto_digest`, SHA-256 canónico del DTO completo, recalculado por el kernel. **Fe de erratas:** §6.2 y el README de v2.0.2 hablan de "huellas del DTO"; en v2.0.2 solo se comparaba el `fingerprint` opaco. Verificación: `npm run test:kernel203:all` (88 pruebas + 36 mutaciones, control y propagación). Consistencia, no autenticidad (UNK backend). Detalle: `kernel-v2.0.3/README.md`.
+

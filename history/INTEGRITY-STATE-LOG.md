@@ -65,3 +65,28 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Documentación:** K3 ahora "tasa por selección, solo si se usa"; diseño del kernel §4/§5 con "dictamen técnico del Curator + convocatoria del Director"; mapa de versiones, README y manual §5 actualizados (30 comprobaciones del runner: 28 negativas + reproducción + control).
 * **Estado:** candidatos, NO adoptados, NO desplegados; sin SQL, sin acto de custodia firmado, sin tag, sin implementación de kernel. A/B §253 y F-SEC-01 siguen abiertos; la custodia es un acto independiente que requiere decisión del DG.
 
+## 2026-10-23 — ATLAS-TECH (AP-03): convocatoria OBS-213 — Fase A bloqueada; matriz y especificación documental
+* **Fase A:** tag anotado `hotel-integrity-kernel-v1.0.0` → `21dfd63a9edbdf76962cb4170f3177de2c6176df` existe solo localmente (objeto `24cfeb0eb027770193ca706e1ea0c3a65031e045`); el push falló (desconexión del remoto) en dos intentos y la API de refs está denegada. **TAG REMOTO NO PUBLICADO.** No se usaron credenciales alternativas, force ni recreación.
+* **Fase B:** no iniciada (puerta no satisfecha). Se entregó solo `core1-price/hotel-domain/HOTEL-DOMAIN-MATRIX-20261023.md` y `KERNEL-V2-SPEC-DRAFT-20261023.md` (documentales). Kernel v1, versiones congeladas y `main` sin cambios.
+
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-215 — kernel v2 aislado (candidato, offline, NO desplegado)
+* **Puerta sustitutiva satisfecha:** recuperación de v1 desde `21dfd63` en directorio temporal, 10/10 rutas con blob y SHA-256 idénticos al manifiesto (`core1-price/evidence/V1-RECOVERY-EQUIVALENCE-GATE-20261023.md`). **Deuda visible:** tag `hotel-integrity-kernel-v1.0.0` sigue sin publicar en el remoto.
+* **Versión nueva (no sustituye v1):** `kernel-v2/` = `HOTEL-INTEGRITY v2.0.0-candidate` con resultados A (contenido), B (precio por selección, consumiendo Core 1 v2.2.3 / adaptador v1.1.1) y C (propuesta sin conceder reserva/cobro). `kernel/`, `tests/`, `spec/`, `scripts/` y las versiones congeladas de Core 1 sin cambios; `main` del producto sigue en `kernel/index.js`.
+* **Pruebas offline:** `test:kernel2` 38/38 (incluye regresión v1 contra el manifiesto de recuperación); `test:kernel2:faults` 13/13 (12 mutaciones + control). Modelo/simulación; sin SQL, Supabase, n8n, apps, `audit:live`, producción. Sin adopción.
+
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-216 — kernel v2.0.1-candidate (correcciones K2-R1…R7), offline, NO desplegado
+* **Versión nueva (mecanismo modificado ⇒ versión nueva):** `kernel-v2.0.1/` = `HOTEL-INTEGRITY v2.0.1-candidate`. `kernel-v2/` (v2.0.0-candidate, snapshot `8c6f5b9`), `kernel/` v1 y las versiones Core 1 congeladas sin cambios; entrada del producto sigue en v1. Core 1 no se reabrió.
+* **Correcciones:** vínculo selección↔cotización, vigencia con reloj de servidor, aplicabilidad/evidencia FX ligada, esquema cerrado y proyección pública positiva, ocupación/capacidad efectivas, validación semántica de valores, propuesta C neutral. GAPs declarados en `kernel-v2.0.1/README.md`.
+* **Pruebas offline:** `test:kernel201` 61/61 (cotizaciones emparejadas genuinas; incluye regresión de v1 y de v2.0.0 38/38); `test:kernel201:faults` 21/21 (19 mutaciones + control + propagación de salida). Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción. Tag v1 sigue pendiente de publicación.
+
+
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-217 — kernel v2.0.2-candidate (dos grupos residuales), offline, NO desplegado
+* **Versión nueva (mecanismo modificado ⇒ versión nueva):** `kernel-v2.0.2/` = `HOTEL-INTEGRITY v2.0.2-candidate`. `kernel-v2.0.1/` (snapshot `ef426b9`), `kernel-v2/` (`8c6f5b9`), `kernel/` v1 y Core 1 congelado sin cambios; entrada del producto sigue en v1. Core 1 no se reabrió.
+* **G1 vínculo:** snapshot de evaluación del servidor con huellas canónicas (solicitud con edades exactas, DTO, vista, depósito, FX, perfil usado); hotel local verificado; ausente ⇒ CONSULTAR. Consistencia, no autenticidad (UNK backend).
+* **G2 contrato público:** catálogos locales, valores anidados validados, motivo externo desconocido ⇒ `CORE1_REASON_UNRECOGNIZED`, salida pública solo con códigos propios.
+* **Pruebas offline:** `test:kernel202` 82/82; `test:kernel202:faults` 34/34 (32 mutaciones + control + propagación). Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción. Tag v1 sigue pendiente de publicación.
+
+## 2026-10-23 — ATLAS-TECH (AP-03): OBS-218 — kernel v2.0.3-candidate (huella completa del DTO), offline, NO desplegado
+* **Versión nueva:** `kernel-v2.0.3/` = `HOTEL-INTEGRITY v2.0.3-candidate`; `kernel-v2.0.2/` (commit `cea9729`) y carpetas históricas intactas; entrada del producto sigue en v1. Core 1 no se reabrió.
+* **Residual G1:** el snapshot de v2.0.2 comparaba el `fingerprint` opaco; alterar total/promedio a 9999 USD seguía dando LISTO. Ahora `dto_digest` (SHA-256 canónico del DTO completo) se recalcula; ausencia/malformación/mismatch no producen LISTO; contrato v1 ⇒ CONSULTAR. Fe de erratas sobre la redacción "huellas del DTO" de v2.0.2.
+* **Pruebas offline:** `test:kernel203` 88/88; `test:kernel203:faults` 38/38. Sin SQL, apps, producción ni adopción.
