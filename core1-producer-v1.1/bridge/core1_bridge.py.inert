@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""Puente local reproducible JS→Python hacia el simulador Core 1 v2.2.3 / adaptador v1.1.1 (CONGELADOS, solo lectura).
+Protocolo: stdin = JSON {"root": <raíz del repo>, "pins": {ruta: sha256}, "req": ..., "state": ...}; stdout = JSON {ok, public_dto, internal_view} o {ok:false, code}.
+Verifica la huella de los archivos congelados ANTES de cargarlos; no escribe bytecode; no abre red; no lee nada fuera de las rutas fijadas. Uso: python3 -I core1_bridge.py.inert"""
+import hashlib, importlib.machinery, importlib.util, json, os, sys
+sys.dont_write_bytecode = True
+def main():
+    inp = json.load(sys.stdin); root = os.path.abspath(inp["root"])
+    for rel, want in inp["pins"].items():
+        h = hashlib.sha256(open(os.path.join(root, rel), "rb").read()).hexdigest()
+        if h != want: print(json.dumps({"ok": False, "code": "FROZEN_PIN_MISMATCH"})); return
+    p = os.path.join(root, "core1-price/versions/consumer-adapter-v1.1.1/server/consumer_server_sim.py.inert")
+    loader = importlib.machinery.SourceFileLoader("sim", p)
+    S = importlib.util.module_from_spec(importlib.util.spec_from_loader("sim", loader)); loader.exec_module(S)
+    st = inp["state"]; st["context_schema"] = S.CONTEXT_SCHEMA if st.get("context_schema") == "CORE1-PRICE-CONTEXT-v2.2.3" else st.get("context_schema")
+    pub = S.quote_public(inp["req"], st); iv = S.quote_internal(inp["req"], st, "OPERATOR")   # etiqueta técnica del paquete servidor; NO es autorización del consumidor
+    view = iv.get("view") if isinstance(iv, dict) else None
+    print(json.dumps({"ok": True, "public_dto": pub, "internal_view": view}, ensure_ascii=False))
+main()

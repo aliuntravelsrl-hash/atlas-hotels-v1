@@ -68,3 +68,6 @@
 ## 7. Productor servidor de cotización Core 1 (candidato inerte, OBS-221)
 `core1-producer/` integra Core 1 v2.2.3, adaptador v1.1.1, kernel v2.0.3 y `EVAL-SNAPSHOT-v2` con dependencias inyectadas (repos de solo lectura, identidad, política, reloj) y un puente reproducible a Python con huellas de las piezas congeladas. Verificación: `npm run test:producer:all` (40 pruebas + 20 mutaciones, control y propagación; la segunda parte tarda varios minutos). Simulación offline: no certifica autenticación real, grants/RLS, SQL, firma de emisor, host, Admin ni portal. Matriz de fuentes y comparación de hospedaje en `core1-producer/docs/`. Kernel v1 sigue como entrada predeterminada.
 
+### 7.1 Productor v1.1 (correcciones OBS-222)
+`core1-producer-v1.1/` corrige sobre `core1-producer/` (v1, PR #8 `80f59fe`, intacta): catálogos cerrados de códigos públicos, prueba falsable de ausencia de bytecode (`-I`/`-B` no son un sandbox) y evidencia de tarifas según las filas realmente usadas (`traceability` del motor). Verificación: `npm run test:producer11:all`. La sonda del kernel (vista interna sin enumeración) está separada en `kernel-probes/`.
+

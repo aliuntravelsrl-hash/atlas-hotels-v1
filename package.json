@@ -23,7 +23,11 @@
     "test:kernel203:all": "npm run -s test:kernel203 && npm run -s test:kernel203:faults",
     "test:producer": "node core1-producer/tests/run_producer_tests.js",
     "test:producer:faults": "node core1-producer/tests/run_fault_injection_producer.js",
-    "test:producer:all": "npm run -s test:producer && npm run -s test:producer:faults"
+    "test:producer:all": "npm run -s test:producer && npm run -s test:producer:faults",
+    "test:producer11": "node core1-producer-v1.1/tests/run_producer_tests.js",
+    "test:producer11:faults": "node core1-producer-v1.1/tests/run_fault_injection_producer.js",
+    "test:producer11:all": "npm run -s test:producer11 && npm run -s test:producer11:faults",
+    "probe:kernel-internal-enum": "node kernel-probes/KERNEL-V2.0.3-INTERNAL-VIEW-ENUM-PROBE/probe.js"
   },
   "keywords": [
     "atlas",
