@@ -1,0 +1,17 @@
+# HOTEL-INTEGRITY v2.0.5-candidate — MODELO/SIMULACIÓN OFFLINE; NO DESPLEGADO; NO ADOPTADO
+ATLAS-TECH (AP-03), 2026-10-24. Revisión candidata de `kernel-v2.0.4/` (integrado en main 9f1a543, **intacto**). Origen: MANDATE-CORE1-PROVIDER-AMOUNT-COHERENCE-20261024 y PROPOSAL-CORE1-PROVIDER-AMOUNT-COHERENCE-20261024 (Office 0c05ced). Kernel v1 sigue por defecto (`package.json` main = `kernel/index.js`). Productores v1/v1.1, `core1-price` y sonda histórica sin cambios.
+## Semántica (importante)
+`ACCREDITED` significa solo que las fuentes usadas declaran NET_PROVIDER y que el importe interno se presenta como importe del proveedor. NO acredita precio cliente, autoridad comercial, autenticidad ni identidad. Una referencia cliente legítima usa CLIENT_FINAL y `NOT_ACCREDITED_CLIENT_FINAL`. `provider_amount` se compara con `source_subtotal` (misma moneda de fuente), nunca con el total público. Las etiquetas `label`/`accredited_by` se validan por forma, no son prueba de autoridad.
+## Reglas (sobre v2.0.4)
+- **R1** `validateInternalView`: `source_basis` cerrado `{status, bases}`; `status` ∈ {CLIENT_FINAL, NET_PROVIDER, MIXED, UNKNOWN, NOT_EVALUATED}; `bases` cadenas únicas con la forma del estado (CLIENT_FINAL=[CLIENT_FINAL], NET_PROVIDER=[NET_PROVIDER], NOT_EVALUATED=[], MIXED≥2, UNKNOWN=1 distinta de las dos conocidas).
+- **R2** base → `provider_amount_status` → `provider_amount` → `source_subtotal` (tabla en la propuesta §7): CLIENT_FINAL/MIXED/UNKNOWN exigen `provider_amount` presente y null y, si hay subtotal, su `basis` igual; NET_PROVIDER exige subtotal NET y `provider_amount` objeto cerrado con etiquetas del modelo e importe/moneda idénticos al subtotal; NOT_EVALUATED exige `provider_amount` y subtotal presentes y null.
+- **R3** `priceReadiness`: con vista presente y DTO PRICE_REFERENCE, además del cierre A5 (COMPLETE) se exige base CLIENT_FINAL, estado NOT_ACCREDITED_CLIENT_FINAL, `provider_amount`=null y subtotal presente con basis CLIENT_FINAL. No basta para LISTO: permanecen todos los gates previos.
+- **R4** toda contradicción ⇒ B RECHAZADO con el código existente `INTERNAL_VIEW_SHAPE_INVALID`, sin total, preparación completa ni proyección interna; sin interpolar valores; sin códigos nuevos.
+## Ubicación y orden de los gates
+R1/R2 viven en `validateInternalView` (se ejecuta para TODOS los DTO, incluidas las consultas, antes de la salida temprana de `CONSULT` y antes de la proyección interna) y preceden a la integridad del paquete (igual que el vocabulario de v2.0.4). R3 va tras la verificación de integridad (como A5): un paquete coherente con huella obsoleta da `SNAPSHOT_INTERNAL_VIEW_MISMATCH`; con huella correcta, `INTERNAL_VIEW_SHAPE_INVALID`. Las consultas sin snapshot conservan su política vigente; las reglas se aplican a los campos presentes sin afirmar autenticidad.
+## Pruebas
+- `npm run test:kernel205` — 116 (88 de v2.0.3 + E01…E13 + A5R… + PA1…PA10).
+- `npm run test:kernel205:faults` — mutaciones del kernel + control + propagación; equivalentes declarados, no contados como detectados.
+- `npm run test:kernel205:producer` — 9 de compatibilidad: v2.0.5 inyectado en el productor v1.1 sin editarlo.
+## Límites
+Consistencia de campos del modelo `.py.inert`; motor real UNK. No verifica trazabilidad física, autenticidad ni autoridad (traceability y price_basis reales fuera de alcance). Sin matriz universal.

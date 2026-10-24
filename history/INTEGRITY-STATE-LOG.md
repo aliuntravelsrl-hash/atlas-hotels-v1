@@ -110,3 +110,7 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * Commits adicionales sobre `b4a7d4a5` (historia conservada); `kernel-v2.0.3`, `core1-price`, productores, sonda y kernel v1 sin cambios.
 * Regla: PRICE_REFERENCE + SOURCE_SUBTOTAL_ONLY/INCOMPLETE/INVALID ⇒ RECHAZADO (`INTERNAL_VIEW_SHAPE_INVALID`). Matriz general y provider_amount_status ↔ DTO siguen abiertos. Evidencia en el suplemento de Office.
 
+## 2026-10-24 — ATLAS-TECH (AP-03): MANDATE-CORE1-PROVIDER-AMOUNT-COHERENCE — kernel v2.0.5-candidate (offline, NO desplegado)
+* **Versión nueva:** `kernel-v2.0.5/` (rama `atlas-tech/core1-kernel-v2.0.5-provider-coherence`, base main `9f1a543`); `kernel-v2.0.4` y demás componentes históricos intactos.
+* **Corrección:** R1–R4 (coherencia base ↔ estado ↔ provider_amount ↔ subtotal ↔ DTO) con código de rechazo existente. Evidencia PA1–PA10 en el informe de Office. Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción.
+
