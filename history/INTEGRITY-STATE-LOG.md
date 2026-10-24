@@ -90,3 +90,13 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Versión nueva:** `kernel-v2.0.3/` = `HOTEL-INTEGRITY v2.0.3-candidate`; `kernel-v2.0.2/` (commit `cea9729`) y carpetas históricas intactas; entrada del producto sigue en v1. Core 1 no se reabrió.
 * **Residual G1:** el snapshot de v2.0.2 comparaba el `fingerprint` opaco; alterar total/promedio a 9999 USD seguía dando LISTO. Ahora `dto_digest` (SHA-256 canónico del DTO completo) se recalcula; ausencia/malformación/mismatch no producen LISTO; contrato v1 ⇒ CONSULTAR. Fe de erratas sobre la redacción "huellas del DTO" de v2.0.2.
 * **Pruebas offline:** `test:kernel203` 88/88; `test:kernel203:faults` 38/38. Sin SQL, apps, producción ni adopción.
+
+## 2026-10-24 — ATLAS-TECH (AP-03): OBS-221 — productor servidor de cotización Core 1 (candidato inerte), offline, NO desplegado
+* **Carpeta nueva:** `core1-producer/` (rama `atlas-tech/core1-server-producer-inert`, base `main` `a9125e2`). Carpetas congeladas (`kernel`, `kernel-v2*`, `core1-price`) sin cambios; entrada del producto sigue en v1.
+* **Contenido:** productor con dependencias inyectadas, puente JS↔Python con huellas de piezas congeladas, snapshot v2 reutilizando `canonical.js`, coherencia por revisiones inmutables + no deriva, política/identidad simuladas, matriz de fuentes (UNK conservado; `rates.created_at` ≠ `received_at`) y comparación de hospedaje sin elegir.
+* **Pruebas offline:** `test:producer` 40/40 con paridad de los 11 paquetes contra el generador candidato; `test:producer:faults` ver informe. Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción.
+
+## 2026-10-24 — ATLAS-TECH (AP-03): OBS-222 — productor Core 1 v1.1 (correcciones P-R1/P-R2/P-R3, H-E1), offline, NO desplegado
+* **Versión nueva:** `core1-producer-v1.1/` (rama `atlas-tech/core1-server-producer-inert-r2`, base `80f59fe`); `core1-producer/` v1 intacto y recuperable; carpetas congeladas y kernel v1 sin cambios.
+* **Correcciones:** catálogos públicos cerrados por frontera; ausencia de bytecode falsable con controles negativos; filas usadas por `traceability` del motor (otras temporadas/inactivas/futuras/reemplazadas no contaminan; usada sin recepción probada cierra); H-E1 en hospedaje. Sonda del kernel separada en `kernel-probes/`.
+* Pruebas y mutaciones: ver informe Office. Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción.
