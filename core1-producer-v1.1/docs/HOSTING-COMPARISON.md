@@ -1,0 +1,17 @@
+# Comparación acotada de hospedaje reutilizable
+ATLAS-TECH (AP-03), 2026-10-24. INF / CANDIDATO. Fuentes: trazado de código del Curator (OBS-221, commits fijados), sin consultar sistemas vivos ni instalar herramientas. **Ninguna opción queda elegida ni habilitada**; se listan compatibilidad y puertas. La disponibilidad no se presume.
+
+Requisitos del productor probados offline: (a) runtime JavaScript (kernel v2.0.3, Node ≥ 22 en la prueba); (b) puente a Python 3 hacia el motor congelado (Core 1 v2.2.3 / adaptador v1.1.1), o un puerto del motor que requeriría dictamen propio; (c) identidad comprobada en servidor y permisos por operación; (d) solo lectura de puertos; (e) respuesta pública cerrada.
+
+| Criterio | MCP de ventas (`f2aaa5a`) | Fachada existente (Admin `server.js`, Express) | Función servidor (patrón Edge Function `admin-accounting-confirm`) |
+|---|---|---|---|
+| Qué es en fuente | herramientas MCP; `calcular_precio_paquete` es proxy de una RPC heredada (conteo de niños, sin edades/room/contexto v2.2.3) | Express que sirve `dist` y documentos; **sin productor de cotización** | Deno.serve con `getUser` y verificación de `admin_users` para una operación contable mutante |
+| Runtime vs requisitos | **Node consta en la fuente del MCP** (OBS-222 / H-E1; acreditado en código, no verificado por mí). Host, versión de Node, configuración y presencia de Python **vivos siguen UNK**: (a) encajaría; (b) exigiría Python 3 en ese host | Node (según fuente del Express servidor): encaja con (a); (b) exige Python 3 en el host: UNK | Deno: (a) requeriría adaptar el kernel; (b) subproceso Python no es patrón de ese runtime: haría falta un puerto del motor (dictamen) o un worker aparte |
+| Autenticación | `/mcp` con auth **opt-in**: vacío permite acceso en fuente (`index.js:18/103–104`); no apto como frontera sin verificar configuración y política por operación | sin patrón de auth de cotización en ese archivo | patrón de verificación existente en fuente; despliegue y permisos reales UNK |
+| Aislamiento de efectos | herramientas con efectos conviven en el mismo servidor: riesgo de mezclar cotizar con otras operaciones | sirve la SPA: mezclar es posible | función dedicada permitiría aislar; el ejemplo es mutante, no se reutiliza como autoridad de cotización |
+| Reutilización real | contratos históricos, no el bundle nuevo | solo como host potencial | solo el patrón de identidad |
+| Compatibilidad de librerías | n/a | n/a | `supabase-js`: Portal 2.30.0, Admin ^2.43.4, función `@2`; lock/despliegue sin certificar: no asumir compatibilidad |
+| Puertas antes de elegir | verificar config de auth y política por operación; revisión de cambios; rollback; pruebas aisladas; postcheck | confirmar Python y aislamiento; mismas puertas | decidir motor (puerto con dictamen vs worker); permisos y RLS físicos; mismas puertas |
+| Riesgos | exposición por auth opt-in (observación estática, no incidente) | host de UI no es frontera de confianza por sí mismo | duplicar motor sin dictamen; despliegue UNK |
+
+**Conclusión acotada:** el productor se diseñó con dependencias inyectadas para que cualquiera de los tres sea posible, y no depende de ninguno. Ninguno está acreditado hoy como frontera confiable. La fase física exige changeset concreto, revisión separada, rollback, pruebas aisladas y postcheck; este documento no la autoriza. Decisión del hospedaje: pendiente del Director/Curator tras cerrar las puertas de la fila «Puertas».
