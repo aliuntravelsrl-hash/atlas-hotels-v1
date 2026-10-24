@@ -65,3 +65,6 @@
 ### 6.3 Kernel v2.0.3-candidate (huella completa del DTO, OBS-218)
 `kernel-v2.0.3/` revisa v2.0.2 sin editarla: el snapshot (`EVAL-SNAPSHOT-v2`) incluye `dto_digest`, SHA-256 canónico del DTO completo, recalculado por el kernel. **Fe de erratas:** §6.2 y el README de v2.0.2 hablan de "huellas del DTO"; en v2.0.2 solo se comparaba el `fingerprint` opaco. Verificación: `npm run test:kernel203:all` (88 pruebas + 36 mutaciones, control y propagación). Consistencia, no autenticidad (UNK backend). Detalle: `kernel-v2.0.3/README.md`.
 
+## 7. Productor servidor de cotización Core 1 (candidato inerte, OBS-221)
+`core1-producer/` integra Core 1 v2.2.3, adaptador v1.1.1, kernel v2.0.3 y `EVAL-SNAPSHOT-v2` con dependencias inyectadas (repos de solo lectura, identidad, política, reloj) y un puente reproducible a Python con huellas de las piezas congeladas. Verificación: `npm run test:producer:all` (40 pruebas + 20 mutaciones, control y propagación; la segunda parte tarda varios minutos). Simulación offline: no certifica autenticación real, grants/RLS, SQL, firma de emisor, host, Admin ni portal. Matriz de fuentes y comparación de hospedaje en `core1-producer/docs/`. Kernel v1 sigue como entrada predeterminada.
+
