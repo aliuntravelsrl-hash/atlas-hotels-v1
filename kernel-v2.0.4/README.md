@@ -2,9 +2,11 @@
 ATLAS-TECH (AP-03), 2026-10-24. Revisión candidata de `kernel-v2.0.3/` (v2.0.3-candidate, **intacta**), a partir de main 928c745. Origen: SCOPE-CORE1-KERNEL-INTERNAL-ENUM-HARDENING-20261024 (Office 2ba101e) y hallazgo DECLARADO-AT contrastado por el Curator (OBS-223). Kernel v1 sigue siendo la entrada predeterminada (`package.json` main = `kernel/index.js`). Productores v1 y v1.1 sin cambios.
 ## Cambio de comportamiento (único)
 `validateInternalView` cierra por catálogo `calculation_status` y `provider_amount_status` (ver `docs/ENUM-PROVENANCE.md`). Campo ausente, nulo, de tipo incorrecto, vacío, con espacios, otra capitalización o desconocido ⇒ vista inválida ⇒ B `RECHAZADO` con el código existente `INTERNAL_VIEW_SHAPE_INVALID` (fijo; nunca interpola el valor recibido) y sin proyección interna. No se añadieron códigos nuevos. Vista ausente: comportamiento de v2.0.3. Pertenecer al catálogo NO implica LISTO.
+## Addendum A5 (coherencia mínima, ADDENDUM-CORE1-KERNEL-A5-COHERENCE-20261024)
+Regla única añadida al mismo candidato: con vista interna presente, DTO `PRICE_REFERENCE` y `calculation_status` ∈ {SOURCE_SUBTOTAL_ONLY, INCOMPLETE, INVALID} ⇒ B `RECHAZADO` con el código existente `INTERNAL_VIEW_SHAPE_INVALID`, sin total, sin preparación completa y sin proyección interna. Se evalúa tras la integridad del paquete (huella), para distinguir incoherencia de huella incorrecta. Los tres estados siguen en el catálogo de vocabulario. No es una matriz general: `provider_amount_status` ↔ DTO (p. ej. ACCREDITED + PRICE_REFERENCE) y combinaciones inversas siguen fuera de alcance. Corrección documental: el informe del head b4a7d4a5 solo acreditaba A5 como conservación de paquetes genuinos; el cierre de la contradicción se evalúa con los commits posteriores (suplemento en Office).
 ## Pruebas
-- `npm run test:kernel204` — 101 (los 88 de v2.0.3 + E01…E13).
-- `npm run test:kernel204:faults` — mutaciones del kernel (36 heredadas + 17 de catálogo) + control + propagación; un equivalente declarado, no contado como detectado.
-- `npm run test:kernel204:producer` — 6 de compatibilidad: v2.0.4 inyectado en el productor v1.1 sin editarlo.
+- `npm run test:kernel204` — 107 (los 88 de v2.0.3 + E01…E13 + A5R1, R2, R3, R4, R7, R9).
+- `npm run test:kernel204:faults` — mutaciones del kernel (36 heredadas + 17 de catálogo + 10 de A5) + control + propagación; un equivalente declarado, no contado como detectado.
+- `npm run test:kernel204:producer` — 7 de compatibilidad (incluye A5-R6): v2.0.4 inyectado en el productor v1.1 sin editarlo.
 ## Límites
 Consistencia y vocabulario, no autenticidad ni autorización (backend UNK). Sin matriz de coherencia entre campos (hallazgo separado). Modelo offline sobre `.py.inert`.

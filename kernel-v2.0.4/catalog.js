@@ -25,6 +25,8 @@ const UNIT = Object.freeze(['STAY_TOTAL']);
 // Estar en el catálogo NO implica LISTO: INCOMPLETE/INVALID/SOURCE_SUBTOTAL_ONLY siguen siendo resultados sin precio de referencia (el DTO público decide el estado de precio).
 const CALCULATION_STATUS = Object.freeze(['COMPLETE', 'SOURCE_SUBTOTAL_ONLY', 'INCOMPLETE', 'INVALID']);
 const PROVIDER_AMOUNT_STATUS = Object.freeze(['ACCREDITED', 'NOT_ACCREDITED_CLIENT_FINAL', 'NOT_ACCREDITED_MIXED', 'NOT_ACCREDITED_UNKNOWN', 'NOT_ACCREDITED_NOT_EVALUATED']);
+// v2.0.4 (addendum A5): estados de cálculo que NO respaldan un precio de referencia. Combinados con un DTO PRICE_REFERENCE la vista es contradictoria. Siguen siendo vocabulario reconocido (arriba).
+const CALC_WITHOUT_REFERENCE_PRICE = Object.freeze(['SOURCE_SUBTOTAL_ONLY', 'INCOMPLETE', 'INVALID']);
 const inCatalog = (list, v) => typeof v === 'string' && list.includes(v); // tipo exacto + igualdad exacta (sin trim, sin cambio de mayúsculas)
 const has = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
-module.exports = { REASONS, CONDITIONS, BOOKING_STATUS, CHANNEL_MODES, CHANNEL_STATUS, NO_PRICE_STATUS, UNIT, CALCULATION_STATUS, PROVIDER_AMOUNT_STATUS, inCatalog, has };
+module.exports = { REASONS, CONDITIONS, BOOKING_STATUS, CHANNEL_MODES, CHANNEL_STATUS, NO_PRICE_STATUS, UNIT, CALCULATION_STATUS, PROVIDER_AMOUNT_STATUS, CALC_WITHOUT_REFERENCE_PRICE, inCatalog, has };

@@ -93,6 +93,7 @@ function evaluatePriceReadiness(hotel, rq, quote, ctx) {
   }
   // G1: snapshot de la misma evaluación (edades exactas, perfil, huellas). Ausente ⇒ no LISTO; inconsistente ⇒ rechazado.
   const sv = verifySnapshot(hotel, rq, quote); if (sv.fatal) return reject(sv.fatal); sv.reasons.forEach((c) => reasons.push(c));
+  if (view && dto.status === 'PRICE_REFERENCE' && CAT.CALC_WITHOUT_REFERENCE_PRICE.includes(view.calculation_status)) return reject('INTERNAL_VIEW_SHAPE_INVALID'); // addendum A5 (tras la integridad del paquete, para distinguir huella de incoherencia): DTO de precio + vista sin precio de referencia = contradicción; código existente, valor no interpolado
   // K2-R2: vigencia con reloj de servidor explícito. La condición comercial vencida es una nota y NO se mezcla aquí.
   const ct = V.parseInstant(dto.computed_at), vu = V.parseInstant(dto.valid_until);
   if (!(ct < vu)) return reject('QUOTE_TIMES_INVALID');

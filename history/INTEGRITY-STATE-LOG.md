@@ -106,3 +106,7 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Corrección:** cierre por catálogo de `calculation_status` y `provider_amount_status` en `validateInternalView`; procedencia en `docs/ENUM-PROVENANCE.md`. Hallazgo separado no corregido: sin matriz de coherencia entre campos.
 * Pruebas y mutaciones: ver informe Office. Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción.
 
+## 2026-10-24 — ATLAS-TECH (AP-03): addendum A5 — coherencia mínima en kernel v2.0.4-candidate (PR #11, offline, NO desplegado)
+* Commits adicionales sobre `b4a7d4a5` (historia conservada); `kernel-v2.0.3`, `core1-price`, productores, sonda y kernel v1 sin cambios.
+* Regla: PRICE_REFERENCE + SOURCE_SUBTOTAL_ONLY/INCOMPLETE/INVALID ⇒ RECHAZADO (`INTERNAL_VIEW_SHAPE_INVALID`). Matriz general y provider_amount_status ↔ DTO siguen abiertos. Evidencia en el suplemento de Office.
+

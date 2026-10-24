@@ -30,6 +30,6 @@ La prueba `E05` exige que el conjunto observado en los escenarios generados por 
 
 ## Límites declarados
 1. Vista emitida por el modelo `.py.inert`; que un motor real emita estos mismos valores es UNK.
-2. No hay matriz de coherencia entre campos: una vista `INCOMPLETE`/`INVALID` junto a un DTO `PRICE_REFERENCE` sigue siendo LISTO (hallazgo separado, v2.0.3 y v2.0.4 por igual; no se amplía el contrato aquí).
+2. Coherencia: solo la regla del addendum A5 (PRICE_REFERENCE + SOURCE_SUBTOTAL_ONLY/INCOMPLETE/INVALID ⇒ rechazo). No hay matriz general: `provider_amount_status` ↔ base ↔ DTO (p. ej. ACCREDITED + PRICE_REFERENCE) sigue siendo un hallazgo separado y abierto.
 3. Una vista de motor previo (`pre_engine_status`, sin `engine_version`) ya se rechazaba con `ENGINE_INCOMPATIBLE` y sigue rechazándose.
 4. El productor v1.1 conserva su catálogo interno propio (`INT_CAT`) y muestra `UNRECOGNIZED` para INCOMPLETE/INVALID; no se modificó.
