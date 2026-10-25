@@ -1,5 +1,5 @@
 # A01–A16: qué se ejecutó y qué NO es ejecutable sin fuente real
-Todos los escenarios se ejecutaron contra el **mecanismo** con fuentes SINTÉTICAS inyectadas (suite `npm run test:physical-adapter`, 31 pruebas). Eso **no acredita** SQL, proveedor, autenticación ni seguridad reales y no equivale a E2E.
+Todos los escenarios se ejecutaron contra el **mecanismo** con fuentes SINTÉTICAS inyectadas (suite `npm run test:physical-adapter`, 38 pruebas, incluidas R01–R07 de PA-R1 con reloj simulado, sin sleep ni red). Eso **no acredita** SQL, proveedor, autenticación ni seguridad reales y no equivale a E2E.
 Fallos del mecanismo observados: ninguno en la versión entregada (las fallas de desarrollo se listan en el informe). **NO EJECUTABLE por fuente real ausente** (no sintético): ninguna de las pruebas puede declararse cumplida contra datos reales mientras falten estas fuentes:
 
 | Escenario | Qué prueba el mecanismo (sintético) | Fuente real que sigue ausente (no se simula) |

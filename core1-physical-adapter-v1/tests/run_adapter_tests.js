@@ -7,14 +7,14 @@ const { createPhysicalPortAdapter } = require('../adapter'); const { buildWorld,
 const { createProducer } = require('../../core1-producer-v1.1/producer'); const { createBridge } = require('../../core1-producer-v1.1/bridge/bridge'); const { createPolicy } = require('../../core1-producer-v1.1/policy');
 const { createSyntheticRepos } = require('../../core1-producer-v1.1/synthetic/repos'); const F = require('../../core1-producer-v1.1/synthetic/fixtures'); const PUB = require('../../core1-producer-v1.1/publicCodes');
 const K3 = require('../../kernel-v2.0.3'); const K6 = require('../../kernel-v2.0.6');
-const EXPECTED = 31; const results = {}; const pending = []; const realBridge = createBridge();
+const EXPECTED = 38; const results = {}; const pending = []; const realBridge = createBridge();
 const t = (n, fn) => { const p = (async () => { try { await fn(); results[n] = 'PASS'; } catch (e) { results[n] = 'FAIL ' + String(e.message).split('\n')[0].slice(0, 300); } })(); pending.push(p); };
 const IDS = { operator: { id: 'u-op', kind: 'USER', verified: true, roles: ['OPERATOR'], scopes: ['core1.quote.internal'] }, plain: { id: 'u-1', kind: 'USER', verified: true, roles: ['CUSTOMER'], scopes: [] }, agent: { id: 's-ai', kind: 'SERVICE', verified: true, roles: [], scopes: ['core1.quote.agent'] }, unverified: { id: 'u-f', kind: 'USER', verified: false, roles: ['OPERATOR'], scopes: ['core1.quote.internal'] } };
 const identity = { verify: (c) => (typeof c === 'string' && IDS[c]) || null };
 const seq = () => { const s = ['2026-10-23T14:00:00Z', '2026-10-23T14:10:00Z']; let i = 0; return () => s[Math.min(i++, 1)]; };
 function adapterFor(name, o = {}) {
   const W = buildWorld(name, o.mutate); const readers = o.readers ? o.readers(createReaders(W), W) : createReaders(W);
-  const ad = createPhysicalPortAdapter({ readers, identity, policy: createPolicy({ publicAnonymous: true }), clock: seq(), newRequestId: () => W.rq.request_id, bridge: o.bridge || realBridge, kernel: o.kernel || K3, assistedChannelAccredited: true });
+  const ad = createPhysicalPortAdapter({ readers, identity, policy: createPolicy({ publicAnonymous: true }), clock: o.clock ? o.clock(W) : seq(), newRequestId: () => W.rq.request_id, bridge: o.bridge || realBridge, kernel: o.kernel || K3, assistedChannelAccredited: true });
   return { W, ad };
 }
 async function run(name, o = {}, view = 'PUBLIC', cred) { const m = adapterFor(name, o); const out = await m.ad.produce({ view, credential: cred, request: o.rq ? o.rq(m.W.rq) : m.W.rq }); return Object.assign(out, { _W: m.W }); }
@@ -146,6 +146,38 @@ t('X13_la_salida_provisional_no_se_filtra_cuando_el_resultado_posterior_difiere_
 t('X14_identificadores_de_solicitud_y_reloj_se_reutilizan_en_todas_las_ejecuciones_internas', async () => { const a = await run('base', { mutate: (W) => { W.hooks.current = async () => { W.rev.profile = 'PRO-2'; }; } }); assert.strictEqual(a.public.request_id, a._W.rq.request_id); const b = await run('base'); assert.strictEqual(b.public.computed_at, '2026-10-23T14:00:00Z'); });
 t('X15_normaliza_estados_desconocidos_de_cada_lector_a_unavailable', async () => { for (const st of ['PERMISSION_DENIED', 'rls', '', 'unavailable', 42]) { const o = await run('base', { readers: (R) => { R.accredited.governedPolicy = async () => ({ ok: false, status: st }); return R; } }); notReady(o); has(o, 'CONTEXT_UNAVAILABLE'); } });
 
+
+// ---- PA-R1 (dictamen OBS-229): vigencia en la frontera de entrega, tras la última espera asíncrona. Reloj simulado, sin sleep ni red.
+const T0 = '2026-10-23T14:00:00Z';
+const clockAt = (delivery, extra) => (W) => { let now = T0; W.hooks.current = async () => { now = delivery; if (extra) extra(W); }; return () => { W.calls.push('clock'); if (now instanceof Error) throw now; return now; }; };
+t('R01_pa_r1_fronteras_de_vigencia_en_ambos_kernels_control_positivo_y_codigos_existentes', async () => {
+  for (const [kn, kernel] of [['v2.0.3', K3], ['v2.0.6', K6]]) {
+    const ok = await run('base', { kernel, clock: clockAt('2026-10-23T14:29:59Z') }); ready(ok, '200.00'); assert.strictEqual(ok.public.computed_at, T0); assert.strictEqual(ok.public.valid_until, '2026-10-23T14:30:00Z');   // control positivo; computed_at/TTL conservados
+    for (const [d, code] of [['2026-10-23T14:30:00Z', 'QUOTE_EXPIRED'], ['2026-10-23T16:00:00Z', 'QUOTE_EXPIRED'], ['INVALID', 'NOW_INVALID'], [null, 'NOW_INVALID'], ['', 'NOW_INVALID'], ['2026-10-23T16:00:00', 'NOW_INVALID'], ['2026-10-23T13:00:00Z', 'QUOTE_FROM_FUTURE']]) {
+      const o = await run('base', { kernel, clock: clockAt(d) }); notReady(o); assert.notStrictEqual(o.public.enablement.proposal, 'PREPARACION_COMPLETA_SUJETA_A_AUTORIDAD'); assert(o.public.reasons.includes(code) || o.public.reasons.length > 0, kn + String(d)); assert(CLOSED(o), kn + String(d) + JSON.stringify(o.public.reasons)); } } });
+t('R02_pa_r1_codigos_exactos_por_causa', async () => { const code = async (d) => (await run('base', { kernel: K6, clock: clockAt(d) })).public.reasons;
+  assert(( await code('2026-10-23T14:30:00Z')).includes('QUOTE_EXPIRED')); assert((await code('2026-10-23T16:00:00Z')).includes('QUOTE_EXPIRED')); assert((await code('INVALID')).includes('NOW_INVALID')); assert((await code('2026-10-23T13:00:00Z')).includes('QUOTE_FROM_FUTURE')); });
+t('R03_pa_r1_public_operador_y_agente_sin_total_preparacion_ni_proyeccion_con_referencia_vencida', async () => {
+  for (const n of ['base', 'adults3', 'child12', 'fx_total_dop', 'same_ccy_dop', 'deposit_conv', 'rm3_dbl']) for (const [view, cred] of [['PUBLIC'], ['INTERNAL', 'operator'], ['INTERNAL', 'agent']]) for (const d of ['2026-10-23T14:30:00Z', '2026-10-23T16:00:00Z', 'INVALID']) {
+    const o = await run(n, { kernel: K6, clock: clockAt(d) }, view, cred); notReady(o); const w = wire(o); assert(!/"amount":"\d/.test(JSON.stringify(o.public.reference_total || '')) && !w.includes('provider_amount'), n + view + d); } });
+t('R04_pa_r1_revision_igual_distinta_o_fallida_combinada_con_vigencia', async () => {
+  const same = await run('base', { clock: clockAt('2026-10-23T16:00:00Z') }); notReady(same); has(same, 'QUOTE_EXPIRED');
+  const diff = await run('base', { clock: clockAt('2026-10-23T14:10:00Z', (W) => { W.rev.rates = 'RAT-9'; }) }); notReady(diff); has(diff, 'READ_DRIFT_DETECTED');
+  const failed = await run('base', { clock: clockAt('2026-10-23T14:10:00Z', (W) => { W.currentFail = 'UNAVAILABLE'; }) }); notReady(failed); has(failed, 'READ_DRIFT_DETECTED');
+  const diffExp = await run('base', { clock: clockAt('2026-10-23T16:00:00Z', (W) => { W.rev.policy = 'POL-9'; }) }, 'INTERNAL', 'operator'); notReady(diffExp);
+  const good = await run('base', { clock: clockAt('2026-10-23T14:10:00Z') }, 'INTERNAL', 'operator'); ready(good, '200.00'); assert(good.internal); });
+t('R05_pa_r1_no_rejuvenece_computed_at_ttl_ni_snapshot_y_conserva_paridad_con_el_productor_directo', async () => {
+  const late = await run('base', { clock: clockAt('2026-10-23T14:20:00Z') }); ready(late, '200.00'); assert.strictEqual(late.public.computed_at, T0); assert.strictEqual(late.public.valid_until, '2026-10-23T14:30:00Z');
+  const dir = direct('base', 'PUBLIC'); const ad = await run('base'); assert.deepStrictEqual(ad.public, dir.public); assert.strictEqual(ad.public.valid_until, dir.public.valid_until);
+  const expired = await run('base', { clock: clockAt('2026-10-23T14:30:00Z') }); assert.strictEqual(expired.public.reference_total, undefined); assert.strictEqual(expired.public.computed_at, undefined); });
+t('R06_pa_r1_hora_fresca_se_toma_despues_de_la_ultima_espera_y_un_reloj_que_lanza_no_libera', async () => {
+  const o = await run('base', { clock: clockAt('2026-10-23T14:10:00Z') }); ready(o, '200.00'); const c = o._W.calls; assert(c.lastIndexOf('clock') > c.lastIndexOf('rev.current'), JSON.stringify(c)); assert(c.indexOf('clock') < c.indexOf('rev.pin'));
+  const th = await run('base', { clock: clockAt(new Error('reloj caído con detalle SQL')) }); notReady(th); assert(CLOSED(th)); assert(!wire(th).includes('detalle'));
+  const inv = await run('base', { clock: (W) => { let n = 0; return () => (++n === 1 ? T0 : undefined); } }); notReady(inv); });
+t('R07_pa_r1_politica_de_consulta_v2_0_6_y_autorizacion_previa_no_cambian', async () => {
+  for (const [view, cred] of [['PUBLIC'], ['INTERNAL', 'operator'], ['INTERNAL', 'agent']]) { const a = await run('net_consult', { kernel: K6, clock: clockAt('2026-10-23T14:10:00Z') }, view, cred); const b = await run('net_consult', { kernel: K6, clock: clockAt('2026-10-23T16:00:00Z') }, view, cred); const c = await run('net_consult', { kernel: K6 }, view, cred);
+    assert.deepStrictEqual({ p: a.public, i: a.internal }, { p: c.public, i: c.internal }); assert.strictEqual(b.public.reference_total, undefined); assert.strictEqual(b.public.enablement.proposal, 'NO_PREPARADA'); }
+  const den = await run('base', { clock: clockAt('2026-10-23T16:00:00Z') }, 'INTERNAL', 'plain'); assert.strictEqual(den.public.status, 'DENEGADO'); assert.deepStrictEqual(den._W.calls.filter((x) => x !== 'clock'), []); });
 (async () => {
   await Promise.all(pending);
   const names = Object.keys(results).sort(); const bad = names.filter((k) => results[k] !== 'PASS');

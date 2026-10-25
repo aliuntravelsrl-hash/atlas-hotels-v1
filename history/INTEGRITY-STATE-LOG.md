@@ -125,3 +125,6 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Versión nueva:** `core1-physical-adapter-v1/` (rama `atlas-tech/core1-physical-port-adapter-v1`, base main `bcca573`); productor v1.1, kernel v2.0.x, motor, adaptador v1.1.1 y `core1-price` intactos.
 * Composición 1 (etapa async + evaluación pura + relectura que bloquea el provisional). Los 11 vínculos sin fuente permanecen sin fuente. Evidencia A01–A16 sintética en el informe de Office. Sin SQL, Supabase, n8n, VPS, apps, producción ni adopción.
 
+## 2026-10-25 — ATLAS-TECH (AP-03): corrección PA-R1 del adaptador físico de puertos Core 1 v1 (PR #14, offline, NO desplegado)
+* Dictamen Curator OBS-229 (REVISE acotado): tras `await revisions.current` con revisiones iguales se entregaba LISTO con la cotización vencida. Corregido con commits adicionales sobre `ed1f0b16` (historia conservada): hora fresca tras la última espera, evaluación con ella como «ahora» del kernel, códigos existentes, sin rejuvenecer computed_at/TTL/snapshot. Kernel, productor v1.1, motor y `core1-price` intactos. Evidencia en el informe de Office.
+

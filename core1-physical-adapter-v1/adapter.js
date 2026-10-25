@@ -10,6 +10,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const CAP_SOURCES = Object.freeze(['rooms.capacity_kids', 'rooms.capacity_children', 'room_occupancy_rules.max_children']);
 const READERS = Object.freeze({ physical: ['selectionRows', 'rateRows', 'ruleRows', 'profileRows'], accredited: ['registry', 'rateTerms', 'rowProfile', 'kernelProfile', 'governedPolicy'], revisions: ['pin', 'current'] });
 const PROBE = Symbol('probe');
+const TIME_CODES = Object.freeze(['QUOTE_EXPIRED', 'NOW_INVALID', 'QUOTE_FROM_FUTURE']);   // códigos temporales EXISTENTES del kernel congelado (sin códigos nuevos)
 const addDay = (d) => { const t = new Date(d + 'T00:00:00Z'); if (Number.isNaN(t.getTime()) || t.toISOString().slice(0, 10) !== d) return null; t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); };
 const fail = (status) => ({ ok: false, status: PORT_STATUSES.includes(status) ? status : 'UNAVAILABLE' });
 // Toda lectura inyectada se normaliza: excepciones, rechazos, estados desconocidos y textos crudos (SQL, tablas, proveedor) NUNCA cruzan; solo el catálogo cerrado.
@@ -104,11 +105,16 @@ function createPhysicalPortAdapter(deps) {
     if (!sel) return first;                                                  // denegado / solicitud inválida: se devuelve tal cual, SIN ninguna lectura (la autorización precede a toda lectura)
     const st = await stage(sel);
     if (!st.pinned || !st.rateArgs || PORTS4.some((k) => !st.ports[k] || st.ports[k].ok !== true)) return mkProducer(syncRepos(st, st.pinned || {}), rid, clk).produce(input);   // fallo de puerto: el productor lo traduce por su catálogo cerrado
-    const provisional = mkProducer(syncRepos(st, st.pinned), rid, clk).produce(input);   // evaluación PURA; su currentRevisions es la fijación, NO prueba de no deriva
-    const now = await call(() => R.revisions.current(Object.assign({}, sel, st.rateArgs)));
+    const now = await call(() => R.revisions.current(Object.assign({}, sel, st.rateArgs)));   // ÚLTIMA espera asíncrona antes de liberar
     const cur = now.ok && isObj(now.revisions) ? now.revisions : null;
     const same = !!cur && PORTS4.every((k) => typeof cur[k] === 'string' && cur[k] === st.pinned[k]);
-    if (same) return provisional;                                           // solo tras la comprobación posterior el resultado sale
+    if (same) {                                                             // PA-R1: la coincidencia de revisión NO conserva la vigencia temporal
+      let fresh = null; try { fresh = deps.clock(); } catch (e) { fresh = null; }   // hora FRESCA, tomada tras la última espera y antes de evaluar/liberar (no la hora cacheada); sin hora acreditada ⇒ null ⇒ el kernel responde NOW_INVALID
+      const clkGate = () => { let i = 0; return () => (i++ === 0 ? times[0] : fresh); };   // 1.ª hora = la original (computed_at/valid_until/snapshot se conservan; NO se rejuvenece); 2.ª = hora fresca como «ahora» del kernel
+      const out = mkProducer(syncRepos(st, st.pinned), rid, clkGate).produce(input);
+      if (out && out.internal !== undefined && out.public && Array.isArray(out.public.reasons) && out.public.reasons.some((r) => TIME_CODES.includes(r))) { const { internal, ...rest } = out; return rest; }   // vigencia/hora no acreditadas: tampoco proyección interna sobre una referencia vencida
+      return out;   // evaluación PURA síncrona sin esperas posteriores: vencimiento, hora inválida o retroceso los decide el kernel congelado con sus códigos existentes; el productor no libera proyección interna ni total si no es LISTO
+    }
     const blocked = Object.fromEntries(PORTS4.map((k) => [k, cur && typeof cur[k] === 'string' ? cur[k] : null]));   // relectura fallida o distinta ⇒ no se acredita; el provisional se DESCARTA
     return mkProducer(syncRepos(st, blocked), rid, clk).produce(input);
   }

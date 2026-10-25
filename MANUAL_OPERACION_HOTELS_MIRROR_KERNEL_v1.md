@@ -93,5 +93,6 @@
 * **Versión nueva:** `core1-physical-adapter-v1/` (candidato, offline, NO desplegado, NO adoptado). Productor v1.1, kernel v2.0.3…v2.0.6, motor v2.2.3, adaptador v1.1.1 y kernel v1 por defecto sin cambios. Origen: SPEC-CORE1-PHYSICAL-PORT-ADAPTER-v1 (Office `fd8762e`).
 * **Mapa de versiones (mecanismos):** kernel v1 (default) · kernel-v2 … v2.0.6 (inertes) · core1-producer v1 / v1.1 (inertes) · **core1-physical-adapter v1** (nuevo, inerte). `core1-price/VERSION-MAP.md` versiona solo el modelo de precio y no se toca.
 * **Composición:** etapa asíncrona con revisiones fijadas por autoridad inyectada → evaluación pura síncrona → relectura asíncrona que bloquea el provisional si hay deriva. Detalle en `core1-physical-adapter-v1/docs/COMPOSITION.md`.
+* **PA-R1 (dictamen OBS-229):** tras la última relectura asíncrona se toma una hora fresca y se evalúa con ella como «ahora» del kernel, conservando computed_at/TTL/snapshot; vencimiento (`QUOTE_EXPIRED`), hora inválida (`NOW_INVALID`) o retroceso (`QUOTE_FROM_FUTURE`) ⇒ sin LISTO, total, preparación ni proyección. Corrección en el mismo candidato (commits adicionales), sin tocar kernel ni productor.
 * **Límites:** 11 vínculos siguen sin fuente acreditada; sin cliente real, SQL, red ni autenticación; evidencia sintética ≠ E2E. Verificación: `npm run test:physical-adapter:all`.
 
