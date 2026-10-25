@@ -47,4 +47,29 @@ function verifySnapshot(hotel, rq, quote) {
   }
   return out;
 }
-module.exports = { verifySnapshot, SNAPSHOT_VERSION, normLocalBands };
+
+/**
+ * Suplemento PA8 (dictamen Curator 9e43b48): integridad del paquete aplicable a una CONSULTA (DTO distinto de PRICE_REFERENCE) cuando hay snapshot ACTUAL de forma válida.
+ * Separada de verifySnapshot: no usa dto.selection ni compara datos de perfil/capacidad del hotel (campos exclusivos de la preparación de precio).
+ * Política conservada: snapshot ausente, de contrato antiguo o de forma no válida ⇒ sin cambios respecto de v2.0.5@f205a7e7 (la consulta no se rechaza por esto).
+ * Acredita CONSISTENCIA del paquete, no autenticidad. Una huella recalculada por quien altera el paquete no es una firma.
+ */
+function verifyConsultIntegrity(rq, quote) {
+  const out = { fatal: null };
+  const ev = V.plainObject(quote.context_evidence) ? quote.context_evidence : null; const sn = ev && ev.evaluation_snapshot;
+  if (!V.plainObject(sn) || sn.snapshot_version !== SNAPSHOT_VERSION) return out;
+  const keys = ['snapshot_version', 'request_id', 'request_digest', 'dto_digest', 'dto_fingerprint', 'internal_view_digest', 'deposit_policy_digest', 'fx_digest', 'profile', 'profile_digest'];
+  if (V.closed(sn, keys, keys) !== null) return out;
+  if (![sn.request_digest, sn.dto_digest, sn.internal_view_digest, sn.deposit_policy_digest, sn.profile_digest].every((h) => HEX.test(h)) || !(sn.fx_digest === null || HEX.test(sn.fx_digest))) return out;
+  if (sn.request_id !== rq.request_id) { out.fatal = 'SNAPSHOT_REQUEST_ID_MISMATCH'; return out; }
+  if (sn.request_digest !== digest(requestCanonical(rq))) { out.fatal = 'SNAPSHOT_REQUEST_DIGEST_MISMATCH'; return out; }
+  if (sn.dto_digest !== digest(quote.public_dto)) { out.fatal = 'SNAPSHOT_DTO_DIGEST_MISMATCH'; return out; }
+  const fp = quote.public_dto.fingerprint === undefined ? null : quote.public_dto.fingerprint; // la consulta no trae fingerprint de precio
+  if (sn.dto_fingerprint !== fp) { out.fatal = 'SNAPSHOT_FINGERPRINT_MISMATCH'; return out; }
+  if (quote.internal_view !== undefined && quote.internal_view !== null && sn.internal_view_digest !== digest(quote.internal_view)) { out.fatal = 'SNAPSHOT_INTERNAL_VIEW_MISMATCH'; return out; }
+  if (ev.deposit_policy !== null && ev.deposit_policy !== undefined && sn.deposit_policy_digest !== digest(ev.deposit_policy)) { out.fatal = 'SNAPSHOT_DEPOSIT_MISMATCH'; return out; }
+  if ((ev.fx === null || ev.fx === undefined) ? sn.fx_digest !== null : sn.fx_digest !== digest(ev.fx)) { out.fatal = 'SNAPSHOT_FX_MISMATCH'; return out; }
+  if (!V.plainObject(sn.profile) || sn.profile_digest !== digest(sn.profile)) { out.fatal = 'SNAPSHOT_PROFILE_DIGEST_MISMATCH'; return out; }
+  return out;
+}
+module.exports = { verifySnapshot, verifyConsultIntegrity, SNAPSHOT_VERSION, normLocalBands };

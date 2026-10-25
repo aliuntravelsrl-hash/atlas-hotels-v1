@@ -6,7 +6,7 @@ const { STATES, FX, OCCUPANCY_BY_ADULTS, CHILD_RULE_KINDS, CURRENCIES } = requir
 const V = require('./validators');
 const C = require('./contracts');
 const CAT = require('./catalog');
-const { verifySnapshot } = require('./snapshot');
+const { verifySnapshot, verifyConsultIntegrity } = require('./snapshot');
 
 const reject = (code) => ({ verdict: 'RECHAZADO', reasons: [code], applicable: [], not_applicable: [] });
 
@@ -87,7 +87,8 @@ function evaluatePriceReadiness(hotel, rq, quote, ctx) {
   const evidence = V.plainObject(quote.context_evidence) ? quote.context_evidence : null;
   const bad = bind(rq, dto, view, evidence); if (bad) return reject(bad);
   const reasons = []; const applicable = []; const notApplicable = []; const room = rq.rooms[0];
-  if (dto.status !== 'PRICE_REFERENCE') { // motivos externos: solo del catálogo local; lo desconocido es genérico y su detalle queda interno
+  if (dto.status !== 'PRICE_REFERENCE') { const ci = verifyConsultIntegrity(rq, quote); if (ci.fatal) return reject(ci.fatal); // PA8: huellas del paquete de la consulta (snapshot actual y válido) antes de proyectar la vista interna
+    // motivos externos: solo del catálogo local; lo desconocido es genérico y su detalle queda interno
     const known = CAT.has(CAT.REASONS, dto.reason);
     return { verdict: 'CONSULTAR', reasons: [known ? 'CORE1_' + dto.reason : 'CORE1_REASON_UNRECOGNIZED'], applicable, not_applicable: notApplicable, ...(known ? {} : { diagnostics: { unrecognized_core1_reason: String(dto.reason).slice(0, 60) } }) };
   }

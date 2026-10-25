@@ -114,3 +114,6 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Versión nueva:** `kernel-v2.0.5/` (rama `atlas-tech/core1-kernel-v2.0.5-provider-coherence`, base main `9f1a543`); `kernel-v2.0.4` y demás componentes históricos intactos.
 * **Corrección:** R1–R4 (coherencia base ↔ estado ↔ provider_amount ↔ subtotal ↔ DTO) con código de rechazo existente. Evidencia PA1–PA10 en el informe de Office. Sin SQL, Supabase, n8n, apps, `audit:live`, producción ni adopción.
 
+## 2026-10-25 — ATLAS-TECH (AP-03): suplemento PA8 — integridad de paquete en consultas, kernel v2.0.5-candidate (PR #12, offline, NO desplegado)
+* Commits adicionales sobre `f205a7e7` (historia conservada); componentes históricos intactos. `verifyConsultIntegrity` separada de `verifySnapshot`; política de snapshot ausente/antiguo/malformado en consulta conservada (decisión abierta). Evidencia en el suplemento de Office.
+

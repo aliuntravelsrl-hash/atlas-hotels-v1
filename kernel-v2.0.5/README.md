@@ -9,8 +9,10 @@ ATLAS-TECH (AP-03), 2026-10-24. Revisión candidata de `kernel-v2.0.4/` (integra
 - **R4** toda contradicción ⇒ B RECHAZADO con el código existente `INTERNAL_VIEW_SHAPE_INVALID`, sin total, preparación completa ni proyección interna; sin interpolar valores; sin códigos nuevos.
 ## Ubicación y orden de los gates
 R1/R2 viven en `validateInternalView` (se ejecuta para TODOS los DTO, incluidas las consultas, antes de la salida temprana de `CONSULT` y antes de la proyección interna) y preceden a la integridad del paquete (igual que el vocabulario de v2.0.4). R3 va tras la verificación de integridad (como A5): un paquete coherente con huella obsoleta da `SNAPSHOT_INTERNAL_VIEW_MISMATCH`; con huella correcta, `INTERNAL_VIEW_SHAPE_INVALID`. Las consultas sin snapshot conservan su política vigente; las reglas se aplican a los campos presentes sin afirmar autenticidad.
+## Suplemento PA8 — integridad del paquete en consultas (dictamen Curator 9e43b48)
+Una consulta (DTO distinto de PRICE_REFERENCE) con snapshot **actual y de forma válida** ahora verifica las huellas aplicables del paquete (solicitud, DTO, vista interna, depósito, FX, perfil) antes de proyectar la vista interna (`snapshot.js: verifyConsultIntegrity`, separada de `verifySnapshot`; no usa `dto.selection` ni datos de perfil del hotel). Huella incorrecta ⇒ B RECHAZADO con el código existente `SNAPSHOT_*_MISMATCH` (p. ej. `SNAPSHOT_INTERNAL_VIEW_MISMATCH`), sin proyección. **Política conservada y declarada como decisión abierta:** snapshot ausente, de contrato antiguo o de forma no válida en una consulta se trata como antes (equivale a ausente); la consulta no se rechaza por ello, aunque R1/R2 siguen cerrando las contradicciones semánticas. Una huella recalculada por quien altera el paquete no es una firma: coherencia local, no autenticidad.
 ## Pruebas
-- `npm run test:kernel205` — 116 (88 de v2.0.3 + E01…E13 + A5R… + PA1…PA10).
+- `npm run test:kernel205` — 122 (88 de v2.0.3 + E01…E13 + A5R… + PA1…PA10 + suplemento PA8s1–s5).
 - `npm run test:kernel205:faults` — mutaciones del kernel + control + propagación; equivalentes declarados, no contados como detectados.
 - `npm run test:kernel205:producer` — 9 de compatibilidad: v2.0.5 inyectado en el productor v1.1 sin editarlo.
 ## Límites
