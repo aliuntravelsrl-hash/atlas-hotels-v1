@@ -1,0 +1,31 @@
+# HOTEL-INTEGRITY v2.0.6-candidate — MODELO/SIMULACIÓN OFFLINE; NO DESPLEGADO; NO ADOPTADO
+ATLAS-TECH (AP-03), 2026-10-25. Revisión candidata de `kernel-v2.0.5/` (integrado en main aa2ba4d, **intacto**). Origen: MANDATE-CORE1-CONSULT-SNAPSHOT-POLICY-20261025 (Office fd6dbde) y PROPOSAL-CORE1-CONSULT-SNAPSHOT-POLICY-20261025, alternativa A.
+ATLAS-TECH (AP-03), 2026-10-24. Revisión candidata de `kernel-v2.0.4/` (integrado en main 9f1a543, **intacto**). Origen: MANDATE-CORE1-PROVIDER-AMOUNT-COHERENCE-20261024 y PROPOSAL-CORE1-PROVIDER-AMOUNT-COHERENCE-20261024 (Office 0c05ced). Kernel v1 sigue por defecto (`package.json` main = `kernel/index.js`). Productores v1/v1.1, `core1-price` y sonda histórica sin cambios.
+## Política de snapshot en consultas (alternativa A) — delta autorizado vs v2.0.5
+Para un DTO de consulta (distinto de PRICE_REFERENCE) ya admitido por el contrato:
+| Situación | Resultado v2.0.6 | v2.0.5 |
+|---|---|---|
+| Snapshot realmente ausente (contexto omitido/null, o sin la propiedad propia `evaluation_snapshot`) | `CONSULTAR` básico + motivo legítimo + `EVALUATION_SNAPSHOT_ABSENT`; `internal=null` para todo actor; sin importe interno, total ni preparación | `CONSULTAR` con proyección interna (**cambio deliberado**) |
+| `EVAL-SNAPSHOT-v1` presentado | `RECHAZADO EVALUATION_SNAPSHOT_CONTRACT_OUTDATED` | equivalía a ausente |
+| Versión desconocida; snapshot null/undefined propio/tipo erróneo/incompleto/clave extra/digest mal formado; contexto mal tipado | `RECHAZADO SNAPSHOT_SHAPE_INVALID` (sin interpolar el valor recibido) | equivalía a ausente |
+| Actual, forma válida, huella incorrecta | `RECHAZADO SNAPSHOT_*_MISMATCH` | igual |
+| Actual y consistente | `CONSULTAR`; proyección interna solo por política de actor y R1/R2 | igual |
+No se exige `dto.selection`, precio ni comparación de perfil local en una consulta. R1/R2 se mantienen sin snapshot. PRICE_REFERENCE, A5 y R3 sin cambios. Sin códigos nuevos (`EVALUATION_SNAPSHOT_ABSENT` ya existía). Consistencia de huellas ≠ autenticidad. Productor v1.1: solo toma la proyección interna de `result.internal`; no reconstruye importes suprimidos (CS9, `I10`).
+## Semántica (importante)
+`ACCREDITED` significa solo que las fuentes usadas declaran NET_PROVIDER y que el importe interno se presenta como importe del proveedor. NO acredita precio cliente, autoridad comercial, autenticidad ni identidad. Una referencia cliente legítima usa CLIENT_FINAL y `NOT_ACCREDITED_CLIENT_FINAL`. `provider_amount` se compara con `source_subtotal` (misma moneda de fuente), nunca con el total público. Las etiquetas `label`/`accredited_by` se validan por forma, no son prueba de autoridad.
+## Reglas (sobre v2.0.4)
+- **R1** `validateInternalView`: `source_basis` cerrado `{status, bases}`; `status` ∈ {CLIENT_FINAL, NET_PROVIDER, MIXED, UNKNOWN, NOT_EVALUATED}; `bases` cadenas únicas con la forma del estado (CLIENT_FINAL=[CLIENT_FINAL], NET_PROVIDER=[NET_PROVIDER], NOT_EVALUATED=[], MIXED≥2, UNKNOWN=1 distinta de las dos conocidas).
+- **R2** base → `provider_amount_status` → `provider_amount` → `source_subtotal` (tabla en la propuesta §7): CLIENT_FINAL/MIXED/UNKNOWN exigen `provider_amount` presente y null y, si hay subtotal, su `basis` igual; NET_PROVIDER exige subtotal NET y `provider_amount` objeto cerrado con etiquetas del modelo e importe/moneda idénticos al subtotal; NOT_EVALUATED exige `provider_amount` y subtotal presentes y null.
+- **R3** `priceReadiness`: con vista presente y DTO PRICE_REFERENCE, además del cierre A5 (COMPLETE) se exige base CLIENT_FINAL, estado NOT_ACCREDITED_CLIENT_FINAL, `provider_amount`=null y subtotal presente con basis CLIENT_FINAL. No basta para LISTO: permanecen todos los gates previos.
+- **R4** toda contradicción ⇒ B RECHAZADO con el código existente `INTERNAL_VIEW_SHAPE_INVALID`, sin total, preparación completa ni proyección interna; sin interpolar valores; sin códigos nuevos.
+## Ubicación y orden de los gates
+R1/R2 viven en `validateInternalView` (se ejecuta para TODOS los DTO, incluidas las consultas, antes de la salida temprana de `CONSULT` y antes de la proyección interna) y preceden a la integridad del paquete (igual que el vocabulario de v2.0.4). R3 va tras la verificación de integridad (como A5): un paquete coherente con huella obsoleta da `SNAPSHOT_INTERNAL_VIEW_MISMATCH`; con huella correcta, `INTERNAL_VIEW_SHAPE_INVALID`. Las consultas sin snapshot conservan su política vigente; las reglas se aplican a los campos presentes sin afirmar autenticidad.
+## Suplemento PA8 — integridad del paquete en consultas (dictamen Curator 9e43b48)
+Una consulta (DTO distinto de PRICE_REFERENCE) con snapshot **actual y de forma válida** ahora verifica las huellas aplicables del paquete (solicitud, DTO, vista interna, depósito, FX, perfil) antes de proyectar la vista interna (`snapshot.js: verifyConsultIntegrity`, separada de `verifySnapshot`; no usa `dto.selection` ni datos de perfil del hotel). Huella incorrecta ⇒ B RECHAZADO con el código existente `SNAPSHOT_*_MISMATCH` (p. ej. `SNAPSHOT_INTERNAL_VIEW_MISMATCH`), sin proyección. **Política conservada y declarada como decisión abierta:** snapshot ausente, de contrato antiguo o de forma no válida en una consulta se trata como antes (equivale a ausente); la consulta no se rechaza por ello, aunque R1/R2 siguen cerrando las contradicciones semánticas. Una huella recalculada por quien altera el paquete no es una firma: coherencia local, no autenticidad.
+## Pruebas
+- `npm run test:kernel206` — 132 (122 heredadas con PA8b/PA8s5 actualizadas deliberadamente + CS1–CS8, CS11, CS12).
+- `npm run test:kernel206:faults` — 109 mutaciones (23 específicas de la política) del kernel + control + propagación; equivalentes declarados, no contados como detectados.
+- `npm run test:kernel206:producer` — 10 de compatibilidad (I10 = CS9): v2.0.6 inyectado en el productor v1.1 sin editarlo.
+## Límites
+Consistencia de campos del modelo `.py.inert`; motor real UNK. No verifica trazabilidad física, autenticidad ni autoridad (traceability y price_basis reales fuera de alcance). Sin matriz universal.
+- `npm run test:kernel206:beforeafter` — 35 evaluaciones (5 consultas × 7 variantes de snapshot), 30 con cambio exactamente igual al autorizado.
