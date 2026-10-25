@@ -1,0 +1,523 @@
+{
+  "id": "CORE1-PHYSICAL-PORT-MAPPING-v1-20261025",
+  "status": "DESIGN_CANDIDATE_NOT_IMPLEMENTED",
+  "office_base": "aaa2716d28a71eb3988a9437d77c331124ed9b23",
+  "vault_commit": "bcca57326da7f2eb9a3af0dcdb69d2d6d4cf21ab",
+  "catalog_evidence": "evidence/CORE1-LIVE-CATALOG-READONLY-20261025.json",
+  "catalog_observed_at_utc": "2026-10-25T22:15:42Z..2026-10-25T22:16:50Z",
+  "states_are_internal_not_public_codes": true,
+  "public_failure_semantics": "Fallbacks reuse existing catalogs; when failure is at a port boundary, emit the supported CONTEXT_* wrapper, not arbitrary mapping IDs or diagnostics.",
+  "entries": [
+    {
+      "id": "M01",
+      "port": "selection",
+      "field": "hotels[hotel_ref].hotel_id",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "hotels_master",
+          "column": "id",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "hotels_master",
+          "column": "slug",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Resolver referencia exacta por registro autorizado; no igualar automáticamente hotel_ref a slug/id.",
+      "missing": "Registro de referencias/versiones y autoridad.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M02",
+      "port": "selection",
+      "field": "provider_plans[provider_plan_ref].provider_id",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "Exigir pertenencia hotel-proveedor-plan acreditada.",
+      "missing": "Plan/código/proveedor y revisión.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M03",
+      "port": "selection",
+      "field": "rooms[room_ref].room_type_id",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "id",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "room_type",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "type",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "No usar nombre/tipo genérico como código comercial proveedor.",
+      "missing": "Identidad tipo-categoría-proveedor y revisión.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M04",
+      "port": "selection",
+      "field": "rooms[room_ref].room_row_hotel_id",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "hotel_id",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Comparar con hotel resuelto; FK estructural acreditada.",
+      "missing": "Selección exacta y revisión del mapa.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M05",
+      "port": "selection",
+      "field": "rooms[room_ref].map_hotel_id",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "Comparar con hotel de rooms; no fabricar mapa.",
+      "missing": "Registro autorizado del mapa con versión.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M06",
+      "port": "selection",
+      "field": "rooms[room_ref].product",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "Exigir clasificación Core1 expresa; no deducir por forma o tabla.",
+      "missing": "Autoridad/clasificación de producto.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M07",
+      "port": "rates",
+      "field": "rates[].id",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "rates",
+          "column": "id",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Identidad física legacy; no basta como identidad de revisión.",
+      "missing": "Modelo de fuente elegida y revisiones.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M08",
+      "port": "rates",
+      "field": "rates[].revision",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "No fabricar revision=1 ni usar hash de mutable como prueba de inmutabilidad.",
+      "missing": "Escritor, revisión retenida y control de cambios.",
+      "public_failure": "CONTEXT_REVISION_MISSING",
+      "production_ready": false
+    },
+    {
+      "id": "M09",
+      "port": "rates",
+      "field": "rates[].room_type_id/hotel_id/provider_id",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "rates",
+          "column": "room_id",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "hotel_id",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Join prueba habitación-hotel, no proveedor/tipo/plan.",
+      "missing": "Cotejo identidad comercial por revisión.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M10",
+      "port": "rates",
+      "field": "rates[].stay_from/stay_until_exclusive",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "rates",
+          "column": "valid_from",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "rates",
+          "column": "valid_to",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Conservar convención de extremos; no sumar día sin prueba.",
+      "missing": "Semántica documentada del rango.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M11",
+      "port": "rates",
+      "field": "rates[].unit/price_basis",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "No inferir unidad por nombre adult_rate/dbl_rate ni source=MANUAL.",
+      "missing": "Unidad y base del documento.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M12",
+      "port": "rates",
+      "field": "rates[].currency",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "rates",
+          "column": "currency",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Valor requiere validación y documento; defaultUSD no es evidencia.",
+      "missing": "Moneda fuente validada.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M13",
+      "port": "rates",
+      "field": "rates[].received_at",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "rates",
+          "column": "created_at",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "created_at solo candidato: no homologar a recepción por revisión.",
+      "missing": "E1–E7; reloj e importación histórica.",
+      "public_failure": "RECEIVED_AT_UNPROVEN",
+      "production_ready": false
+    },
+    {
+      "id": "M14",
+      "port": "rates",
+      "field": "received_at_evidence[id]",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "PROVEN solo tras evidencia; nunca etiqueta para superar gate.",
+      "missing": "Evidencia de recepción ligada a revisión.",
+      "public_failure": "RECEIVED_AT_UNPROVEN",
+      "production_ready": false
+    },
+    {
+      "id": "M15",
+      "port": "rates",
+      "field": "source_document/verification_status",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "rates.source es procedencia genérica, no documento ni revisión humana.",
+      "missing": "Documento/version/hash y verificación acreditada.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M16",
+      "port": "rates",
+      "field": "rates[].age_policy",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "room_occupancy_rules",
+          "column": "child_min_age",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "room_occupancy_rules",
+          "column": "child_max_age",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "room_occupancy_rules",
+          "column": "infant_max_age",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "room_occupancy_rules",
+          "column": "teen_max_age",
+          "evidence_query": "Q5"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Rangos no contienen modo/importes ni adult_from_age; no fabricar FREE/FIXED/PERCENT.",
+      "missing": "Regla completa por documento/perfil.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M17",
+      "port": "rates",
+      "field": "rates[].capacity",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "room_occupancy_rules",
+          "column": "max_adults",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "room_occupancy_rules",
+          "column": "max_children",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "room_occupancy_rules",
+          "column": "max_occupancy",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "capacity_adults",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "capacity_kids",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "capacity_children",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "rooms",
+          "column": "max_occupancy",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "No elegir entre fuentes ni sumar máximos parciales; rooms.max_occupancy es text.",
+      "missing": "Precedencia/versión/capacidad oficial; pertenencia hotel.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M18",
+      "port": "profile",
+      "field": "hotel",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "hotels_master",
+          "column": "id",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "hotel_profiles",
+          "column": "hotel_id",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "hotel_profiles",
+          "column": "hotel_slug",
+          "evidence_query": "Q5"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Reutilizar contenido solo tras adaptación valor-origen-versión al kernel.",
+      "missing": "Forma y evidencia de cada propiedad.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M19",
+      "port": "profile",
+      "field": "profile_version",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "updated_at mutable no es versión inmutable.",
+      "missing": "Fuente de revisión autorizada.",
+      "public_failure": "CONTEXT_REVISION_MISSING",
+      "production_ready": false
+    },
+    {
+      "id": "M20",
+      "port": "policy",
+      "field": "deposit_policy",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "hotel_profiles",
+          "column": "politica_deposito",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "hotel_policies",
+          "column": "content",
+          "evidence_query": "Q1"
+        },
+        {
+          "schema": "public",
+          "relation": "hotel_policies",
+          "column": "policy_type",
+          "evidence_query": "Q1"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Texto/default30% no se convierte por parser o selección arbitraria en política autorizada.",
+      "missing": "Política estructurada con autoridad/version.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M21",
+      "port": "policy",
+      "field": "accepted_payment_currencies/quote_ttl_minutes/review_notice_days",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "No crear defaults de negocio para satisfacer SHAPES.",
+      "missing": "Fuente/version/autoridad por parámetro.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M22",
+      "port": "policy",
+      "field": "fx_approvals/fx_governed/fx_authorities",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "Exigir FX solo en caso que convierte; sin conversión arrays/objetos vacíos requieren política expresa de no uso.",
+      "missing": "Fuente FX gobernada FIN-ID-001 cuando aplica.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M23",
+      "port": "revisions",
+      "field": "selection/rates/profile/policy",
+      "sources": [],
+      "state": "NO_ACCREDITED_SOURCE",
+      "rule": "Cuatro revisiones inmutables verificables, y comparación real tras evaluar; no clones comparados contra sí mismos.",
+      "missing": "Materialización/relectura/retención por fuente.",
+      "public_failure": "CONTEXT_REVISION_MISSING",
+      "production_ready": false
+    },
+    {
+      "id": "M24",
+      "port": "support",
+      "field": "room_type_synonyms",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "room_type_synonyms",
+          "column": "canonical_es",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "room_type_synonyms",
+          "column": "canonical_en",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "room_type_synonyms",
+          "column": "synonyms",
+          "evidence_query": "Q5"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Ayuda lingüística solamente; no autoriza mapeo comercial.",
+      "missing": "Códigos del proveedor; alcance hotel/plan.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    },
+    {
+      "id": "M25",
+      "port": "support",
+      "field": "audit_rate_snapshots",
+      "sources": [
+        {
+          "schema": "public",
+          "relation": "_audit_rates_snapshots",
+          "column": "snapshot_at",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "_audit_rates_snapshots",
+          "column": "rates_before",
+          "evidence_query": "Q5"
+        },
+        {
+          "schema": "public",
+          "relation": "_audit_rates_snapshots",
+          "column": "rates_after",
+          "evidence_query": "Q5"
+        }
+      ],
+      "state": "STRUCTURE_VERIFIED_SEMANTICS_PENDING",
+      "rule": "Evidencia de lote candidata, no equivalencia con revisión/recepción individual.",
+      "missing": "Escritores/cobertura/inmutabilidad/retención.",
+      "public_failure": "CONTEXT_UNAVAILABLE",
+      "production_ready": false
+    }
+  ],
+  "validation": {
+    "cited_source_columns_exist_in_fixed_catalog": true,
+    "entry_count": 25,
+    "production_ready_count": 0,
+    "runtime_tests_executed": false
+  }
+}

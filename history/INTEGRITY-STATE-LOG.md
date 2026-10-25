@@ -121,3 +121,7 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 * **Versión nueva:** `kernel-v2.0.6/` (rama `atlas-tech/core1-kernel-v2.0.6-consult-snapshot-policy`, base main `aa2ba4d`); `kernel-v2.0.5` y demás componentes históricos intactos; kernel v1 sigue por defecto.
 * **Política (alternativa A):** snapshot ausente en consulta ⇒ CONSULTAR básico + `EVALUATION_SNAPSHOT_ABSENT`, sin proyección interna; v1/versión desconocida/malformado ⇒ rechazo existente; huella incorrecta ⇒ `SNAPSHOT_*_MISMATCH`. Cambio deliberado vs v2.0.5 en la rama «ausente». Evidencia CS1–CS12 en el informe de Office. Sin SQL, Supabase, n8n, apps, producción ni adopción.
 
+## 2026-10-25 — ATLAS-TECH (AP-03): adaptador físico de puertos Core 1 v1 — candidato inerte (offline, NO desplegado)
+* **Versión nueva:** `core1-physical-adapter-v1/` (rama `atlas-tech/core1-physical-port-adapter-v1`, base main `bcca573`); productor v1.1, kernel v2.0.x, motor, adaptador v1.1.1 y `core1-price` intactos.
+* Composición 1 (etapa async + evaluación pura + relectura que bloquea el provisional). Los 11 vínculos sin fuente permanecen sin fuente. Evidencia A01–A16 sintética en el informe de Office. Sin SQL, Supabase, n8n, VPS, apps, producción ni adopción.
+
