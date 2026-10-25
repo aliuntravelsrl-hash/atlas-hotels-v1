@@ -117,3 +117,7 @@ Cada vez que se modifique, refine, recalibre o audite una regla, umbral, esquema
 ## 2026-10-25 — ATLAS-TECH (AP-03): suplemento PA8 — integridad de paquete en consultas, kernel v2.0.5-candidate (PR #12, offline, NO desplegado)
 * Commits adicionales sobre `f205a7e7` (historia conservada); componentes históricos intactos. `verifyConsultIntegrity` separada de `verifySnapshot`; política de snapshot ausente/antiguo/malformado en consulta conservada (decisión abierta). Evidencia en el suplemento de Office.
 
+## 2026-10-25 — ATLAS-TECH (AP-03): MANDATE-CORE1-CONSULT-SNAPSHOT-POLICY — kernel v2.0.6-candidate (offline, NO desplegado)
+* **Versión nueva:** `kernel-v2.0.6/` (rama `atlas-tech/core1-kernel-v2.0.6-consult-snapshot-policy`, base main `aa2ba4d`); `kernel-v2.0.5` y demás componentes históricos intactos; kernel v1 sigue por defecto.
+* **Política (alternativa A):** snapshot ausente en consulta ⇒ CONSULTAR básico + `EVALUATION_SNAPSHOT_ABSENT`, sin proyección interna; v1/versión desconocida/malformado ⇒ rechazo existente; huella incorrecta ⇒ `SNAPSHOT_*_MISMATCH`. Cambio deliberado vs v2.0.5 en la rama «ausente». Evidencia CS1–CS12 en el informe de Office. Sin SQL, Supabase, n8n, apps, producción ni adopción.
+
