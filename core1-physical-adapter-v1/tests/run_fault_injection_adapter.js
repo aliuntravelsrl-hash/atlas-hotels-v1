@@ -6,9 +6,13 @@ const root = path.join(__dirname, '..', '..'); const A = 'core1-physical-adapter
 function layout() { const t = fs.mkdtempSync(path.join(os.tmpdir(), 'cpa-fault-')); for (const d of ['core1-physical-adapter-v1', 'core1-producer', 'core1-producer-v1.1', 'core1-price', 'kernel-v2.0.3', 'kernel-v2.0.4', 'kernel-v2.0.5', 'kernel-v2.0.6']) fs.cpSync(path.join(root, d), path.join(t, d), { recursive: true }); fs.cpSync(path.join(root, 'package.json'), path.join(t, 'package.json')); return t; }
 const run = (t) => cp.spawnSync(process.execPath, [path.join(t, 'core1-physical-adapter-v1/tests/run_adapter_tests.js')], { encoding: 'utf8' });
 const MUT = [
-  ['drift: la relectura no bloquea (se evalúa y libera siempre)', A, 'if (same) {', 'if (true) {'],
+  ['PA-R2: la relectura posterior al cálculo se ignora (la deriva ocurrida durante el cálculo no se detecta)', A, 'if (!same) {', 'if (false) {'],
+  ['PA-R2: el gate temporal repite el cálculo pesado en lugar de usar el mismo paquete', A, 'mkProducer(syncRepos(st, st.pinned), rid, clkGate, bridgeCached)', 'mkProducer(syncRepos(st, st.pinned), rid, clkGate, deps.bridge)'],
+  ['PA-R2: la salida de deriva repite el cálculo pesado', A, 'mkProducer(syncRepos(st, blocked), rid, clk, bridgeCached)', 'mkProducer(syncRepos(st, blocked), rid, clk, deps.bridge)'],
+  ['PA-R1/R2: el paquete cacheado se pierde (el gate valida otra cosa)', A, 'rec.q === undefined ? undefined :', 'true ? undefined :'],
+  ['PA-R1/R2: el primer cálculo no registra el paquete', A, 'rec.q = q;', 'rec.q = undefined;'],
+  ['PA-R1/R2: el cálculo original usa otra cotización (no el puente de la dependencia)', A, 'const q = deps.bridge.quote(rq, state); rec.q = q;', 'const q = deps.bridge.quote(rq, state); rec.q = q; deps.bridge.quote(rq, state);'],
   ['PA-R1: la hora de entrega es la hora cacheada (no fresca)', A, 'fresh = deps.clock();', 'fresh = times[0];'],
-  ['PA-R1: se rejuvenece el cálculo (hora fresca también como computed_at)', A, 'return () => (i++ === 0 ? times[0] : fresh);', 'return () => fresh;'],
   ['PA-R1: reloj que lanza se sustituye por la hora cacheada', A, 'catch (e) { fresh = null; }', 'catch (e) { fresh = times[0]; }'],
   ['PA-R1: reloj que lanza se sustituye por una hora válida fija', A, 'catch (e) { fresh = null; }', "catch (e) { fresh = '2026-10-23T14:01:00Z'; }"],
   ['PA-R1: la proyección interna sobrevive a la referencia vencida', A, 'out.public.reasons.some((r) => TIME_CODES.includes(r))', 'false'],
@@ -16,7 +20,7 @@ const MUT = [
   ['drift: la comprobación ignora el puerto de selección', A, "const same = !!cur && PORTS4.every((k) => typeof cur[k] === 'string' && cur[k] === st.pinned[k]);", "const same = !!cur && PORTS4.slice(1).every((k) => typeof cur[k] === 'string' && cur[k] === st.pinned[k]);"],
   ['drift: la comprobación ignora el último puerto (política)', A, "const same = !!cur && PORTS4.every((k) => typeof cur[k] === 'string' && cur[k] === st.pinned[k]);", "const same = !!cur && PORTS4.slice(0, 3).every((k) => typeof cur[k] === 'string' && cur[k] === st.pinned[k]);"],
   ['drift: relectura fallida cuenta como «sin cambio»', A, 'const same = !!cur &&', 'const same = !cur ||'],
-  ['drift: tras relectura distinta se evalúa con la fijación como si coincidiera', A, 'return mkProducer(syncRepos(st, blocked), rid, clk).produce(input);', 'return mkProducer(syncRepos(st, st.pinned), rid, clk).produce(input);'],
+  ['drift: tras relectura distinta se evalúa con la fijación como si coincidiera', A, 'return mkProducer(syncRepos(st, blocked), rid, clk, bridgeCached).produce(input);', 'return mkProducer(syncRepos(st, st.pinned), rid, clk, bridgeCached).produce(input);'],
   ['drift: relectura fallida reutiliza la fijación como actual', A, "cur && typeof cur[k] === 'string' ? cur[k] : null", 'st.pinned[k]'],
   ['rev: no exige inmutabilidad', A, ' && p.immutable === true', ''],
   ['rev: no exige retención', A, ' && p.retained === true', ''],
@@ -52,6 +56,7 @@ const MUT = [
 ];
 // Equivalentes: el productor v1.1 ya produce la misma salida observable (no se cuentan como detectados).
 const EQUIV = [
+  ['PA-R1: primera hora = fresca (equivalente: computed_at/valid_until/snapshot salen del paquete capturado, que el gate no recalcula; conservación por construcción)', A, 'return () => (i++ === 0 ? times[0] : fresh);', 'return () => fresh;'],
   ['PA-R1: retroceso del reloj no figura entre los códigos temporales (equivalente: el kernel ya RECHAZA sin proyección; defensa en profundidad)', A, "['QUOTE_EXPIRED', 'NOW_INVALID', 'QUOTE_FROM_FUTURE']", "['QUOTE_EXPIRED', 'NOW_INVALID']"],
   ['PA-R1: hora inválida no figura entre los códigos temporales (equivalente: el kernel ya RECHAZA sin proyección; defensa en profundidad)', A, "['QUOTE_EXPIRED', 'NOW_INVALID', 'QUOTE_FROM_FUTURE']", "['QUOTE_EXPIRED', 'QUOTE_FROM_FUTURE']"],
   ['formato de revisión en el adaptador (el productor v1.1 lo revalida y da el mismo CONTEXT_REVISION_MISSING)', A, 'REV.test(p.revision) &&', ''],
@@ -61,7 +66,7 @@ const EQUIV = [
 ];
 let ok = 0; const total = MUT.length + 2; const fails = [];
 let t = layout(); let r = run(t); fs.rmSync(t, { recursive: true, force: true }); if (r.status === 0) ok++; else fails.push('CONTROL positivo falló: ' + (r.stdout || '').split('\n').filter((l) => /FAIL/.test(l)).slice(0, 2).join(' | '));
-t = layout(); fs.writeFileSync(path.join(t, 'core1-physical-adapter-v1/tests/run_adapter_tests.js'), "console.log('ADAPTADOR 38/38 PASS; failing=[]');process.exit(3);\n"); r = run(t); fs.rmSync(t, { recursive: true, force: true }); if (r.status === 3) ok++; else fails.push('salida del proceso no se propaga');
+t = layout(); fs.writeFileSync(path.join(t, 'core1-physical-adapter-v1/tests/run_adapter_tests.js'), "console.log('ADAPTADOR 41/41 PASS; failing=[]');process.exit(3);\n"); r = run(t); fs.rmSync(t, { recursive: true, force: true }); if (r.status === 3) ok++; else fails.push('salida del proceso no se propaga');
 for (const [name, rel, needle, repl] of MUT) {
   t = layout(); const f = path.join(t, rel); const src = fs.readFileSync(f, 'utf8');
   if (!src.includes(needle)) { fails.push(name + ' (objetivo de mutación ausente)'); fs.rmSync(t, { recursive: true, force: true }); continue; }

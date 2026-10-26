@@ -83,7 +83,7 @@ async function mapPolicy(at, R) {
 function createPhysicalPortAdapter(deps) {
   for (const [g, names] of Object.entries(READERS)) for (const n of names) if (!deps.readers || !deps.readers[g] || typeof deps.readers[g][n] !== 'function') throw new Error('DEPENDENCIA_AUSENTE:' + g + '.' + n);
   const R = deps.readers;
-  const mkProducer = (repos, rid, clk) => createProducer({ repos, identity: deps.identity, policy: deps.policy, clock: clk(), newRequestId: () => { if (rid.v === null) rid.v = deps.newRequestId(); return rid.v; }, bridge: deps.bridge, kernel: deps.kernel, assistedChannelAccredited: deps.assistedChannelAccredited === true });
+  const mkProducer = (repos, rid, clk, bridge) => createProducer({ repos, identity: deps.identity, policy: deps.policy, clock: clk(), newRequestId: () => { if (rid.v === null) rid.v = deps.newRequestId(); return rid.v; }, bridge: bridge || deps.bridge, kernel: deps.kernel, assistedChannelAccredited: deps.assistedChannelAccredited === true });
   async function stage(sel) {
     const ports = {}; const pin = await call(() => R.revisions.pin(sel));
     const good = (p) => isObj(p) && REV.test(p.revision) && p.immutable === true && p.retained === true && str(p.source_ref);
@@ -104,19 +104,26 @@ function createPhysicalPortAdapter(deps) {
     const first = mkProducer(probe, rid, clk).produce(input);
     if (!sel) return first;                                                  // denegado / solicitud inválida: se devuelve tal cual, SIN ninguna lectura (la autorización precede a toda lectura)
     const st = await stage(sel);
-    if (!st.pinned || !st.rateArgs || PORTS4.some((k) => !st.ports[k] || st.ports[k].ok !== true)) return mkProducer(syncRepos(st, st.pinned || {}), rid, clk).produce(input);   // fallo de puerto: el productor lo traduce por su catálogo cerrado
-    const now = await call(() => R.revisions.current(Object.assign({}, sel, st.rateArgs)));   // ÚLTIMA espera asíncrona antes de liberar
+    // 1) CÁLCULO: una sola ejecución del puente pesado; se captura el paquete (cotización) para validarlo después SIN recalcular. Esta salida jamás se entrega.
+    const rec = { q: undefined, n: 0 }; const bridgeRec = { quote(rq, state) { rec.n++; const q = deps.bridge.quote(rq, state); rec.q = q; return q; } };
+    const bridgeCached = { quote() { return rec.q === undefined ? undefined : JSON.parse(JSON.stringify(rec.q)); } };   // el MISMO paquete, sin trabajo pesado
+    const failedPort = !st.pinned || !st.rateArgs || PORTS4.some((k) => !st.ports[k] || st.ports[k].ok !== true);
+    if (failedPort) return mkProducer(syncRepos(st, st.pinned || {}), rid, clk).produce(input);   // fallo de puerto: el productor lo traduce por su catálogo cerrado
+    mkProducer(syncRepos(st, st.pinned), rid, clk, bridgeRec).produce(input);
+    // 2) RELECTURA asíncrona de la autoridad DESPUÉS del cálculo (ÚLTIMA espera): detecta cambios ocurridos durante el cálculo
+    const now = await call(() => R.revisions.current(Object.assign({}, sel, st.rateArgs)));
     const cur = now.ok && isObj(now.revisions) ? now.revisions : null;
     const same = !!cur && PORTS4.every((k) => typeof cur[k] === 'string' && cur[k] === st.pinned[k]);
-    if (same) {                                                             // PA-R1: la coincidencia de revisión NO conserva la vigencia temporal
-      let fresh = null; try { fresh = deps.clock(); } catch (e) { fresh = null; }   // hora FRESCA, tomada tras la última espera y antes de evaluar/liberar (no la hora cacheada); sin hora acreditada ⇒ null ⇒ el kernel responde NOW_INVALID
-      const clkGate = () => { let i = 0; return () => (i++ === 0 ? times[0] : fresh); };   // 1.ª hora = la original (computed_at/valid_until/snapshot se conservan; NO se rejuvenece); 2.ª = hora fresca como «ahora» del kernel
-      const out = mkProducer(syncRepos(st, st.pinned), rid, clkGate).produce(input);
-      if (out && out.internal !== undefined && out.public && Array.isArray(out.public.reasons) && out.public.reasons.some((r) => TIME_CODES.includes(r))) { const { internal, ...rest } = out; return rest; }   // vigencia/hora no acreditadas: tampoco proyección interna sobre una referencia vencida
-      return out;   // evaluación PURA síncrona sin esperas posteriores: vencimiento, hora inválida o retroceso los decide el kernel congelado con sus códigos existentes; el productor no libera proyección interna ni total si no es LISTO
+    if (!same) {                                                            // relectura fallida o distinta ⇒ no se acredita; el cálculo se DESCARTA (deriva del propio productor, sin total, preparación ni proyección)
+      const blocked = Object.fromEntries(PORTS4.map((k) => [k, cur && typeof cur[k] === 'string' ? cur[k] : null]));
+      return mkProducer(syncRepos(st, blocked), rid, clk, bridgeCached).produce(input);
     }
-    const blocked = Object.fromEntries(PORTS4.map((k) => [k, cur && typeof cur[k] === 'string' ? cur[k] : null]));   // relectura fallida o distinta ⇒ no se acredita; el provisional se DESCARTA
-    return mkProducer(syncRepos(st, blocked), rid, clk).produce(input);
+    // 3) VALIDACIÓN TEMPORAL del MISMO paquete: hora FRESCA tomada tras la relectura y consumida de inmediato por el kernel congelado (sin puente pesado de por medio). Sin hora acreditada ⇒ null ⇒ NOW_INVALID.
+    let fresh = null; try { fresh = deps.clock(); } catch (e) { fresh = null; }
+    const clkGate = () => { let i = 0; return () => (i++ === 0 ? times[0] : fresh); };   // 1.ª hora = la original (computed_at/valid_until/snapshot se conservan; NO se rejuvenece); 2.ª = hora fresca como «ahora» del kernel
+    const out = mkProducer(syncRepos(st, st.pinned), rid, clkGate, bridgeCached).produce(input);   // vencimiento exacto o posterior / hora inválida / retroceso: códigos EXISTENTES del kernel congelado
+    if (out && out.internal !== undefined && out.public && Array.isArray(out.public.reasons) && out.public.reasons.some((r) => TIME_CODES.includes(r))) { const { internal, ...rest } = out; return rest; }   // tampoco proyección interna sobre una referencia vencida
+    return out;
   }
   return Object.freeze({ produce, version: ADAPTER_VERSION });
 }

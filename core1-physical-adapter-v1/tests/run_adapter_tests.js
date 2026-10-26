@@ -7,7 +7,7 @@ const { createPhysicalPortAdapter } = require('../adapter'); const { buildWorld,
 const { createProducer } = require('../../core1-producer-v1.1/producer'); const { createBridge } = require('../../core1-producer-v1.1/bridge/bridge'); const { createPolicy } = require('../../core1-producer-v1.1/policy');
 const { createSyntheticRepos } = require('../../core1-producer-v1.1/synthetic/repos'); const F = require('../../core1-producer-v1.1/synthetic/fixtures'); const PUB = require('../../core1-producer-v1.1/publicCodes');
 const K3 = require('../../kernel-v2.0.3'); const K6 = require('../../kernel-v2.0.6');
-const EXPECTED = 38; const results = {}; const pending = []; const realBridge = createBridge();
+const EXPECTED = 41; const results = {}; const pending = []; const realBridge = createBridge();
 const t = (n, fn) => { const p = (async () => { try { await fn(); results[n] = 'PASS'; } catch (e) { results[n] = 'FAIL ' + String(e.message).split('\n')[0].slice(0, 300); } })(); pending.push(p); };
 const IDS = { operator: { id: 'u-op', kind: 'USER', verified: true, roles: ['OPERATOR'], scopes: ['core1.quote.internal'] }, plain: { id: 'u-1', kind: 'USER', verified: true, roles: ['CUSTOMER'], scopes: [] }, agent: { id: 's-ai', kind: 'SERVICE', verified: true, roles: [], scopes: ['core1.quote.agent'] }, unverified: { id: 'u-f', kind: 'USER', verified: false, roles: ['OPERATOR'], scopes: ['core1.quote.internal'] } };
 const identity = { verify: (c) => (typeof c === 'string' && IDS[c]) || null };
@@ -178,6 +178,24 @@ t('R07_pa_r1_politica_de_consulta_v2_0_6_y_autorizacion_previa_no_cambian', asyn
   for (const [view, cred] of [['PUBLIC'], ['INTERNAL', 'operator'], ['INTERNAL', 'agent']]) { const a = await run('net_consult', { kernel: K6, clock: clockAt('2026-10-23T14:10:00Z') }, view, cred); const b = await run('net_consult', { kernel: K6, clock: clockAt('2026-10-23T16:00:00Z') }, view, cred); const c = await run('net_consult', { kernel: K6 }, view, cred);
     assert.deepStrictEqual({ p: a.public, i: a.internal }, { p: c.public, i: c.internal }); assert.strictEqual(b.public.reference_total, undefined); assert.strictEqual(b.public.enablement.proposal, 'NO_PREPARADA'); }
   const den = await run('base', { clock: clockAt('2026-10-23T16:00:00Z') }, 'INTERNAL', 'plain'); assert.strictEqual(den.public.status, 'DENEGADO'); assert.deepStrictEqual(den._W.calls.filter((x) => x !== 'clock'), []); });
+// ---- PA-R1 residual + PA-R2 (dictamen OBS-230): cálculo → relectura → gate temporal sobre el MISMO paquete. El orden real de eventos se registra en W.calls.
+const crossing = (delivery, extra) => { const h = {}; return { clock: (W) => { h.W = W; let now = T0; W.setNow = (v) => { now = v; }; return () => { W.calls.push('clock'); return now; }; },
+  bridge: { quote(rq, st) { const q = realBridge.quote(rq, st); h.W.calls.push('bridge.end'); if (delivery) h.W.setNow(delivery); if (extra) extra(h.W); return q; } } }; };
+const ord = (c, a, b) => { assert(c.indexOf(a) >= 0 && c.lastIndexOf(b) >= 0 && c.indexOf(a) < c.lastIndexOf(b), a + '<' + b + ' ' + JSON.stringify(c)); };
+t('R08_pa_r1_residual_el_vencimiento_cruzado_DURANTE_el_puente_no_libera_en_ningun_kernel_ni_vista', async () => {
+  for (const [kn, kernel] of [['2.0.3', K3], ['2.0.6', K6]]) for (const [view, cred] of [['PUBLIC'], ['INTERNAL', 'operator'], ['INTERNAL', 'agent']]) {
+    for (const d of ['2026-10-23T14:30:00Z', '2026-10-23T16:00:00Z']) { const c = crossing(d); const o = await run('base', { kernel, clock: c.clock, bridge: c.bridge }, view, cred); notReady(o); has(o, 'QUOTE_EXPIRED'); assert(CLOSED(o), kn + d); assert.strictEqual(o.public.reference_total, undefined); assert.strictEqual(o.public.enablement.proposal, 'NO_PREPARADA'); assert.strictEqual(o.internal, undefined); assert(!wire(o).includes('200.00'), kn + d + view); assert.strictEqual(o._W.calls.filter((x) => x === 'bridge.end').length, 1); }
+    const g = crossing('2026-10-23T14:29:59Z'); const ok = await run('base', { kernel, clock: g.clock, bridge: g.bridge }, view, cred); ready(ok, '200.00'); assert.strictEqual(ok.public.computed_at, T0); assert.strictEqual(ok.public.valid_until, '2026-10-23T14:30:00Z'); } });
+t('R09_pa_r2_la_revision_que_cambia_durante_el_calculo_produce_READ_DRIFT_DETECTED_con_reloj_valido', async () => {
+  for (const [kn, kernel] of [['2.0.3', K3], ['2.0.6', K6]]) for (const [view, cred] of [['PUBLIC'], ['INTERNAL', 'operator'], ['INTERNAL', 'agent']]) for (const k of ['selection', 'rates', 'profile', 'policy']) {
+    const c = crossing(null, (W) => { W.rev[k] = 'CAMBIO-' + k; }); const o = await run('base', { kernel, clock: c.clock, bridge: c.bridge }, view, cred); notReady(o); has(o, 'READ_DRIFT_DETECTED'); assert.strictEqual(o.public.reference_total, undefined); assert.strictEqual(o.internal, undefined); assert(!wire(o).includes('200.00'), kn + view + k); assert.strictEqual(o._W.calls.filter((x) => x === 'bridge.end').length, 1); }
+  const both = crossing('2026-10-23T16:00:00Z', (W) => { W.rev.rates = 'RAT-X'; }); const b = await run('base', { clock: both.clock, bridge: both.bridge }, 'INTERNAL', 'operator'); notReady(b); assert(CLOSED(b)); assert.strictEqual(b.internal, undefined);
+  const fail = crossing(null, (W) => { W.currentFail = 'UNAVAILABLE'; }); const f = await run('base', { clock: fail.clock, bridge: fail.bridge }); notReady(f); has(f, 'READ_DRIFT_DETECTED'); });
+t('R10_orden_real_de_eventos_y_conservacion_del_paquete_calculo_relectura_gate_sin_recalcular', async () => {
+  const c = crossing('2026-10-23T14:20:00Z'); const o = await run('base', { clock: c.clock, bridge: c.bridge }, 'INTERNAL', 'operator'); ready(o, '200.00'); const k = o._W.calls;
+  ord(k, 'rev.pin', 'bridge.end'); ord(k, 'bridge.end', 'rev.current'); assert(k.lastIndexOf('clock') > k.lastIndexOf('rev.current'), JSON.stringify(k)); assert(k.lastIndexOf('clock') > k.indexOf('bridge.end'));   // el último reloj es posterior al cálculo y a la relectura
+  assert.strictEqual(k.filter((x) => x === 'bridge.end').length, 1); assert.strictEqual(k.filter((x) => x === 'rev.current').length, 1);   // un solo cálculo pesado y una sola relectura
+  const base = await run('base', { clock: (W) => seq() }); assert.strictEqual(o.public.computed_at, T0); assert.strictEqual(o.public.valid_until, base.public.valid_until); assert.deepStrictEqual(o.public.reference_total, base.public.reference_total); assert.deepStrictEqual(o.public.snapshot_digest, base.public.snapshot_digest); });
 (async () => {
   await Promise.all(pending);
   const names = Object.keys(results).sort(); const bad = names.filter((k) => results[k] !== 'PASS');

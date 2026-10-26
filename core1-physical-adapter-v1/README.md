@@ -11,7 +11,7 @@ Compone **sin editarlos** el productor v1.1 (`core1-producer-v1.1/`), Core 1 v2.
 Sin revisión inmutable y retenida ⇒ `CONTEXT_REVISION_MISSING`. `rates.created_at` nunca es `received_at`. `politica_deposito`/`hotel_policies.content` no se parsean. Capacidad divergente exige precedencia acreditada. Convención de fin de rango (`valid_to`) exige declaración acreditada. Vencimiento/hora inválida/retroceso ⇒ QUOTE_EXPIRED/NOW_INVALID/QUOTE_FROM_FUTURE (códigos existentes del kernel), sin total, preparación ni proyección. Errores solo por el catálogo cerrado existente (CONTEXT_*, READ_DRIFT_DETECTED, RECEIVED_AT_UNPROVEN, USED_ROWS_UNVERIFIED); los identificadores Mxx y estados de la matriz nunca son públicos. Ningún fallo produce LISTO, total, preparación completa ni proyección interna.
 
 ## Pruebas
-* `npm run test:physical-adapter` — 38 (A01–A16, PA-R1 R01–R07 + reconciliación 25/36/11, cobertura, paridad de 11 escenarios × 3 vistas con el productor v1.1, autorización antes de lecturas, sin importaciones de BD/red, congelados por manifiesto).
+* `npm run test:physical-adapter` — 41 (A01–A16, PA-R1/PA-R2 R01–R10 + reconciliación 25/36/11, cobertura, paridad de 11 escenarios × 3 vistas con el productor v1.1, autorización antes de lecturas, sin importaciones de BD/red, congelados por manifiesto).
 * `npm run test:physical-adapter:faults` — mutaciones del adaptador + control positivo + propagación de salida; equivalentes declarados.
 * `docs/EXECUTABILITY.md`: qué es NO EJECUTABLE por fuente real ausente. Evidencia sintética offline ≠ E2E.
 ## Límites
