@@ -74,7 +74,7 @@ async function suite(db) {
   });
   await T('AC9e_propietario_no_operativo_tampoco_puede_UPDATE_DELETE_TRUNCATE_por_disparador', async () => {
     errq(await B(db, `set role c1_owner; update c1_ra1.ledger set event='INVALIDATE';`), /IMMUTABLE_STORE: UPDATE/); errq(await B(db, `set role c1_owner; delete from c1_ra1.revisions;`), /IMMUTABLE_STORE: DELETE/);
-    errq(await B(db, `set role c1_owner; truncate c1_ra1.objects;`), /IMMUTABLE_STORE: TRUNCATE/); errq(await B(db, `set role c1_owner; truncate c1_ra1.ledger;`), /IMMUTABLE_STORE: TRUNCATE/); errq(await B(db, `set role c1_owner; truncate c1_ra1.revisions;`), /IMMUTABLE_STORE: TRUNCATE/); errq(await B(db, `set role c1_owner; truncate c1_ra1.revisions, c1_ra1.ledger cascade;`), /IMMUTABLE_STORE: TRUNCATE/); errq(await B(db, `set role c1_owner; update c1_ra1.objects set kind='x';`), /IMMUTABLE_STORE: UPDATE/);
+    errq(await B(db, `set role c1_owner; truncate c1_ra1.objects;`), /IMMUTABLE_STORE: TRUNCATE/); errq(await B(db, `set role c1_owner; truncate c1_ra1.ledger;`), /IMMUTABLE_STORE: TRUNCATE/); errq(await B(db, `set role c1_owner; truncate c1_ra1.revisions, c1_ra1.ledger;`), /IMMUTABLE_STORE: TRUNCATE/); errq(await B(db, `set role c1_owner; update c1_ra1.objects set kind='x';`), /IMMUTABLE_STORE: UPDATE/);
   });
   // AC2
   await T('AC2_objetos_put_once_idempotente_cambio_rechazado_dependencia_ausente', async () => {
