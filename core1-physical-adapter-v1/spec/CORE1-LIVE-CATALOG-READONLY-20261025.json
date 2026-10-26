@@ -1,0 +1,1840 @@
+{
+  "id": "CORE1-LIVE-CATALOG-READONLY-20261025",
+  "project_id": "oyihiyivdhfxpyiwnmqk",
+  "date": "2026-10-25",
+  "timezone": "America/Santo_Domingo",
+  "scope": "READ_ONLY_METADATA_AND_MIGRATION_NAMES_NO_BUSINESS_ROWS",
+  "authorization": "DG Ok go following OBS226/request; scoped continuation, no mutations",
+  "queries": [
+    {
+      "id": "Q1",
+      "sql": "SELECT statement_timestamp() AS observed_at, current_database() AS database_name,\n(SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'name',c.relname,'kind',c.relkind,'rls',c.relrowsecurity) ORDER BY c.relname) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('hotels_master','rooms','rates','seasons','tariffs_master','seasons_master','hotel_policies','core1_source_documents','core1_room_map','core1_base_rates','core1_fx_approvals')) AS relations,\n(SELECT jsonb_agg(jsonb_build_object('table',table_name,'column',column_name,'type',data_type,'udt',udt_name,'nullable',is_nullable,'default',column_default) ORDER BY table_name,ordinal_position) FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('hotels_master','rooms','rates','seasons','tariffs_master','seasons_master','hotel_policies','core1_source_documents','core1_room_map','core1_base_rates','core1_fx_approvals') AND (table_name<>'hotels_master' OR column_name IN ('id','slug','name','rooms_data','created_at','updated_at'))) AS columns,\n(SELECT jsonb_agg(jsonb_build_object('table',c.relname,'name',k.conname,'kind',k.contype,'definition',pg_catalog.pg_get_constraintdef(k.oid)) ORDER BY c.relname,k.conname) FROM pg_catalog.pg_constraint k JOIN pg_catalog.pg_class c ON c.oid=k.conrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('hotels_master','rooms','rates','seasons','tariffs_master','seasons_master','hotel_policies','core1_source_documents','core1_room_map','core1_base_rates','core1_fx_approvals')) AS constraints;",
+      "result": [
+        {
+          "observed_at": "2026-10-25 22:15:42.906233+00",
+          "database_name": "postgres",
+          "relations": [
+            {
+              "rls": true,
+              "kind": "r",
+              "name": "hotel_policies",
+              "schema": "public"
+            },
+            {
+              "rls": true,
+              "kind": "r",
+              "name": "hotels_master",
+              "schema": "public"
+            },
+            {
+              "rls": true,
+              "kind": "r",
+              "name": "rates",
+              "schema": "public"
+            },
+            {
+              "rls": true,
+              "kind": "r",
+              "name": "rooms",
+              "schema": "public"
+            },
+            {
+              "rls": true,
+              "kind": "r",
+              "name": "seasons",
+              "schema": "public"
+            },
+            {
+              "rls": true,
+              "kind": "r",
+              "name": "seasons_master",
+              "schema": "public"
+            },
+            {
+              "rls": true,
+              "kind": "r",
+              "name": "tariffs_master",
+              "schema": "public"
+            }
+          ],
+          "columns": [
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "hotel_policies",
+              "column": "id",
+              "default": "gen_random_uuid()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "hotel_policies",
+              "column": "hotel_id",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_policies",
+              "column": "policy_type",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_policies",
+              "column": "content",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "vector",
+              "type": "USER-DEFINED",
+              "table": "hotel_policies",
+              "column": "embedding",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "hotel_policies",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "hotel_policies",
+              "column": "updated_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "hotels_master",
+              "column": "id",
+              "default": "gen_random_uuid()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotels_master",
+              "column": "name",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotels_master",
+              "column": "slug",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "hotels_master",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "jsonb",
+              "type": "jsonb",
+              "table": "hotels_master",
+              "column": "rooms_data",
+              "default": "'[]'::jsonb",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "hotels_master",
+              "column": "updated_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "rates",
+              "column": "id",
+              "default": "uuid_generate_v4()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "rates",
+              "column": "room_id",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "rates",
+              "column": "season_id",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "rates",
+              "column": "price_per_night",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rates",
+              "column": "currency",
+              "default": "'USD'::text",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "rates",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "rates",
+              "column": "year",
+              "default": "2026",
+              "nullable": "YES"
+            },
+            {
+              "udt": "float8",
+              "type": "double precision",
+              "table": "rates",
+              "column": "base_price_adult",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "float8",
+              "type": "double precision",
+              "table": "rates",
+              "column": "base_price_child",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "float8",
+              "type": "double precision",
+              "table": "rates",
+              "column": "base_price_infant",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "date",
+              "type": "date",
+              "table": "rates",
+              "column": "valid_from",
+              "default": "'2026-01-01'::date",
+              "nullable": "NO"
+            },
+            {
+              "udt": "date",
+              "type": "date",
+              "table": "rates",
+              "column": "valid_to",
+              "default": "'2026-12-31'::date",
+              "nullable": "NO"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "rates",
+              "column": "adult_rate",
+              "default": "0",
+              "nullable": "NO"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "rates",
+              "column": "child_rate",
+              "default": "0",
+              "nullable": "NO"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "rates",
+              "column": "sgl_rate",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "rates",
+              "column": "dbl_rate",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "rates",
+              "column": "tpl_rate",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "rates",
+              "column": "teen_rate",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rates",
+              "column": "source",
+              "default": "'FIRECRAWL'::text",
+              "nullable": "YES"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "rates",
+              "column": "is_active",
+              "default": "true",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "rooms",
+              "column": "id",
+              "default": "uuid_generate_v4()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "rooms",
+              "column": "hotel_id",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rooms",
+              "column": "name",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "rooms",
+              "column": "capacity_adults",
+              "default": "2",
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "rooms",
+              "column": "capacity_kids",
+              "default": "0",
+              "nullable": "YES"
+            },
+            {
+              "udt": "float8",
+              "type": "double precision",
+              "table": "rooms",
+              "column": "base_price",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "rooms",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rooms",
+              "column": "image_url",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rooms",
+              "column": "description",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "rooms",
+              "column": "is_active",
+              "default": "true",
+              "nullable": "YES"
+            },
+            {
+              "udt": "float8",
+              "type": "double precision",
+              "table": "rooms",
+              "column": "size_sqm",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "_text",
+              "type": "ARRAY",
+              "table": "rooms",
+              "column": "amenities",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rooms",
+              "column": "type",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "rooms",
+              "column": "capacity",
+              "default": "2",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "rooms",
+              "column": "updated_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "rooms",
+              "column": "capacity_children",
+              "default": "0",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rooms",
+              "column": "room_type",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "jsonb",
+              "type": "jsonb",
+              "table": "rooms",
+              "column": "room_images",
+              "default": "'[]'::jsonb",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rooms",
+              "column": "max_occupancy",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rooms",
+              "column": "view_category",
+              "default": "'GARDEN'::text",
+              "nullable": "YES"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "rooms",
+              "column": "view_multiplier",
+              "default": "1.00",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "rooms",
+              "column": "availability_mode",
+              "default": "'STATIC'::text",
+              "nullable": "YES"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "seasons",
+              "column": "id",
+              "default": "uuid_generate_v4()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "seasons",
+              "column": "name",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "date",
+              "type": "date",
+              "table": "seasons",
+              "column": "start_date",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "date",
+              "type": "date",
+              "table": "seasons",
+              "column": "end_date",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "seasons",
+              "column": "is_high_season",
+              "default": "false",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "seasons",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "seasons",
+              "column": "code",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "float8",
+              "type": "double precision",
+              "table": "seasons",
+              "column": "multiplier",
+              "default": "1.0",
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "seasons",
+              "column": "min_stay",
+              "default": "1",
+              "nullable": "YES"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "seasons",
+              "column": "hotel_id",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "seasons",
+              "column": "is_active",
+              "default": "true",
+              "nullable": "YES"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "seasons_master",
+              "column": "id",
+              "default": "gen_random_uuid()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "seasons_master",
+              "column": "hotel_id",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "seasons_master",
+              "column": "name",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "date",
+              "type": "date",
+              "table": "seasons_master",
+              "column": "start_date",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "date",
+              "type": "date",
+              "table": "seasons_master",
+              "column": "end_date",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "seasons_master",
+              "column": "is_active",
+              "default": "true",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "seasons_master",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "seasons_master",
+              "column": "updated_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "tariffs_master",
+              "column": "id",
+              "default": "gen_random_uuid()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "tariffs_master",
+              "column": "hotel_id",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "tariffs_master",
+              "column": "name",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "tariffs_master",
+              "column": "description",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "tariffs_master",
+              "column": "price_adult",
+              "default": "0",
+              "nullable": "YES"
+            },
+            {
+              "udt": "numeric",
+              "type": "numeric",
+              "table": "tariffs_master",
+              "column": "price_child",
+              "default": "0",
+              "nullable": "YES"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "tariffs_master",
+              "column": "is_active",
+              "default": "true",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "tariffs_master",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "tariffs_master",
+              "column": "updated_at",
+              "default": "now()",
+              "nullable": "YES"
+            }
+          ],
+          "constraints": [
+            {
+              "kind": "p",
+              "name": "hotel_policies_pkey",
+              "table": "hotel_policies",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "kind": "p",
+              "name": "hotels_master_pkey",
+              "table": "hotels_master",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "kind": "u",
+              "name": "hotels_master_slug_key",
+              "table": "hotels_master",
+              "definition": "UNIQUE (slug)"
+            },
+            {
+              "kind": "p",
+              "name": "rates_pkey",
+              "table": "rates",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "kind": "f",
+              "name": "rates_room_id_fkey",
+              "table": "rates",
+              "definition": "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE"
+            },
+            {
+              "kind": "f",
+              "name": "rates_season_id_fkey",
+              "table": "rates",
+              "definition": "FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE"
+            },
+            {
+              "kind": "u",
+              "name": "unique_rate_period",
+              "table": "rates",
+              "definition": "UNIQUE (room_id, year, valid_from, valid_to)"
+            },
+            {
+              "kind": "f",
+              "name": "rooms_hotel_id_fkey",
+              "table": "rooms",
+              "definition": "FOREIGN KEY (hotel_id) REFERENCES hotels_master(id) ON DELETE CASCADE"
+            },
+            {
+              "kind": "u",
+              "name": "rooms_hotel_id_name_key",
+              "table": "rooms",
+              "definition": "UNIQUE (hotel_id, name)"
+            },
+            {
+              "kind": "p",
+              "name": "rooms_pkey",
+              "table": "rooms",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "kind": "p",
+              "name": "seasons_pkey",
+              "table": "seasons",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "kind": "p",
+              "name": "seasons_master_pkey",
+              "table": "seasons_master",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "kind": "p",
+              "name": "tariffs_master_pkey",
+              "table": "tariffs_master",
+              "definition": "PRIMARY KEY (id)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "sql": "SELECT statement_timestamp() AS observed_at,\n(SELECT jsonb_agg(jsonb_build_object('table',c.relname,'trigger',t.tgname,'enabled',t.tgenabled,'internal',t.tgisinternal,'definition',pg_get_triggerdef(t.oid),'function_schema',pn.nspname,'function',p.proname,'function_identity',pg_get_function_identity_arguments(p.oid),'security_definer',p.prosecdef,'body_md5',md5(p.prosrc),'mentions_capacity_kids',p.prosrc~*'capacity_kids','mentions_capacity_children',p.prosrc~*'capacity_children','mentions_received_at',p.prosrc~*'received_at','mentions_revision',p.prosrc~*'revision','mentions_created_at',p.prosrc~*'created_at','mentions_updated_at',p.prosrc~*'updated_at') ORDER BY c.relname,t.tgname) FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_namespace pn ON pn.oid=p.pronamespace WHERE n.nspname='public' AND NOT t.tgisinternal AND c.relname IN ('rooms','rates','hotels_master','tariffs_master','seasons','seasons_master','hotel_policies')) AS triggers,\n(SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'function',p.proname,'identity',pg_get_function_identity_arguments(p.oid),'language',l.lanname,'security_definer',p.prosecdef,'body_md5',md5(p.prosrc),'mentions_rates',p.prosrc~*'\\mrates\\M','mentions_insert',p.prosrc~*'\\minsert\\M','mentions_update',p.prosrc~*'\\mupdate\\M','mentions_received_at',p.prosrc~*'received_at','mentions_revision',p.prosrc~*'revision','mentions_capacity_kids',p.prosrc~*'capacity_kids','mentions_capacity_children',p.prosrc~*'capacity_children') ORDER BY p.proname,p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_language l ON l.oid=p.prolang WHERE n.nspname='public' AND p.prokind='f' AND (p.proname='ingestar_tarifa_proveedor' OR p.proname LIKE 'core1%' OR (p.prosrc~*'(insert[[:space:]]+into|update)[[:space:]]+(public\\.)?rates\\M'))) AS writer_candidates,\n(SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'relation',c.relname) ORDER BY n.nspname,c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='supabase_migrations' AND c.relkind IN ('r','p')) AS migration_catalog_relations;",
+      "result": [
+        {
+          "observed_at": "2026-10-25 22:15:58.747331+00",
+          "triggers": [
+            {
+              "table": "hotel_policies",
+              "enabled": "O",
+              "trigger": "update_hotel_policies_updated_at",
+              "body_md5": "e7a0919a4073eaabf72630cc53a76237",
+              "function": "update_updated_at_column",
+              "internal": false,
+              "definition": "CREATE TRIGGER update_hotel_policies_updated_at BEFORE UPDATE ON public.hotel_policies FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+              "function_schema": "public",
+              "security_definer": false,
+              "function_identity": "",
+              "mentions_revision": false,
+              "mentions_created_at": false,
+              "mentions_updated_at": true,
+              "mentions_received_at": false,
+              "mentions_capacity_kids": false,
+              "mentions_capacity_children": false
+            },
+            {
+              "table": "hotels_master",
+              "enabled": "O",
+              "trigger": "trg_update_integrity_timestamp",
+              "body_md5": "bf29ef42d8d8954c4a4bf774e9cac6c5",
+              "function": "update_integrity_audit_timestamp",
+              "internal": false,
+              "definition": "CREATE TRIGGER trg_update_integrity_timestamp BEFORE UPDATE OF health_score ON public.hotels_master FOR EACH ROW EXECUTE FUNCTION update_integrity_audit_timestamp()",
+              "function_schema": "public",
+              "security_definer": false,
+              "function_identity": "",
+              "mentions_revision": false,
+              "mentions_created_at": false,
+              "mentions_updated_at": false,
+              "mentions_received_at": false,
+              "mentions_capacity_kids": false,
+              "mentions_capacity_children": false
+            },
+            {
+              "table": "hotels_master",
+              "enabled": "O",
+              "trigger": "update_hotels_master_updated_at",
+              "body_md5": "e7a0919a4073eaabf72630cc53a76237",
+              "function": "update_updated_at_column",
+              "internal": false,
+              "definition": "CREATE TRIGGER update_hotels_master_updated_at BEFORE UPDATE ON public.hotels_master FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+              "function_schema": "public",
+              "security_definer": false,
+              "function_identity": "",
+              "mentions_revision": false,
+              "mentions_created_at": false,
+              "mentions_updated_at": true,
+              "mentions_received_at": false,
+              "mentions_capacity_kids": false,
+              "mentions_capacity_children": false
+            },
+            {
+              "table": "rooms",
+              "enabled": "O",
+              "trigger": "trigger_rooms_updated_at",
+              "body_md5": "10ff09e0d1433006b865e7959e736c46",
+              "function": "update_rooms_updated_at",
+              "internal": false,
+              "definition": "CREATE TRIGGER trigger_rooms_updated_at BEFORE UPDATE ON public.rooms FOR EACH ROW EXECUTE FUNCTION update_rooms_updated_at()",
+              "function_schema": "public",
+              "security_definer": false,
+              "function_identity": "",
+              "mentions_revision": false,
+              "mentions_created_at": false,
+              "mentions_updated_at": true,
+              "mentions_received_at": false,
+              "mentions_capacity_kids": false,
+              "mentions_capacity_children": false
+            },
+            {
+              "table": "rooms",
+              "enabled": "O",
+              "trigger": "trigger_sync_rooms",
+              "body_md5": "cb225038a8b7ecae77508d17f70a21ed",
+              "function": "sync_rooms_to_hotel_json",
+              "internal": false,
+              "definition": "CREATE TRIGGER trigger_sync_rooms AFTER INSERT OR DELETE OR UPDATE ON public.rooms FOR EACH ROW EXECUTE FUNCTION sync_rooms_to_hotel_json()",
+              "function_schema": "public",
+              "security_definer": false,
+              "function_identity": "",
+              "mentions_revision": false,
+              "mentions_created_at": false,
+              "mentions_updated_at": true,
+              "mentions_received_at": false,
+              "mentions_capacity_kids": true,
+              "mentions_capacity_children": false
+            },
+            {
+              "table": "rooms",
+              "enabled": "O",
+              "trigger": "update_booking_engine_on_room_change",
+              "body_md5": "6f2d5204917d22d62ebd9afac67304cd",
+              "function": "update_booking_engine",
+              "internal": false,
+              "definition": "CREATE TRIGGER update_booking_engine_on_room_change AFTER UPDATE ON public.rooms FOR EACH ROW EXECUTE FUNCTION update_booking_engine()",
+              "function_schema": "public",
+              "security_definer": false,
+              "function_identity": "",
+              "mentions_revision": false,
+              "mentions_created_at": false,
+              "mentions_updated_at": false,
+              "mentions_received_at": false,
+              "mentions_capacity_kids": false,
+              "mentions_capacity_children": false
+            },
+            {
+              "table": "rooms",
+              "enabled": "O",
+              "trigger": "update_rooms_updated_at",
+              "body_md5": "e7a0919a4073eaabf72630cc53a76237",
+              "function": "update_updated_at_column",
+              "internal": false,
+              "definition": "CREATE TRIGGER update_rooms_updated_at BEFORE UPDATE ON public.rooms FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+              "function_schema": "public",
+              "security_definer": false,
+              "function_identity": "",
+              "mentions_revision": false,
+              "mentions_created_at": false,
+              "mentions_updated_at": true,
+              "mentions_received_at": false,
+              "mentions_capacity_kids": false,
+              "mentions_capacity_children": false
+            }
+          ],
+          "writer_candidates": [
+            {
+              "schema": "public",
+              "body_md5": "b806845c119530faa25583ad52ebef61",
+              "function": "ingestar_tarifa_proveedor",
+              "identity": "p_room_id uuid, p_valid_from date, p_valid_to date, p_dbl_rate numeric, p_sgl_rate numeric, p_tpl_rate numeric, p_teen_rate numeric, p_child_rate numeric, p_source text, p_currency text, p_season_id uuid",
+              "language": "plpgsql",
+              "mentions_rates": true,
+              "mentions_insert": true,
+              "mentions_update": true,
+              "security_definer": false,
+              "mentions_revision": false,
+              "mentions_received_at": false,
+              "mentions_capacity_kids": false,
+              "mentions_capacity_children": false
+            }
+          ],
+          "migration_catalog_relations": [
+            {
+              "schema": "supabase_migrations",
+              "relation": "schema_migrations"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "sql": "SELECT statement_timestamp() AS observed_at,\n(SELECT jsonb_agg(jsonb_build_object('function',p.proname,'body_md5',md5(p.prosrc),'selected_lines',(SELECT jsonb_agg(jsonb_build_object('line',s.nr,'text',s.line) ORDER BY s.nr) FROM regexp_split_to_table(p.prosrc,E'\\n') WITH ORDINALITY AS s(line,nr) WHERE s.line ~* '(capacity_kids|capacity_children|NEW[.]updated_at|SET[[:space:]]+rooms_data|FROM[[:space:]]+public[.]rooms|UPDATE[[:space:]]+public[.]hotels_master|pg_notify|NOTIFY)')) ORDER BY p.proname) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('sync_rooms_to_hotel_json','update_rooms_updated_at','update_updated_at_column','update_booking_engine')) AS targeted_function_evidence,\n(SELECT count(*) FROM supabase_migrations.schema_migrations) AS migration_entry_count,\n(SELECT jsonb_agg(z.entry ORDER BY z.version DESC) FROM (SELECT to_jsonb(m)->>'version' AS version,jsonb_build_object('version',to_jsonb(m)->>'version','name',to_jsonb(m)->>'name') AS entry FROM supabase_migrations.schema_migrations m ORDER BY to_jsonb(m)->>'version' DESC LIMIT 20) z) AS latest_migration_names;",
+      "result": [
+        {
+          "observed_at": "2026-10-25 22:16:20.608174+00",
+          "targeted_function_evidence": [
+            {
+              "body_md5": "cb225038a8b7ecae77508d17f70a21ed",
+              "function": "sync_rooms_to_hotel_json",
+              "selected_lines": [
+                {
+                  "line": 29,
+                  "text": "          'capacity_kids', r.capacity_kids,"
+                },
+                {
+                  "line": 46,
+                  "text": "  SET rooms_data = v_rooms,"
+                }
+              ]
+            },
+            {
+              "body_md5": "6f2d5204917d22d62ebd9afac67304cd",
+              "function": "update_booking_engine",
+              "selected_lines": null
+            },
+            {
+              "body_md5": "10ff09e0d1433006b865e7959e736c46",
+              "function": "update_rooms_updated_at",
+              "selected_lines": [
+                {
+                  "line": 3,
+                  "text": "  NEW.updated_at = NOW();\r"
+                }
+              ]
+            },
+            {
+              "body_md5": "e7a0919a4073eaabf72630cc53a76237",
+              "function": "update_updated_at_column",
+              "selected_lines": [
+                {
+                  "line": 2,
+                  "text": "BEGIN NEW.updated_at = NOW(); RETURN NEW; END;"
+                }
+              ]
+            }
+          ],
+          "migration_entry_count": 194,
+          "latest_migration_names": [
+            {
+              "name": "ap08_atlas_state_min_privilege_rls_20261009",
+              "version": "20261009191204"
+            },
+            {
+              "name": "enforce_v2_execution_mode_at_claim_boundary",
+              "version": "20261008195748"
+            },
+            {
+              "name": "harden_position_resolver_search_path",
+              "version": "20261008175138"
+            },
+            {
+              "name": "create_position_occupant_resolver_v1",
+              "version": "20261008175014"
+            },
+            {
+              "name": "d11_ovr_revalidation_correction_20261005",
+              "version": "20261004230053"
+            },
+            {
+              "name": "d11_ovr_lifecycle_claim_binding_20261005",
+              "version": "20261004225651"
+            },
+            {
+              "name": "create_task_claim_leases_v1",
+              "version": "20261001194702"
+            },
+            {
+              "name": "harden_set_knowledge_embedding_exec",
+              "version": "20260929232814"
+            },
+            {
+              "name": "deprecate_legacy_domain_columns_20260929",
+              "version": "20260929175019"
+            },
+            {
+              "name": "add_domain_column_wf_registry",
+              "version": "20260929171836"
+            },
+            {
+              "name": "cp_mcg_013_lineage_projection_read_router",
+              "version": "20260927162401"
+            },
+            {
+              "name": "20260927100500_fix_operational_closure_validator_closer_separation",
+              "version": "20260927094722"
+            },
+            {
+              "name": "operational_closure_gate_v1",
+              "version": "20260927094230"
+            },
+            {
+              "name": "extend_capability_runtime_relation_type_executes_on",
+              "version": "20260926210245"
+            },
+            {
+              "name": "atl_126_rpc_personal_ia_status_incident_window",
+              "version": "20260926130815"
+            },
+            {
+              "name": "core2_cancellation_notification_composition_v1",
+              "version": "20260921020642"
+            },
+            {
+              "name": "core2_provider_cancellation_outcome_contract_v1",
+              "version": "20260921015322"
+            },
+            {
+              "name": "core2_provider_cancellation_composition_v1",
+              "version": "20260921015106"
+            },
+            {
+              "name": "core2_cancellation_eligibility_v1",
+              "version": "20260921014938"
+            },
+            {
+              "name": "core2_freeze_cancellation_policy_v1",
+              "version": "20260921014652"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "sql": "SELECT statement_timestamp() AS observed_at,\n(SELECT jsonb_agg(jsonb_build_object('function',p.proname,'identity',pg_get_function_identity_arguments(p.oid),'body_md5',md5(p.prosrc),'selected_lines',(SELECT jsonb_agg(jsonb_build_object('line',s.nr,'text',s.line) ORDER BY s.nr) FROM regexp_split_to_table(p.prosrc,E'\\n') WITH ORDINALITY AS s(line,nr) WHERE s.line ~* '(INSERT[[:space:]]+INTO|ON[[:space:]]+CONFLICT|DO[[:space:]]+UPDATE|created_at|received_at|revision|season_id[[:space:]]*=|adult_rate[[:space:]]*=|child_rate[[:space:]]*=|valid_from[[:space:]]*=|valid_to[[:space:]]*=)')) ORDER BY p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='ingestar_tarifa_proveedor') AS ingest_writer,\n(SELECT coalesce(jsonb_agg(jsonb_build_object('table',c.relname,'rule',r.rulename,'enabled',r.ev_enabled,'definition_md5',md5(pg_get_ruledef(r.oid))) ORDER BY c.relname,r.rulename),'[]'::jsonb) FROM pg_rewrite r JOIN pg_class c ON c.oid=r.ev_class JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('rates','rooms') AND r.rulename<>'_RETURN') AS rewrite_rules,\n(SELECT coalesce(jsonb_agg(jsonb_build_object('version',to_jsonb(m)->>'version','name',to_jsonb(m)->>'name') ORDER BY to_jsonb(m)->>'version'),'[]'::jsonb) FROM supabase_migrations.schema_migrations m WHERE coalesce(to_jsonb(m)->>'name','') ~* '(core1|hotel|room|rate|tariff)') AS related_migration_names;",
+      "result": [
+        {
+          "observed_at": "2026-10-25 22:16:39.474122+00",
+          "ingest_writer": [
+            {
+              "body_md5": "b806845c119530faa25583ad52ebef61",
+              "function": "ingestar_tarifa_proveedor",
+              "identity": "p_room_id uuid, p_valid_from date, p_valid_to date, p_dbl_rate numeric, p_sgl_rate numeric, p_tpl_rate numeric, p_teen_rate numeric, p_child_rate numeric, p_source text, p_currency text, p_season_id uuid",
+              "selected_lines": [
+                {
+                  "line": 19,
+                  "text": "    AND valid_from = p_valid_from AND valid_to = p_valid_to"
+                },
+                {
+                  "line": 29,
+                  "text": "      adult_rate = p_dbl_rate,"
+                },
+                {
+                  "line": 30,
+                  "text": "      child_rate = COALESCE(p_child_rate, ROUND(p_dbl_rate * 0.5, 2)),"
+                },
+                {
+                  "line": 32,
+                  "text": "      season_id = COALESCE(p_season_id, season_id)"
+                },
+                {
+                  "line": 36,
+                  "text": "    INSERT INTO rates ("
+                }
+              ]
+            }
+          ],
+          "rewrite_rules": [],
+          "related_migration_names": [
+            {
+              "name": "add_website_url_to_hotels_master",
+              "version": "20260312141855"
+            },
+            {
+              "name": "add_hotel_rich_data_columns",
+              "version": "20260312142046"
+            },
+            {
+              "name": "fix_rooms_unique_constraint_for_firecrawl",
+              "version": "20260313175242"
+            },
+            {
+              "name": "add_max_occupancy_to_rooms",
+              "version": "20260313175358"
+            },
+            {
+              "name": "fix_rpc_rates_source_filter_v3",
+              "version": "20260327173843"
+            },
+            {
+              "name": "fix_resolver_room_cheapest_fallback_v2",
+              "version": "20260327221528"
+            },
+            {
+              "name": "fix_casa_marina_rates_seasons_v4",
+              "version": "20260327224602"
+            },
+            {
+              "name": "fix_casa_marina_rate_baja1_season",
+              "version": "20260327230528"
+            },
+            {
+              "name": "cleanup_duplicate_casa_marina_rate",
+              "version": "20260327231816"
+            },
+            {
+              "name": "create_room_type_synonyms_bilingual_v1",
+              "version": "20260327233355"
+            },
+            {
+              "name": "update_resolver_room_bilingual_v3",
+              "version": "20260327233425"
+            },
+            {
+              "name": "fix_room_synonyms_sencilla_is_sgl_not_standard",
+              "version": "20260327233951"
+            },
+            {
+              "name": "create_room_occupancy_rules_v1",
+              "version": "20260328010315"
+            },
+            {
+              "name": "add_child_min_age_to_room_occupancy_rules",
+              "version": "20260328011104"
+            },
+            {
+              "name": "add_hotel_cof_number_to_bookings",
+              "version": "20260401123836"
+            },
+            {
+              "name": "normalize_hotels_master_location_purga_v1",
+              "version": "20260410154443"
+            },
+            {
+              "name": "normalize_hotels_master_location_purga_v2",
+              "version": "20260410154500"
+            },
+            {
+              "name": "normalize_hotels_master_location_purga_v3",
+              "version": "20260410154507"
+            },
+            {
+              "name": "purga_hoteles_criticos_deficit_5_plus",
+              "version": "20260410155505"
+            },
+            {
+              "name": "room_view_algorithm_v1_aliun",
+              "version": "20260410232444"
+            },
+            {
+              "name": "rpc_calcular_precio_paquete_v4_fix_room_selection",
+              "version": "20260410232945"
+            },
+            {
+              "name": "rpc_calcular_precio_paquete_v5_room_selection_fix",
+              "version": "20260413171149"
+            },
+            {
+              "name": "create_hotel_profiles_mcd1",
+              "version": "20260414171954"
+            },
+            {
+              "name": "fix_g6_exchange_rates_usd_dop_seed",
+              "version": "20260424000652"
+            },
+            {
+              "name": "fix_consultar_disponibilidad_unlock_firecrawl_rates",
+              "version": "20260424001248"
+            },
+            {
+              "name": "fix_calcular_cotizacion_use_hotels_master_rates",
+              "version": "20260424001356"
+            },
+            {
+              "name": "fix_analisis_financiero_use_hotels_master_rates",
+              "version": "20260424142133"
+            },
+            {
+              "name": "g6_exchange_rates_fallback_58_50",
+              "version": "20260429132705"
+            },
+            {
+              "name": "c2_p1_rates_is_active_column",
+              "version": "20260429140038"
+            },
+            {
+              "name": "c2_p4_rpc_fix_room_rate_join",
+              "version": "20260429140247"
+            },
+            {
+              "name": "child_rate_50pct_all_manual_rates",
+              "version": "20260429141135"
+            },
+            {
+              "name": "child_rate_50pct_manual_masivo",
+              "version": "20260429142226"
+            },
+            {
+              "name": "hm_add_vdt_new_hotels",
+              "version": "20260429165916"
+            },
+            {
+              "name": "rpc_consultar_disponibilidad_completa_hotels_master",
+              "version": "20260429184435"
+            },
+            {
+              "name": "d4_audit_rates_snapshots",
+              "version": "20260430010924"
+            },
+            {
+              "name": "hotel_images_bucket_rls",
+              "version": "20260524141442"
+            },
+            {
+              "name": "admin_total_access_hotel_images",
+              "version": "20260524162342"
+            },
+            {
+              "name": "hotel_media_legacy_full_access",
+              "version": "20260524163130"
+            },
+            {
+              "name": "hotels_view_ssot_migration",
+              "version": "20260524190224"
+            },
+            {
+              "name": "add_hotel_name_aliases",
+              "version": "20260627142337"
+            },
+            {
+              "name": "hotels_master_aliases",
+              "version": "20260703120907"
+            },
+            {
+              "name": "create_suggest_similar_hotels",
+              "version": "20260802234249"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Q5",
+      "sql": "WITH candidates AS (SELECT c.oid,n.nspname,c.relname,c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m') AND (c.relname ~* '(room.*(occup|synonym)|hotel_profiles|rate.*snapshot|snapshot.*rate)'))\nSELECT statement_timestamp() AS observed_at,\n(SELECT coalesce(jsonb_agg(jsonb_build_object('schema',nspname,'relation',relname,'kind',relkind) ORDER BY relname),'[]'::jsonb) FROM candidates) AS relations,\n(SELECT coalesce(jsonb_agg(jsonb_build_object('table',c.table_name,'column',c.column_name,'type',c.data_type,'udt',c.udt_name,'nullable',c.is_nullable,'default',c.column_default) ORDER BY c.table_name,c.ordinal_position),'[]'::jsonb) FROM information_schema.columns c JOIN candidates x ON x.nspname=c.table_schema AND x.relname=c.table_name) AS columns,\n(SELECT coalesce(jsonb_agg(jsonb_build_object('table',x.relname,'constraint',k.conname,'definition',pg_get_constraintdef(k.oid)) ORDER BY x.relname,k.conname),'[]'::jsonb) FROM pg_constraint k JOIN candidates x ON x.oid=k.conrelid) AS constraints,\n(SELECT coalesce(jsonb_agg(jsonb_build_object('table',x.relname,'trigger',t.tgname,'enabled',t.tgenabled,'definition',pg_get_triggerdef(t.oid)) ORDER BY x.relname,t.tgname),'[]'::jsonb) FROM pg_trigger t JOIN candidates x ON x.oid=t.tgrelid WHERE NOT t.tgisinternal) AS triggers;",
+      "result": [
+        {
+          "observed_at": "2026-10-25 22:16:50.967061+00",
+          "relations": [
+            {
+              "kind": "r",
+              "schema": "public",
+              "relation": "_audit_rates_snapshots"
+            },
+            {
+              "kind": "r",
+              "schema": "public",
+              "relation": "hotel_profiles"
+            },
+            {
+              "kind": "r",
+              "schema": "public",
+              "relation": "room_occupancy_rules"
+            },
+            {
+              "kind": "r",
+              "schema": "public",
+              "relation": "room_type_synonyms"
+            }
+          ],
+          "columns": [
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "_audit_rates_snapshots",
+              "column": "id",
+              "default": "gen_random_uuid()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "_audit_rates_snapshots",
+              "column": "snapshot_at",
+              "default": "now()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "_audit_rates_snapshots",
+              "column": "ejecutor",
+              "default": "'ATLAS-TECH'::text",
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "_audit_rates_snapshots",
+              "column": "motivo",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "_audit_rates_snapshots",
+              "column": "migration_name",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "jsonb",
+              "type": "jsonb",
+              "table": "_audit_rates_snapshots",
+              "column": "rates_before",
+              "default": "'[]'::jsonb",
+              "nullable": "NO"
+            },
+            {
+              "udt": "jsonb",
+              "type": "jsonb",
+              "table": "_audit_rates_snapshots",
+              "column": "rates_after",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "_audit_rates_snapshots",
+              "column": "total_before",
+              "default": "0",
+              "nullable": "NO"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "_audit_rates_snapshots",
+              "column": "total_after",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "_audit_rates_snapshots",
+              "column": "notas",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "hotel_profiles",
+              "column": "id",
+              "default": "gen_random_uuid()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "hotel_profiles",
+              "column": "hotel_id",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "hotel_slug",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "sales_pitch",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "inclusions_detail",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "hotel_profiles",
+              "column": "adults_only",
+              "default": "false",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "children_rule",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "tone_guide",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "jsonb",
+              "type": "jsonb",
+              "table": "hotel_profiles",
+              "column": "upsell_triggers",
+              "default": "'{}'::jsonb",
+              "nullable": "YES"
+            },
+            {
+              "udt": "jsonb",
+              "type": "jsonb",
+              "table": "hotel_profiles",
+              "column": "objections_qa",
+              "default": "'{}'::jsonb",
+              "nullable": "YES"
+            },
+            {
+              "udt": "jsonb",
+              "type": "jsonb",
+              "table": "hotel_profiles",
+              "column": "highlights_venta",
+              "default": "'[]'::jsonb",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "comparativa_vs",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "hotel_profiles",
+              "column": "min_noches",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "checkin_hora",
+              "default": "'15:00'::text",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "checkout_hora",
+              "default": "'12:00'::text",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "politica_deposito",
+              "default": "'30% al reservar. Saldo antes del check-in.'::text",
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "hotel_profiles",
+              "column": "politica_cancelacion",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "hotel_profiles",
+              "column": "activo",
+              "default": "true",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "hotel_profiles",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "hotel_profiles",
+              "column": "updated_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "room_occupancy_rules",
+              "column": "id",
+              "default": "uuid_generate_v4()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "room_occupancy_rules",
+              "column": "room_id",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "room_occupancy_rules",
+              "column": "hotel_id",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_occupancy_rules",
+              "column": "min_adults",
+              "default": "1",
+              "nullable": "NO"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_occupancy_rules",
+              "column": "max_adults",
+              "default": "2",
+              "nullable": "NO"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_occupancy_rules",
+              "column": "max_children",
+              "default": "2",
+              "nullable": "NO"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_occupancy_rules",
+              "column": "max_occupancy",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_occupancy_rules",
+              "column": "child_max_age",
+              "default": "11",
+              "nullable": "NO"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_occupancy_rules",
+              "column": "teen_max_age",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_occupancy_rules",
+              "column": "infant_max_age",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "room_occupancy_rules",
+              "column": "notes",
+              "default": null,
+              "nullable": "YES"
+            },
+            {
+              "udt": "bool",
+              "type": "boolean",
+              "table": "room_occupancy_rules",
+              "column": "is_active",
+              "default": "true",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "room_occupancy_rules",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "room_occupancy_rules",
+              "column": "updated_at",
+              "default": "now()",
+              "nullable": "YES"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_occupancy_rules",
+              "column": "child_min_age",
+              "default": "5",
+              "nullable": "NO"
+            },
+            {
+              "udt": "uuid",
+              "type": "uuid",
+              "table": "room_type_synonyms",
+              "column": "id",
+              "default": "uuid_generate_v4()",
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "room_type_synonyms",
+              "column": "canonical_es",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "text",
+              "type": "text",
+              "table": "room_type_synonyms",
+              "column": "canonical_en",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "_text",
+              "type": "ARRAY",
+              "table": "room_type_synonyms",
+              "column": "synonyms",
+              "default": null,
+              "nullable": "NO"
+            },
+            {
+              "udt": "int4",
+              "type": "integer",
+              "table": "room_type_synonyms",
+              "column": "sort_order",
+              "default": "0",
+              "nullable": "YES"
+            },
+            {
+              "udt": "timestamptz",
+              "type": "timestamp with time zone",
+              "table": "room_type_synonyms",
+              "column": "created_at",
+              "default": "now()",
+              "nullable": "YES"
+            }
+          ],
+          "constraints": [
+            {
+              "table": "_audit_rates_snapshots",
+              "constraint": "_audit_rates_snapshots_pkey",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "table": "hotel_profiles",
+              "constraint": "hotel_profiles_hotel_id_fkey",
+              "definition": "FOREIGN KEY (hotel_id) REFERENCES hotels_master(id) ON DELETE CASCADE"
+            },
+            {
+              "table": "hotel_profiles",
+              "constraint": "hotel_profiles_hotel_slug_key",
+              "definition": "UNIQUE (hotel_slug)"
+            },
+            {
+              "table": "hotel_profiles",
+              "constraint": "hotel_profiles_pkey",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "chk_age_range",
+              "definition": "CHECK ((child_min_age <= child_max_age))"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "room_occupancy_rules_check",
+              "definition": "CHECK (((teen_max_age IS NULL) OR ((teen_max_age >= child_max_age) AND (teen_max_age <= 17))))"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "room_occupancy_rules_check1",
+              "definition": "CHECK (((infant_max_age IS NULL) OR (infant_max_age < child_max_age)))"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "room_occupancy_rules_child_max_age_check",
+              "definition": "CHECK (((child_max_age >= 0) AND (child_max_age <= 17)))"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "room_occupancy_rules_child_min_age_check",
+              "definition": "CHECK (((child_min_age >= 0) AND (child_min_age <= 12)))"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "room_occupancy_rules_hotel_id_fkey",
+              "definition": "FOREIGN KEY (hotel_id) REFERENCES hotels_master(id) ON DELETE CASCADE"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "room_occupancy_rules_pkey",
+              "definition": "PRIMARY KEY (id)"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "room_occupancy_rules_room_id_fkey",
+              "definition": "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE"
+            },
+            {
+              "table": "room_occupancy_rules",
+              "constraint": "room_occupancy_rules_room_id_key",
+              "definition": "UNIQUE (room_id)"
+            },
+            {
+              "table": "room_type_synonyms",
+              "constraint": "room_type_synonyms_pkey",
+              "definition": "PRIMARY KEY (id)"
+            }
+          ],
+          "triggers": [
+            {
+              "table": "room_occupancy_rules",
+              "enabled": "O",
+              "trigger": "trg_room_occ_rules_updated",
+              "definition": "CREATE TRIGGER trg_room_occ_rules_updated BEFORE UPDATE ON public.room_occupancy_rules FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "No business rows or provider documents read",
+    "No raw function bodies exported; only hashes, boolean matches and selected lines",
+    "Writer search lexical and scoped, not exhaustive",
+    "Migrations names are ledger evidence, not proof of matching physical schema or no drift",
+    "No DDL, DML, grants, business RPC, endpoint calls or deployment"
+  ]
+}

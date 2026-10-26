@@ -89,3 +89,11 @@
 - **Compatibilidad:** la rama «ausente» NO es idéntica a v2.0.5 (antes proyectaba el importe interno); es un cambio deliberado y medido en `npm run test:kernel206:beforeafter`.
 - **Evidencia:** `npm run test:kernel206:all` (suite, mutaciones, productor v1.1 por inyección aislada, antes/después). Informe en Office. Sin fusión, adopción ni despliegue.
 
+## 11. Adaptador físico de puertos Core 1 v1 — candidato inerte (ATLAS-TECH, 2026-10-25)
+* **Versión nueva:** `core1-physical-adapter-v1/` (candidato, offline, NO desplegado, NO adoptado). Productor v1.1, kernel v2.0.3…v2.0.6, motor v2.2.3, adaptador v1.1.1 y kernel v1 por defecto sin cambios. Origen: SPEC-CORE1-PHYSICAL-PORT-ADAPTER-v1 (Office `fd8762e`).
+* **Mapa de versiones (mecanismos):** kernel v1 (default) · kernel-v2 … v2.0.6 (inertes) · core1-producer v1 / v1.1 (inertes) · **core1-physical-adapter v1** (nuevo, inerte). `core1-price/VERSION-MAP.md` versiona solo el modelo de precio y no se toca.
+* **Composición:** etapa asíncrona con revisiones fijadas por autoridad inyectada → evaluación pura síncrona → relectura asíncrona que bloquea el provisional si hay deriva. Detalle en `core1-physical-adapter-v1/docs/COMPOSITION.md`.
+* **PA-R1 (dictamen OBS-229):** tras la última relectura asíncrona se toma una hora fresca y se evalúa con ella como «ahora» del kernel, conservando computed_at/TTL/snapshot; vencimiento (`QUOTE_EXPIRED`), hora inválida (`NOW_INVALID`) o retroceso (`QUOTE_FROM_FUTURE`) ⇒ sin LISTO, total, preparación ni proyección. Corrección en el mismo candidato (commits adicionales), sin tocar kernel ni productor.
+* **PA-R1 residual + PA-R2 (dictamen OBS-230):** el orden es cálculo (único, paquete capturado) → relectura de revisiones → hora fresca → gate del kernel sobre ese mismo paquete, sin recalcular ni rejuvenecer (computed_at/valid_until/snapshot intactos). Un vencimiento cruzado durante el puente ⇒ `QUOTE_EXPIRED`; una revisión que cambia durante el cálculo ⇒ `READ_DRIFT_DETECTED`; sin total ni proyección en ambos casos. Códigos existentes; política de consulta v2.0.6 y criterio conservador de términos sin cambio.
+* **Límites:** 11 vínculos siguen sin fuente acreditada; sin cliente real, SQL, red ni autenticación; evidencia sintética ≠ E2E. Verificación: `npm run test:physical-adapter:all`.
+
