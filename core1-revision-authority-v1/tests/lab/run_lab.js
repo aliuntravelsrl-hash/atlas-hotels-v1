@@ -168,7 +168,7 @@ const MUTANTS = [
   ['S01_sin_horizonte_obligatorio', [["IF p_horizon_public IS NULL OR p_horizon_internal IS NULL THEN RAISE EXCEPTION 'HORIZON_MISSING'; END IF;", ""]]],
   ['S02_retencion_inclusiva', [["IF t >= r.retention_until", "IF t > r.retention_until"]], 'Igualdad exacta de instantes no reproducible con clock_timestamp(); el límite exclusivo se prueba en el modelo (M04) y la expiración real en AC3b.'],
   ['S03_sin_disparador_UPDATE_en_ledger', [["CREATE TRIGGER ledger_ro BEFORE UPDATE OR DELETE ON c1_ra1.ledger FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();", ""]]],
-  ['S04_sin_disparador_TRUNCATE_en_revisions', [["CREATE TRIGGER revisions_nt BEFORE TRUNCATE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();", ""]]],
+  ['S04_sin_disparador_TRUNCATE_en_revisions', [["CREATE TRIGGER revisions_nt BEFORE TRUNCATE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();", ""]], 'Equivalente observable: TRUNCATE de revisions solo es posible junto con ledger (la clave foránea lo impide por separado) y ledger conserva su propio disparador TRUNCATE; el de revisions es defensa en profundidad.'],
   ['S05_publicador_con_SELECT_en_ledger', [], null, "GRANT SELECT ON c1_ra1.ledger TO c1_publisher;"],
   ['S06_sin_bloqueo_por_scope', [["PERFORM pg_advisory_xact_lock(hashtextextended('scope:' || p_scope, 0));     -- serializa publicaciones del scope hasta el commit", ""]]],
   ['S07_FX_no_se_rechaza', [["IF p_fx_policy = 'NO_CONVERSION_USD' AND fx THEN", "IF false AND fx THEN"]]],
