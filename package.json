@@ -43,7 +43,10 @@
     "test:producer11": "node core1-producer-v1.1/tests/run_producer_tests.js",
     "test:producer11:faults": "node core1-producer-v1.1/tests/run_fault_injection_producer.js",
     "test:producer11:all": "npm run -s test:producer11 && npm run -s test:producer11:faults",
-    "probe:kernel-internal-enum": "node kernel-probes/KERNEL-V2.0.3-INTERNAL-VIEW-ENUM-PROBE/probe.js"
+    "probe:kernel-internal-enum": "node kernel-probes/KERNEL-V2.0.3-INTERNAL-VIEW-ENUM-PROBE/probe.js",
+    "test:hotel-doc:model": "node hotel-document-decision-v1/tests/run_doc_model_tests.js",
+    "test:hotel-doc:faults": "node hotel-document-decision-v1/tests/run_fault_injection_doc_model.js",
+    "test:hotel-doc:all": "npm run -s test:hotel-doc:model && npm run -s test:hotel-doc:faults"
   },
   "keywords": [
     "atlas",
