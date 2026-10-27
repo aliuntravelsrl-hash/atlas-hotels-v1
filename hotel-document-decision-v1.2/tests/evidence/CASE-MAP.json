@@ -1,0 +1,744 @@
+{
+ "note": "Mapa de herencia/supersesión. Cada expectativa vigente cuenta UNA vez (status EXECUTED). Duplicados/cubiertas/sustituidas no se cuentan como casos adicionales.",
+ "cases": [
+  {
+   "id": "Sh01",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh02",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh03",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh04",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh05",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh06",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh07",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh08",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh09",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh10",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh11",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh12",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh13",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh14",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Sh15",
+   "source": "v1.1 §7.1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au01",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au02",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au03",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au04",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au05",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au06",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au07",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au08",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au09",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au10",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au11",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Au12",
+   "source": "v1.1 §7.2 (Au01/Au02 corregidos en v1.2)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev01",
+   "source": "v1.1 §7.3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev02",
+   "source": "v1.1 §7.3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev03",
+   "source": "v1.1 §7.3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev04",
+   "source": "v1.1 §7.3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev05",
+   "source": "v1.1 §7.3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev06",
+   "source": "v1.1 §7.3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev07",
+   "source": "v1.1 §7.3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev08",
+   "source": "v1.1 §7.3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp01",
+   "source": "v1.2 §7.1 + corrigendum C12-01",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp02",
+   "source": "v1.2 §7.1 + corrigendum C12-01",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp03",
+   "source": "v1.2 §7.1 + corrigendum C12-01",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp04",
+   "source": "v1.2 §7.1 + corrigendum C12-01",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp07",
+   "source": "v1.2 §7.1 + corrigendum C12-01",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp08",
+   "source": "v1.2 §7.1 + corrigendum C12-01",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp09",
+   "source": "v1.2 §7.1 + corrigendum C12-01",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp10",
+   "source": "v1.2 §7.1 + corrigendum C12-01",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj01",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj02",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj03",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj04",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj05",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj06",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj07",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj08",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj09",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj10",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj11",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj12",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Pj13",
+   "source": "v1.2 §7.2 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu01",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu03",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu04",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu05",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu06",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu07",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu08",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu09",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu10",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Gu11",
+   "source": "v1.2 §7.3 + corrigendum C12-02",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx01",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx02",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx03",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx04",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx05",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx06",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx07",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx08",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx09",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx10",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx11",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx12",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx13",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx14",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx15",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx16",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx17",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx18",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx19",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx20",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rp05",
+   "source": "v1.2 §7.1",
+   "status": "DUPLICATE_OF:Au10",
+   "note": "mismo caso (mismo nonce, otro principal)"
+  },
+  {
+   "id": "Rp06",
+   "source": "v1.2 §7.1",
+   "status": "DUPLICATE_OF:Au09",
+   "note": "mismo caso (mismo nonce y ámbito, digest distinto); la parte de revisión es Rp10"
+  },
+  {
+   "id": "Gu02",
+   "source": "v1.2 §7.3",
+   "status": "DUPLICATE_OF:Au01",
+   "note": "credencial ausente = actor UNVERIFIED"
+  },
+  {
+   "id": "A01",
+   "source": "v1 §A01",
+   "status": "DUPLICATE_OF:Au05",
+   "note": "proveedor confirmado + política ⇒ VOUCHER ALLOW; independencia de pago en Mx01"
+  },
+  {
+   "id": "A02",
+   "source": "v1 §A02",
+   "status": "DUPLICATE_OF:Au02",
+   "note": "REQUEST_ACK sin confirmación"
+  },
+  {
+   "id": "A03",
+   "source": "v1 §A03",
+   "status": "COVERED_BY:Mx01",
+   "note": "recibo con abono no habilita voucher: Mx01/Mx04"
+  },
+  {
+   "id": "A04",
+   "source": "v1 §A04",
+   "status": "COVERED_BY:Mx01",
+   "note": "confirmación con abono pendiente, estados separados"
+  },
+  {
+   "id": "A05",
+   "source": "v1 §A05",
+   "status": "SUPERSEDED_BY:Au08,Rp10",
+   "note": "reformulada por DC-R3/C12-01: repetición ⇒ cero movimientos; clave con ámbito"
+  },
+  {
+   "id": "A06",
+   "source": "v1 §A06",
+   "status": "DUPLICATE_OF:Ev08",
+   "note": "cambio de revisión ⇒ REVISION_CHANGED (también Rp04)"
+  },
+  {
+   "id": "A07",
+   "source": "v1 §A07",
+   "status": "COVERED_BY:Mx09",
+   "note": "destinatario explícito + acuse registrado aparte"
+  },
+  {
+   "id": "A08",
+   "source": "v1 §A08",
+   "status": "DUPLICATE_OF:Au04",
+   "note": "pago sin evidencia del proveedor ⇒ DENY"
+  },
+  {
+   "id": "A09",
+   "source": "v1 §A09",
+   "status": "DUPLICATE_OF:Au07",
+   "note": "emitir no cambia status/payment_status (I-1)"
+  },
+  {
+   "id": "A10",
+   "source": "v1 §A10",
+   "status": "DUPLICATE_OF:Au07",
+   "note": "factura no confirma ni cobra (I-1 y Mx05)"
+  },
+  {
+   "id": "A11",
+   "source": "v1 §A11",
+   "status": "COVERED_BY:Mx05",
+   "note": "sin política fiscal/numeración ⇒ UNKNOWN"
+  },
+  {
+   "id": "A12",
+   "source": "v1 §A12",
+   "status": "COVERED_BY:Mx03",
+   "note": "moneda mixta sin fx"
+  },
+  {
+   "id": "A13",
+   "source": "v1 §A13",
+   "status": "NOT_MODELABLE",
+   "note": "distinción de origen manual/PSP en la presentación: el modelo no proyecta origen del ledger; queda para la capa física (UNK)"
+  },
+  {
+   "id": "A14",
+   "source": "v1 §A14",
+   "status": "SUPERSEDED_BY:Ev01,Ev04,Ev05,Ev06",
+   "note": "DC-R2 sustituyó la igualdad de texto por evidencia verificada"
+  },
+  {
+   "id": "A15",
+   "source": "v1 §A15",
+   "status": "COVERED_BY:Au12,Mx09",
+   "note": "sin destinatario ⇒ falta indicada; URL/200 no es entrega"
+  },
+  {
+   "id": "A16",
+   "source": "v1 §A16",
+   "status": "DUPLICATE_OF:Au03",
+   "note": "actor fuera de alcance (también Au06)"
+  },
+  {
+   "id": "A17",
+   "source": "v1 §A17",
+   "status": "COVERED_BY:Mx19,Mx13",
+   "note": "cancelación/invalidez revoca elegibilidad"
+  },
+  {
+   "id": "A18",
+   "source": "v1 §A18",
+   "status": "COVERED_BY:Mx06",
+   "note": "ausencia de política ⇒ UNKNOWN"
+  },
+  {
+   "id": "A19",
+   "source": "v1 §A19",
+   "status": "NOT_MODELABLE",
+   "note": "servicios simulados del Portal (P8): código físico, no modelo de decisión"
+  },
+  {
+   "id": "Sh08-resp",
+   "source": "v1.1 §7.1 Sh08 (mitad respuesta)",
+   "status": "SUPERSEDED_BY:Pj11,Pj12",
+   "note": "v1.2 §3.4: solo extensiones MINOR declaradas; campo no declarado ⇒ inválida"
+  },
+  {
+   "id": "Au11-degrade",
+   "source": "v1.1 §7.2 Au11 («solo degradaciones permitidas»)",
+   "status": "MODELED_AS_STOP",
+   "note": "el modelo se detiene (UNKNOWN sin alcance); la degradación a QUOTE/REQUEST_ACK es opcional en el contrato y no se modela"
+  },
+  {
+   "id": "Ev02b",
+   "source": "propio del modelo (refuerzo de una expectativa heredada)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev03b",
+   "source": "propio del modelo (refuerzo de una expectativa heredada)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev03c",
+   "source": "propio del modelo (refuerzo de una expectativa heredada)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev03d",
+   "source": "propio del modelo (refuerzo de una expectativa heredada)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Ev03e",
+   "source": "propio del modelo (refuerzo de una expectativa heredada)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx21",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx22",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx23",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Mx24",
+   "source": "propio del modelo (sin equivalente previo)",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm01",
+   "source": "OBS-247 DM-R1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm02",
+   "source": "OBS-247 DM-R1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm03",
+   "source": "OBS-247 DM-R1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm04",
+   "source": "OBS-247 DM-R1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm05",
+   "source": "OBS-247 DM-R1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm06",
+   "source": "OBS-247 DM-R1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm07",
+   "source": "OBS-247 DM-R2",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm08",
+   "source": "OBS-247 DM-R2",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm09",
+   "source": "OBS-247 DM-R3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm10",
+   "source": "OBS-247 DM-R3",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm11",
+   "source": "OBS-247 DM-R4",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm12",
+   "source": "OBS-247 DM-R4",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm13",
+   "source": "OBS-247 DM-R4",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Dm14",
+   "source": "OBS-247 DM-R5",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs01",
+   "source": "OBS-248 DM-R4-A",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs02",
+   "source": "OBS-248 DM-R4-A",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs03",
+   "source": "OBS-248 DM-R4-A",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs04",
+   "source": "OBS-248 DM-R4-B",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs05",
+   "source": "OBS-248 DM-R4-B",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs06",
+   "source": "OBS-248 DM-R5-A",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs07",
+   "source": "OBS-248 DM-R5-A",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs08",
+   "source": "OBS-248 DM-E1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs09",
+   "source": "OBS-248 DM-E1",
+   "status": "EXECUTED"
+  },
+  {
+   "id": "Rs10",
+   "source": "OBS-248 DM-R4-A/DM-R5-A",
+   "status": "EXECUTED"
+  }
+ ]
+}
