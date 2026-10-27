@@ -46,7 +46,11 @@
     "probe:kernel-internal-enum": "node kernel-probes/KERNEL-V2.0.3-INTERNAL-VIEW-ENUM-PROBE/probe.js",
     "test:hotel-doc:model": "node hotel-document-decision-v1/tests/run_doc_model_tests.js",
     "test:hotel-doc:faults": "node hotel-document-decision-v1/tests/run_fault_injection_doc_model.js",
-    "test:hotel-doc:all": "npm run -s test:hotel-doc:model && npm run -s test:hotel-doc:faults"
+    "test:hotel-doc:all": "npm run -s test:hotel-doc:model && npm run -s test:hotel-doc:faults",
+    "test:hotel-doc11:model": "node hotel-document-decision-v1.1/tests/run_doc_model_tests.js",
+    "test:hotel-doc11:faults": "node hotel-document-decision-v1.1/tests/run_fault_injection_doc_model.js",
+    "test:hotel-doc11:probes": "node hotel-document-decision-v1.1/tests/run_curator_probes_regression.js",
+    "test:hotel-doc11:all": "npm run -s test:hotel-doc11:model && npm run -s test:hotel-doc11:faults && npm run -s test:hotel-doc11:probes"
   },
   "keywords": [
     "atlas",
