@@ -50,7 +50,11 @@
     "test:hotel-doc11:model": "node hotel-document-decision-v1.1/tests/run_doc_model_tests.js",
     "test:hotel-doc11:faults": "node hotel-document-decision-v1.1/tests/run_fault_injection_doc_model.js",
     "test:hotel-doc11:probes": "node hotel-document-decision-v1.1/tests/run_curator_probes_regression.js",
-    "test:hotel-doc11:all": "npm run -s test:hotel-doc11:model && npm run -s test:hotel-doc11:faults && npm run -s test:hotel-doc11:probes"
+    "test:hotel-doc11:all": "npm run -s test:hotel-doc11:model && npm run -s test:hotel-doc11:faults && npm run -s test:hotel-doc11:probes",
+    "test:hotel-doc12:model": "node hotel-document-decision-v1.2/tests/run_doc_model_tests.js",
+    "test:hotel-doc12:faults": "node hotel-document-decision-v1.2/tests/run_fault_injection_doc_model.js",
+    "test:hotel-doc12:probes": "node hotel-document-decision-v1.2/tests/run_curator_probes_regression.js",
+    "test:hotel-doc12:all": "npm run -s test:hotel-doc12:model && npm run -s test:hotel-doc12:faults && npm run -s test:hotel-doc12:probes"
   },
   "keywords": [
     "atlas",
