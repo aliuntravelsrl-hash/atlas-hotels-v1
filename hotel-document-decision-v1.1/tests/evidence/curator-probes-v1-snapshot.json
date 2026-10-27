@@ -1,0 +1,79 @@
+[
+  {
+    "id": "locator_empty",
+    "expected": "not ALLOW",
+    "observed": "ALLOW",
+    "render": 1
+  },
+  {
+    "id": "locator_PENDIENTE",
+    "expected": "not ALLOW",
+    "observed": "ALLOW",
+    "render": 1
+  },
+  {
+    "id": "price_expiry_invalid",
+    "expected": "not ALLOW",
+    "observed": "ALLOW",
+    "render": 1
+  },
+  {
+    "id": "allow_missing_expiry",
+    "expected": "invalid/no action",
+    "validator": {
+      "valid": true,
+      "errors": []
+    },
+    "consumer": {
+      "usable": true,
+      "decision": "ALLOW",
+      "actions": [
+        "RENDER",
+        "DELIVER"
+      ]
+    }
+  },
+  {
+    "id": "exclusive_none",
+    "expected": "invalid/no action",
+    "validator": {
+      "valid": true,
+      "errors": []
+    },
+    "consumer": {
+      "usable": true,
+      "decision": "ALLOW",
+      "actions": [
+        "RENDER"
+      ]
+    }
+  },
+  {
+    "id": "deny_empty_reason",
+    "expected": "invalid",
+    "validator": {
+      "valid": true,
+      "errors": []
+    }
+  },
+  {
+    "id": "replay_voided",
+    "expected": "no actionable ALLOW on voided artifact",
+    "observed": "ALLOW",
+    "state": "VOIDED"
+  },
+  {
+    "id": "drift_during_render",
+    "expected": "not release stale RENDERED as current",
+    "observed": "ALLOW",
+    "sourceRevision": 2,
+    "decisionRevision": 1,
+    "state": "RENDERED"
+  },
+  {
+    "id": "positive_control",
+    "expected": "ALLOW/RENDERED",
+    "observed": "ALLOW",
+    "state": "RENDERED"
+  }
+]
