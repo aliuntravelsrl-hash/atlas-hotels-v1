@@ -1,0 +1,1011 @@
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/README.md core1-revision-authority-v1.1/README.md
+--- core1-revision-authority-v1/README.md	2026-10-28 14:48:12.044419015 +0000
++++ core1-revision-authority-v1.1/README.md	2026-10-28 14:57:03.972651341 +0000
+@@ -1,4 +1,4 @@
+-# core1-revision-authority-v1 — RA-1 (CS-2 A+B) — INERTE, SIN DESPLIEGUE
++# core1-revision-authority-v1.1 — RA-1 v1.1 (CS-2 A+B + RA-R1/R2/R3) — INERTE, SIN DESPLIEGUE
+ 
+ Modelo de referencia ejecutable + SQL candidato inerte + laboratorio PostgreSQL local aislado, todo con datos sintéticos.
+ No toca kernel, productores, core1-price v2.1 ni adaptador PR14 (congelados). No se fusiona, adopta ni despliega. Ver `docs/RA1-CONTRACT.md` y `docs/AC-MATRIX.md`.
+@@ -10,3 +10,5 @@
+ - `MANIFEST.sha256` — `cd core1-revision-authority-v1 && sha256sum -c MANIFEST.sha256`.
+ 
+ Límites: PASS acredita solo el modelo/esquema en aislamiento. No acredita ninguno de los once vínculos; D1/D2/D3, FIN-ID-001, F-SEC-01 y A-B §253 siguen abiertos. Sin defensa prometida contra superusuario/administrador del SO.
++
++**v1.1 (delta sobre v1 @4224e66; v1 queda intacta):** ver `docs/RA1-V11-DELTA.md`. Scripts: `test:ra1v11:model|faults|lifecycle|lifecycle:faults|lab|lab:lifecycle-real|all` (el lab y los fallos reales usan el mismo puerto: ejecutar en secuencia). Códigos de salida del lab: 0 · 1 · 4 gate (NO EJECUTADO) · 5 limpieza pendiente.
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/docs/AC-MATRIX.md core1-revision-authority-v1.1/docs/AC-MATRIX.md
+--- core1-revision-authority-v1/docs/AC-MATRIX.md	2026-10-28 14:48:12.044419015 +0000
++++ core1-revision-authority-v1.1/docs/AC-MATRIX.md	2026-10-28 14:57:03.972438667 +0000
+@@ -1,4 +1,4 @@
+-# Matriz AC1–AC10 (RA-1 v1)
++# Matriz AC1–AC10 (RA-1 v1.1)
+ 
+ Cada AC: observable · positivo · negativo · mutación · resultado. Modelo = `tests/run_ra1_model_tests.js` (+ `run_fault_injection_model.js`). Lab = `tests/lab/run_lab.js` (PostgreSQL aislado; incluye mutantes SQL en bases desechables separadas). Equivalentes declarados en los ejecutores.
+ 
+@@ -6,11 +6,11 @@
+ |---|---|---|---|
+ | AC1 activación/invalidación cambian la cabeza | `current` ⇒ `DRIFT`; token fabricado de no activa ⇒ `REVISION_MISSING` | AC1a–d; M01, M19, M24 | AC1; S15 |
+ | AC2 dependencias put-once | `IMMUTABLE_OBJECT`, `DEPENDENCY_MISSING/CORRUPT` | AC2a–d; M02, M23 | AC2, AC3c; S13 |
+-| AC3 integridad/retención en cálculo, última espera y gate | `REVISION_MISSING`, vencimiento real | AC3a–d; M04, M15, M16, M22 | AC3a–c; S02 (equiv. declarado) |
++| AC3 integridad/retención en cálculo, última espera y gate | `REVISION_MISSING`, vencimiento real | AC3a–e; M04, M15, M16, M22, M32 | AC3a–c, AC3d; S02 (detectado desde v1.1) |
+ | AC4 horizonte de toda vista | `HORIZON_MISSING`, `RETENTION_SHORT` | AC4a–b; M03, M05, M06 | AC4, AC3a; S01, S10, S16 |
+ | AC5 reloj/recepción/importación | `received_at` NULL en histórico; cliente prohibido | AC5a–b; M07, M08, M21 | AC5; S08, S09 |
+ | AC6 atomicidad, ids no reutilizables, concurrencia | rollback sin huecos de cabeza; una gana, otra `CONFLICT` | AC6a–b; M09, M10, M18, M20 | AC6a–c; S06, S14 |
+ | AC7 lectura exacta | `NOT_FOUND`, `REVISION_MISSING`, `SHAPE_INVALID` | AC7; M17 | AC7 |
+-| AC8 FX no aprobado | `FX_CONVERSION_PRESENT`; `FX_BRANCH` solo clasifica | AC8; M11 | AC8; S07 |
++| AC8 FX no aprobado | `FX_CONVERSION_PRESENT`; `FX_BRANCH` solo clasifica | AC8, AC8b, AC8c; M11, M26–M31 | AC8, AC8b, AC8c; S07, S19–S24 |
+ | AC9 permisos por rol | privilegios efectivos y operaciones reales denegadas | AC9, AC9b; M12, M13, M14 | AC9a–e; S05, S11, S12, S17, S18 |
+-| AC10 regresión/congelados | `git diff` de carpetas congeladas vacío; sin catálogos públicos | AC10a–c | AC10 |
++| AC10 regresión/congelados | `git diff` de carpetas congeladas vacío; sin catálogos públicos | AC10a–d | AC10 |
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/docs/RA1-CONTRACT.md core1-revision-authority-v1.1/docs/RA1-CONTRACT.md
+--- core1-revision-authority-v1/docs/RA1-CONTRACT.md	2026-10-28 14:48:12.045025307 +0000
++++ core1-revision-authority-v1.1/docs/RA1-CONTRACT.md	2026-10-28 14:57:03.972047157 +0000
+@@ -1,4 +1,4 @@
+-# RA-1 v1 — Contrato de la autoridad de revisión (modelo + SQL candidato INERTE)
++# RA-1 v1.1 — Contrato de la autoridad de revisión (modelo + SQL candidato INERTE)
+ 
+ **Estado:** CS-2 A+B, mandato `MANDATE-DG-CORE1-RA1-CS2-ISOLATED-20261026`. Solo acredita el modelo y el esquema candidato **en aislamiento** con datos sintéticos.
+ **No acredita** ninguno de los once vínculos (M02, M05, M06, M08, M11, M14, M15, M19, M21, M22, M23: siguen sin fuente suficiente). D1/D2/D3, FIN-ID-001, F-SEC-01 y A-B §253 siguen abiertos.
+@@ -30,5 +30,15 @@
+ 
+ Bootstrap (superusuario del clúster) separado del propietario y de los roles operativos. **No se promete defensa contra superusuario ni administrador del SO.**
+ 
+-## FX (AC8)
+-No se aprueba ni implementa FX. Con política `NO_CONVERSION_USD` se rechaza cualquier moneda ≠ USD o clave de conversión/equivalente (`FX_CONVERSION_PRESENT`); con `FX_BRANCH` solo se **clasifica**.
++## FX (AC8, RA-R1)
++No se aprueba ni implementa FX (sin tasa, sin conversión). Con política `NO_CONVERSION_USD` se rechaza (`FX_CONVERSION_PRESENT`) el contenido con clave de conversión o moneda ≠ USD; con `FX_BRANCH` solo se **clasifica**.
++**Política obligatoria:** ausente, `NULL`, vacía o fuera de `{NO_CONVERSION_USD, FX_BRANCH}` ⇒ `SHAPE_INVALID: fx_policy` explícito, ANTES de clasificar, en modelo y SQL (en SQL `NULL NOT IN (...)` es desconocido, no verdadero: por eso la guarda `IS NULL` es explícita).
++**Normalización admitida (idéntica en modelo y SQL):** la clave se parte por mayúsculas (camelCase, PascalCase, siglas: `exchangeRate`, `ExchangeRate`, `FXRate`, `amountDOP`) y por todo carácter fuera de `[A-Za-z0-9]`; minúsculas solo ASCII. Es conversión si la clave en minúsculas contiene `exchange` o `equivalent`, o alguna palabra es exactamente `dop` o `fx`; y una palabra `currency` (`currency`, `depositCurrency`, `deposit_currency`) con valor distinto de la cadena `"USD"` (incluye `null`, números y `"usd"`).
++**Límites declarados (no admitidos, probados como límite, no como cobertura):** `fxrate`/`dopprice` sin separador ni mayúscula interna, `tasaCambio`, `conversionRate` (término `conversion` no admitido), y valores como `"DOP"` en claves que no son de moneda. No es un scanner universal; ampliar el esquema admitido requiere decisión del Curator.
++`fx_class` conserva su regla: `FX_BRANCH` si el contenido tiene conversión, si no `NO_CONVERSION_USD` (una política `FX_BRANCH` sin conversión en el contenido queda clasificada `NO_CONVERSION_USD`; no es una decisión FX).
++
++## Límite de retención (RA-R2)
++`usable(r, t, …)` recibe el tiempo explícito. Antes del límite ⇒ `OK`; igual o después ⇒ `REVISION_MISSING` (exclusivo). En SQL se prueba con la fila sintética y `t = retention_until ± 1 µs`, como `c1_owner` (dueño no operativo) sobre el auxiliar interno; ni lector ni publicador pueden ejecutarlo ni elegir reloj. No se añade API pública.
++
++## Ciclo de vida del laboratorio (RA-R3)
++Parada desconocida ≠ parada confirmada. El directorio propio solo se elimina si nunca se intentó arrancar, o si el PID propio fue **acreditado** (entero > 1 leído de su `postmaster.pid`, con `/proc/<pid>/cmdline` que contiene su directorio de datos) y se **observó** que desapareció. Si falla la lectura del PID tras el arranque, el PID no es propio, el estado es desconocido o sigue vivo: se retiene el directorio, se declara `STOP_PENDING_*` y la salida es 5. Solo se usa `pg_ctl -D <directorio propio>`; nunca búsqueda ni parada por nombre. Códigos: 0 correcto · 1 fallo · 4 gate de aislamiento (NO EJECUTADO) · 5 limpieza pendiente (precedencia).
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/docs/RA1-V11-DELTA.md core1-revision-authority-v1.1/docs/RA1-V11-DELTA.md
+--- core1-revision-authority-v1/docs/RA1-V11-DELTA.md	1970-01-01 00:00:00.000000000 +0000
++++ core1-revision-authority-v1.1/docs/RA1-V11-DELTA.md	2026-10-28 14:57:07.633420985 +0000
+@@ -0,0 +1,15 @@
++# RA-1 v1.1 — delta RA-R1 / RA-R2 / RA-R3 (OBS-238 / §289)
++
++**FROM:** RA-1 v1 en PR #15 @`4224e66` (base `fc3cdb3`), dictamen REVISE acotado del Curator. v1 queda intacta en `core1-revision-authority-v1/` (recuperable en `4224e66`).
++**WHY:** (R1) la clasificación NO_CONVERSION_USD solo reconocía claves delimitadas por guion bajo y dejaba pasar `exchangeRate`; el SQL usaba `IF p_fx_policy NOT IN (...)`, que con `NULL` no rechaza. (R2) S02 se declaró equivalente por no poder igualar el reloj real. (R3) el arnés marcaba `started` antes de leer `postmaster.pid`; con PID desconocido `!undefined` daba «parada confirmada» y se borraba el directorio.
++**TO:** carpeta nueva `core1-revision-authority-v1.1/` (modelo, SQL inerte, arnés, docs). Precedencia: v1.1 sustituye a v1 solo para efectos de revisión de este delta; v1 no se modifica. PR #15 sigue en BORRADOR, sin fusión, activación ni producción.
++
++| Punto | Cambio | Pruebas nuevas |
++|---|---|---|
++| RA-R1 | `fxKeyNorm`/`fx_key_norm` (partición por mayúsculas y separadores, minúsculas ASCII); `exchange`/`equivalent` por subcadena, `dop`/`fx` por palabra, `currency` por palabra; política NULL/ausente/vacía/desconocida ⇒ `SHAPE_INVALID` explícito en SQL (el modelo ya la rechazaba) | AC8b (38 vectores compartidos modelo↔SQL + 5 límites declarados + fuzz determinista de ~390 claves, incluidas no ASCII), AC8c; mutantes M26–M31, S19–S24 |
++| RA-R2 | sin cambio de SQL: `usable()` ya recibía `t`; prueba determinista antes/igual/después con la fila sintética como `c1_owner`; S02 deja de ser equivalente | AC3d (SQL), AC3e (modelo); M32 |
++| RA-R3 | `tests/lab/lifecycle.js`: PID acreditado + parada observada o retención y exit 5; tri-estado; solo directorio/PID propios | `run_lifecycle_tests.js` (12), `run_fault_injection_lifecycle.js` (10 mutantes), `run_lifecycle_faults.js` (7 casos reales con fallo inyectado) |
++
++**Equivalentes (fuera del conteo de muertos, con condiciones):** M25 — redundante con `RETENTION_SHORT` bajo publicación que fija horizonte/retención y sin mutación operativa posterior. S04 — redundante bajo FK activa y disparador TRUNCATE de `ledger` habilitado (`revisions` sola queda bloqueada por la FK; el truncado conjunto incluye `ledger`); no hay promesa frente a propietario que altere DDL ni superusuario; no se cuenta como detectado ni se retira la defensa. Se retira el texto de equivalencia obsoleto de M24 (se detecta, AC1d).
++
++**No se hace:** no se aprueba ni implementa FX; no se amplía a scanner universal; no se tocan congelados, kernel, productores, adaptador PR14, fuentes comerciales, SQL externo, Supabase, VPS/n8n, apps, host ni PII; sin ronda global nueva (solo suites RA-1 v1.1).
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/model/fx_vectors.js core1-revision-authority-v1.1/model/fx_vectors.js
+--- core1-revision-authority-v1/model/fx_vectors.js	1970-01-01 00:00:00.000000000 +0000
++++ core1-revision-authority-v1.1/model/fx_vectors.js	2026-10-28 14:51:23.309868201 +0000
+@@ -0,0 +1,38 @@
++'use strict';
++// RA-R1 — vectores SINTÉTICOS compartidos por el modelo (tests/run_ra1_model_tests.js) y el laboratorio SQL (tests/lab/run_lab.js): misma tabla, mismo resultado esperado.
++// Esquema/normalización admitidos: ver cabecera de model/ra1.js. «limit» = formas NO admitidas, fijadas como límite DECLARADO (no son pruebas de cobertura).
++const k = (key, value, expect_fx, id) => ({ id: id || key, content: { currency: 'USD', unit: 'PERSON_NIGHT', rows: [{ adult: 100 }], compare: { [key]: value } }, expect_fx });
++const CONTENT_VECTORS = [
++  // conversión: claves con conversión en las formas admitidas (snake, camel, Pascal, kebab, espacio, mayúsculas, siglas, anidadas)
++  k('exchange_rate', 60.2, true), k('exchangeRate', 60.2, true), k('ExchangeRate', 60.2, true), k('exchange-rate', 60.2, true), k('exchange rate', 60.2, true), k('EXCHANGE_RATE', 60.2, true), k('exchangeRates', 60.2, true),
++  k('fxRate', 1, true), k('fx_rate', 1, true), k('FXRate', 1, true), k('FX', 1, true), k('usdFx', 1, true), k('amountDOP', 1, true), k('dop', 1, true), k('DOP_amount', 1, true), k('dopPrice', 1, true), k('equivalentDop', 1, true), k('equivalent_usd', 1, true), k('Equivalents', 1, true),
++  { id: 'anidada-en-arreglo', content: { currency: 'USD', rows: [{ adult: 100, extra: [{ deep: { exchangeRate: 1 } }] }] }, expect_fx: true },
++  { id: 'deposito-moneda-DOP', content: { currency: 'USD', rows: [{ adult: 100 }], deposit: { currency: 'DOP', min: 5000 } }, expect_fx: true },
++  { id: 'depositCurrency-EUR', content: { currency: 'USD', rows: [{ adult: 100 }], deposit: { depositCurrency: 'EUR' } }, expect_fx: true },
++  { id: 'deposit_currency-null', content: { currency: 'USD', rows: [{ adult: 100 }], deposit: { deposit_currency: null } }, expect_fx: true },
++  { id: 'Currency-numero', content: { currency: 'USD', rows: [{ adult: 100 }], deposit: { Currency: 1 } }, expect_fx: true },
++  { id: 'currency-minuscula-usd', content: { currency: 'usd', rows: [{ adult: 100 }] }, expect_fx: true },
++  { id: 'currency-raiz-EUR', content: { currency: 'EUR', rows: [{ adult: 100 }] }, expect_fx: true },
++  // controles USD genuinos (no deben clasificarse como conversión)
++  { id: 'control-usd-base', content: { currency: 'USD', unit: 'PERSON_NIGHT', rows: [{ stay_from: '2027-01-10', stay_until_exclusive: '2027-01-17', adult: 100 }], deposit: { currency: 'USD', pct: 30 } }, expect_fx: false },
++  { id: 'control-depositCurrency-USD', content: { currency: 'USD', rows: [{ adult: 100 }], deposit: { depositCurrency: 'USD' } }, expect_fx: false },
++  k('adopt', 1, false), k('adoption', 1, false), k('dopamine', 1, false), k('rates', 1, false), k('rate', 1, false), k('index', 1, false), k('fixed', 1, false), k('fxi', 1, false), k('indop', 1, false), k('Mixture', 1, false),
++];
++// Límites DECLARADOS (esperado = no detectado). Se prueban en modelo y SQL para que cualquier cambio de alcance sea visible, NO como cobertura.
++const LIMIT_VECTORS = [
++  k('fxrate', 1, false, 'limit-fxrate-sin-separador'), k('dopprice', 1, false, 'limit-dopprice-sin-separador'), k('tasaCambio', 1, false, 'limit-otro-idioma'), k('conversionRate', 1, false, 'limit-termino-conversion-no-admitido'),
++  { id: 'limit-valor-DOP-en-clave-no-moneda', content: { currency: 'USD', rows: [{ adult: 100 }], unit: 'DOP' }, expect_fx: false },
++];
++// Política (RA-R1): valores NO admitidos deben rechazarse como SHAPE_INVALID en modelo y SQL; «sql:false» = no expresable como texto SQL.
++const POLICY_VECTORS = [
++  { id: 'pol-null', policy: null, sql: true }, { id: 'pol-ausente', policy: undefined, sql: true }, { id: 'pol-vacia', policy: '', sql: true }, { id: 'pol-minuscula', policy: 'no_conversion_usd', sql: true },
++  { id: 'pol-espacio', policy: ' NO_CONVERSION_USD', sql: true }, { id: 'pol-desconocida', policy: 'OTRA', sql: true }, { id: 'pol-numero', policy: 7, sql: false },
++];
++// Claves pseudoaleatorias deterministas (LCG fijo) para paridad exhaustiva-parcial modelo↔SQL de la normalización.
++function fuzzKeys(n = 600) {
++  const P = ['ex', 'change', 'Exchange', 'FX', 'fx', 'Fx', 'DOP', 'dop', 'Dop', 'a', 'A', 'b', '_', '-', ' ', '1', 'Rate', 'rate', 'x', 'X', 'equi', 'valent', 'Currency', 'currency', 'ñ', 'K', 'I', 'ı'];
++  let s = 20261028; const next = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s; }; const out = [];
++  for (let i = 0; i < n; i++) { let key = ''; const len = 1 + (next() % 6); for (let j = 0; j < len; j++) key += P[next() % P.length]; out.push(key); }
++  return Array.from(new Set(out));
++}
++module.exports = Object.freeze({ CONTENT_VECTORS, LIMIT_VECTORS, POLICY_VECTORS, fuzzKeys });
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/model/ra1.js core1-revision-authority-v1.1/model/ra1.js
+--- core1-revision-authority-v1/model/ra1.js	2026-10-28 14:48:12.045905887 +0000
++++ core1-revision-authority-v1.1/model/ra1.js	2026-10-28 14:50:36.894194824 +0000
+@@ -1,5 +1,5 @@
+ 'use strict';
+-// RA-1 v1 — MODELO DE REFERENCIA de la autoridad de revisión (inerte, sin base de datos, sin red, sin lectores). CS-2 A.
++// RA-1 v1.1 — MODELO DE REFERENCIA de la autoridad de revisión (inerte, sin base de datos, sin red, sin lectores). CS-2 A.
+ // Contrato: libro append-only por scope; revisión = manifiesto inmutable con cierre de dependencias; publicación atómica;
+ // current/pin/read por scope+revisión con integridad, retención y horizonte; reloj de autoridad inyectado.
+ // Estados de salida (internos de la autoridad; el adaptador los mapea a los cuatro existentes y a READ_DRIFT_DETECTED): OK | DRIFT | REVISION_MISSING | NOT_FOUND | SHAPE_INVALID.
+@@ -11,9 +11,16 @@
+ const sha = (v) => crypto.createHash('sha256').update(canon(v)).digest('hex');
+ const clone = (v) => JSON.parse(JSON.stringify(v));
+ const ms = (iso) => { const t = typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(iso) ? Date.parse(iso) : NaN; return t; };
+-// AC8: detección de rama FX (no aprueba ni implementa FX): moneda distinta de USD o clave de conversión/equivalente.
+-const FXKEY = /(^|_)(dop|fx|exchange|equivalent)(_|$)/i;
+-function fxScan(v) { if (Array.isArray(v)) return v.some(fxScan); if (v && typeof v === 'object') return Object.keys(v).some((k) => FXKEY.test(k) || (k === 'currency' && v[k] !== 'USD') || fxScan(v[k])); return false; }
++// AC8 / RA-R1: clasificación FX fail-closed (no aprueba ni implementa FX). NORMALIZACIÓN ADMITIDA (idéntica en SQL, c1_ra1.fx_key_norm):
++//  1) se parte la clave en palabras por mayúsculas (camelCase/PascalCase/siglas: exchangeRate, ExchangeRate, FXRate, amountDOP) y por todo carácter fuera de [A-Za-z0-9];
++//  2) minúsculas SOLO ASCII (sin tablas de locale). Una clave es de conversión si (a) su forma en minúsculas contiene «exchange» o «equivalent» (subcadena), o
++//  (b) alguna palabra es exactamente «dop» o «fx». Una clave con palabra «currency» (currency, depositCurrency, deposit_currency) cuyo valor no sea exactamente la cadena "USD" también lo es.
++//  NO admitido (límite declarado): abreviaturas sin separador ni mayúsculas internas (p. ej. «fxrate», «dopprice»), otros idiomas/sinónimos y valores de cadena fuera de claves de moneda; no es un scanner universal.
++const LOWER = (s) => s.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32));
++const fxKeyNorm = (k) => LOWER(String(k).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'));
++const fxWords = (k) => fxKeyNorm(k).split(/[^a-z0-9]+/).filter((w) => w !== '');
++function fxKeyIsConversion(k) { const lk = LOWER(String(k)); if (lk.includes('exchange') || lk.includes('equivalent')) return true; const w = fxWords(k); return w.includes('dop') || w.includes('fx'); }
++function fxScan(v) { if (Array.isArray(v)) return v.some(fxScan); if (v && typeof v === 'object') return Object.keys(v).some((k) => fxKeyIsConversion(k) || (fxWords(k).includes('currency') && v[k] !== 'USD') || fxScan(v[k])); return false; }
+ 
+ function createAuthority({ clock }) {
+   if (typeof clock !== 'function') throw new AuthorityError('CLOCK_REQUIRED');
+@@ -43,7 +50,8 @@
+       if (ms(a.retention_until) <= t0) throw new AuthorityError('RETENTION_SHORT', 'ya vencida');
+       const members = Array.isArray(a.members) ? a.members : null; if (!members) throw new AuthorityError('SHAPE_INVALID', 'members');
+       const man = members.map((m) => { const o = S.objects.get(m && m.key); if (!o) throw new AuthorityError('DEPENDENCY_MISSING', String(m && m.key)); if (o.digest !== sha(o.content)) throw new AuthorityError('DEPENDENCY_CORRUPT', o.key); return { key: o.key, digest: o.digest }; });
+-      const fx = fxScan(a.content); if (a.fx_policy === 'NO_CONVERSION_USD' && fx) throw new AuthorityError('FX_CONVERSION_PRESENT'); if (!['NO_CONVERSION_USD', 'FX_BRANCH'].includes(a.fx_policy)) throw new AuthorityError('SHAPE_INVALID', 'fx_policy');
++      if (!['NO_CONVERSION_USD', 'FX_BRANCH'].includes(a.fx_policy)) throw new AuthorityError('SHAPE_INVALID', 'fx_policy');   // RA-R1: política ausente/NULL/vacía/desconocida se rechaza ANTES de clasificar
++      const fx = fxScan(a.content); if (a.fx_policy === 'NO_CONVERSION_USD' && fx) throw new AuthorityError('FX_CONVERSION_PRESENT');
+       const r = a.received || {}; let received_at = null; let imported_at = null;
+       if (r.kind === 'SERVER') { if (r.at !== undefined || r.original_received_at !== undefined) throw new AuthorityError('CLIENT_TIME_FORBIDDEN'); received_at = iso(t0); }
+       else if (r.kind === 'IMPORTED_HISTORICAL') { imported_at = iso(t0); if (r.at !== undefined) throw new AuthorityError('CLIENT_TIME_FORBIDDEN'); if (r.original_received_at !== undefined) { if (!r.evidence_ref || Number.isNaN(ms(r.original_received_at))) throw new AuthorityError('SHAPE_INVALID', 'evidencia de recepción'); received_at = r.original_received_at; } }   // desconocido ⇒ received_at null; la fecha de importación NUNCA es recepción
+@@ -82,4 +90,4 @@
+     dropObject: (key) => S.objects.delete(key), alterObject: (key, c) => { const o = S.objects.get(key); if (o) o.content = clone(c); }, setFailpoint: (n) => { hooks.failpoint = n; }, counters: () => ({ seq: S.seq, rev: S.revCounter, ledger: S.ledger.length, revisions: S.revisions.size }), ledger: () => clone(S.ledger) });
+   return Object.freeze({ putObject, publish, setActive, invalidate, pin, read, current, admin });
+ }
+-module.exports = Object.freeze({ createAuthority, AuthorityError, ROLES, STATUSES, fxScan, canon, sha });
++module.exports = Object.freeze({ createAuthority, AuthorityError, ROLES, STATUSES, fxScan, fxKeyNorm, fxWords, canon, sha });
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/sql/01-schema-ra1-v1.1.sql.inert core1-revision-authority-v1.1/sql/01-schema-ra1-v1.1.sql.inert
+--- core1-revision-authority-v1/sql/01-schema-ra1-v1.1.sql.inert	1970-01-01 00:00:00.000000000 +0000
++++ core1-revision-authority-v1.1/sql/01-schema-ra1-v1.1.sql.inert	2026-10-28 14:50:54.776406315 +0000
+@@ -0,0 +1,193 @@
++-- RA-1 v1.1 — AUTORIDAD DE REVISIÓN — CANDIDATO SQL INERTE (CS-2). NO EJECUTADO en ningún entorno real.
++-- Solo se ejecuta en el laboratorio PostgreSQL local, nuevo y aislado del mandato (tests/lab/run_lab.js), con datos sintéticos.
++-- Sin BEGIN/COMMIT (lo envuelve quien ejecuta). Requiere los roles c1_owner (no operativo, propietario), c1_publisher y c1_reader
++-- creados antes por el bootstrap (cluster-level, fuera de este archivo). Se ejecuta como c1_owner (SET ROLE c1_owner), NO como superusuario.
++-- No promete defensa contra superusuario / administrador del SO. No toca catálogos públicos del kernel. No implementa FX.
++CREATE SCHEMA c1_ra1;
++REVOKE ALL ON SCHEMA c1_ra1 FROM PUBLIC;
++GRANT USAGE ON SCHEMA c1_ra1 TO c1_publisher, c1_reader;   -- USAGE sin CREATE: nadie operativo crea objetos
++
++CREATE SEQUENCE c1_ra1.rev_seq;      -- no transaccional ⇒ ids no reutilizables, huecos permitidos
++CREATE SEQUENCE c1_ra1.ledger_seq;   -- monótona; huecos permitidos
++
++CREATE TABLE c1_ra1.objects (
++  key text PRIMARY KEY, kind text NOT NULL, content jsonb NOT NULL, digest text NOT NULL,
++  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
++  CONSTRAINT objects_digest_ck CHECK (digest = encode(sha256(convert_to(content::text, 'UTF8')), 'hex')));
++CREATE TABLE c1_ra1.revisions (
++  revision_id text PRIMARY KEY, scope text NOT NULL, port text NOT NULL, content jsonb NOT NULL, content_digest text NOT NULL,
++  members jsonb NOT NULL, manifest_digest text NOT NULL,
++  horizon_public timestamptz NOT NULL, horizon_internal timestamptz NOT NULL, retention_until timestamptz NOT NULL, margin_ms bigint NOT NULL,
++  fx_class text NOT NULL, received_kind text NOT NULL, received_at timestamptz, imported_at timestamptz, attested_at timestamptz NOT NULL,
++  CONSTRAINT rev_margin_ck CHECK (margin_ms >= 0),
++  CONSTRAINT rev_retention_ck CHECK (retention_until >= greatest(horizon_public, horizon_internal) + margin_ms * interval '1 millisecond'),
++  CONSTRAINT rev_fx_ck CHECK (fx_class IN ('NO_CONVERSION_USD','FX_BRANCH')),
++  CONSTRAINT rev_received_ck CHECK ((received_kind = 'SERVER' AND received_at IS NOT NULL AND imported_at IS NULL)
++                                 OR (received_kind = 'IMPORTED_HISTORICAL' AND imported_at IS NOT NULL)));
++CREATE TABLE c1_ra1.ledger (
++  seq bigint PRIMARY KEY, scope text NOT NULL, event text NOT NULL CHECK (event IN ('PUBLISH','ACTIVATE','DEACTIVATE','INVALIDATE')),
++  revision_id text NOT NULL REFERENCES c1_ra1.revisions(revision_id), at timestamptz NOT NULL DEFAULT clock_timestamp());
++CREATE INDEX ledger_scope_seq ON c1_ra1.ledger (scope, seq DESC);
++REVOKE ALL ON TABLE c1_ra1.objects, c1_ra1.revisions, c1_ra1.ledger FROM PUBLIC;
++REVOKE ALL ON SEQUENCE c1_ra1.rev_seq, c1_ra1.ledger_seq FROM PUBLIC;   -- ningún rol operativo recibe privilegio de tabla
++
++-- Append-only incluso para el propietario: UPDATE/DELETE/TRUNCATE rechazados por disparador de sentencia (también sobre tablas vacías).
++CREATE FUNCTION c1_ra1.deny_mutation() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
++BEGIN RAISE EXCEPTION 'IMMUTABLE_STORE: % sobre %', TG_OP, TG_TABLE_NAME USING ERRCODE = 'P0001'; END $$;
++CREATE TRIGGER objects_ro BEFORE UPDATE OR DELETE ON c1_ra1.objects FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
++CREATE TRIGGER revisions_ro BEFORE UPDATE OR DELETE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
++CREATE TRIGGER ledger_ro BEFORE UPDATE OR DELETE ON c1_ra1.ledger FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
++CREATE TRIGGER objects_nt BEFORE TRUNCATE ON c1_ra1.objects FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
++CREATE TRIGGER revisions_nt BEFORE TRUNCATE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
++CREATE TRIGGER ledger_nt BEFORE TRUNCATE ON c1_ra1.ledger FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
++
++-- Auxiliares internos (sin EXECUTE para roles operativos).
++CREATE FUNCTION c1_ra1.sha(j jsonb) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, pg_temp AS $$ SELECT encode(sha256(convert_to(j::text, 'UTF8')), 'hex') $$;
++-- RA-R1: clasificación FX fail-closed. Normalización admitida IDÉNTICA a model/ra1.js (fxKeyNorm/fxWords/fxScan): partir por mayúsculas (camelCase, PascalCase, siglas) y por todo
++-- carácter fuera de [A-Za-z0-9]; minúsculas SOLO ASCII. Conversión si la clave en minúsculas contiene «exchange» o «equivalent», o alguna palabra es «dop» o «fx», o si una palabra «currency» tiene valor ≠ "USD".
++-- Límite declarado: sin separador ni mayúsculas internas («fxrate»), otros idiomas/sinónimos y valores de cadena fuera de claves de moneda NO se infieren. No implementa ni aprueba FX.
++CREATE FUNCTION c1_ra1.fx_key_norm(k text) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, pg_temp AS $$
++  SELECT translate(regexp_replace(regexp_replace(k, '([a-z0-9])([A-Z])', '\1 \2', 'g'), '([A-Z]+)([A-Z][a-z])', '\1 \2', 'g'), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') $$;
++CREATE FUNCTION c1_ra1.fx_scan(j jsonb) RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE k text; v jsonb; e jsonb; lk text; w text[];
++BEGIN
++  IF jsonb_typeof(j) = 'array' THEN FOR e IN SELECT jsonb_array_elements(j) LOOP IF c1_ra1.fx_scan(e) THEN RETURN true; END IF; END LOOP; RETURN false; END IF;
++  IF jsonb_typeof(j) = 'object' THEN
++    FOR k, v IN SELECT * FROM jsonb_each(j) LOOP
++      lk := translate(k, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'); w := regexp_split_to_array(c1_ra1.fx_key_norm(k), '[^a-z0-9]+');
++      IF position('exchange' in lk) > 0 OR position('equivalent' in lk) > 0 OR 'dop' = ANY(w) OR 'fx' = ANY(w) THEN RETURN true; END IF;
++      IF 'currency' = ANY(w) AND v <> to_jsonb('USD'::text) THEN RETURN true; END IF;
++      IF c1_ra1.fx_scan(v) THEN RETURN true; END IF;
++    END LOOP; END IF;
++  RETURN false;
++END $$;
++CREATE FUNCTION c1_ra1.head_state(p_scope text) RETURNS TABLE(revision_id text, active boolean, valid boolean, seq bigint) LANGUAGE plpgsql STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE rid text; pseq bigint; hseq bigint; last_ev text; inv boolean;
++BEGIN
++  SELECT l.revision_id, l.seq INTO rid, pseq FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.event = 'PUBLISH' ORDER BY l.seq DESC LIMIT 1;
++  IF rid IS NULL THEN RETURN QUERY SELECT NULL::text, false, false, 0::bigint; RETURN; END IF;
++  SELECT max(l.seq) INTO hseq FROM c1_ra1.ledger l WHERE l.scope = p_scope;
++  SELECT EXISTS (SELECT 1 FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.seq > pseq AND l.event = 'INVALIDATE') INTO inv;
++  SELECT l.event INTO last_ev FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.seq > pseq AND l.event IN ('ACTIVATE','DEACTIVATE') ORDER BY l.seq DESC LIMIT 1;
++  RETURN QUERY SELECT rid, (NOT inv AND coalesce(last_ev = 'ACTIVATE', false)), NOT inv, hseq;
++END $$;
++-- Integridad + retención + horizonte de TODA vista liberable. Devuelve estado interno.
++CREATE FUNCTION c1_ra1.usable(r c1_ra1.revisions, t timestamptz, dp timestamptz, di timestamptz, check_deliver boolean) RETURNS text LANGUAGE plpgsql STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE m jsonb; o c1_ra1.objects;
++BEGIN
++  IF r.revision_id IS NULL THEN RETURN 'REVISION_MISSING'; END IF;
++  IF r.content IS NULL OR r.content_digest <> c1_ra1.sha(r.content) THEN RETURN 'REVISION_MISSING'; END IF;
++  FOR m IN SELECT jsonb_array_elements(r.members) LOOP
++    SELECT * INTO o FROM c1_ra1.objects x WHERE x.key = m->>'key';
++    IF NOT FOUND OR o.digest <> (m->>'digest') OR o.digest <> c1_ra1.sha(o.content) THEN RETURN 'REVISION_MISSING'; END IF;
++  END LOOP;
++  IF t >= r.retention_until THEN RETURN 'REVISION_MISSING'; END IF;                    -- límite superior exclusivo
++  IF check_deliver THEN
++    IF dp IS NULL OR di IS NULL THEN RETURN 'SHAPE_INVALID'; END IF;
++    IF dp > r.horizon_public OR di > r.horizon_internal OR dp > r.retention_until OR di > r.retention_until THEN RETURN 'REVISION_MISSING'; END IF;
++  END IF;
++  RETURN 'OK';
++END $$;
++REVOKE ALL ON FUNCTION c1_ra1.sha(jsonb), c1_ra1.fx_key_norm(text), c1_ra1.fx_scan(jsonb), c1_ra1.head_state(text), c1_ra1.usable(c1_ra1.revisions, timestamptz, timestamptz, timestamptz, boolean), c1_ra1.deny_mutation() FROM PUBLIC;
++
++-- Interfaz controlada (única vía de escritura): SECURITY DEFINER, propietario c1_owner, search_path fijo.
++CREATE FUNCTION c1_ra1.put_object(p_kind text, p_id text, p_rev text, p_content jsonb) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE k text; d text; ex c1_ra1.objects;
++BEGIN
++  IF coalesce(p_kind,'') = '' OR coalesce(p_id,'') = '' OR coalesce(p_rev,'') = '' OR p_content IS NULL THEN RAISE EXCEPTION 'SHAPE_INVALID: object key'; END IF;
++  k := p_kind || ':' || p_id || '@' || p_rev; d := c1_ra1.sha(p_content);
++  PERFORM pg_advisory_xact_lock(hashtextextended('obj:' || k, 0));
++  SELECT * INTO ex FROM c1_ra1.objects WHERE key = k;
++  IF FOUND THEN IF ex.digest <> d THEN RAISE EXCEPTION 'IMMUTABLE_OBJECT: %', k; END IF; RETURN k; END IF;
++  INSERT INTO c1_ra1.objects(key, kind, content, digest) VALUES (k, p_kind, p_content, d); RETURN k;
++END $$;
++
++CREATE FUNCTION c1_ra1.publish(p_scope text, p_port text, p_content jsonb, p_members text[], p_horizon_public timestamptz, p_horizon_internal timestamptz,
++  p_retention_until timestamptz, p_margin_ms bigint, p_fx_policy text, p_received_kind text, p_original_received_at timestamptz, p_evidence_ref text, p_expect_seq bigint)
++RETURNS TABLE(revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE t0 timestamptz := clock_timestamp(); man jsonb := '[]'::jsonb; mk text; o c1_ra1.objects; fx boolean; rid text; s bigint; recv timestamptz; imp timestamptz; h record;
++BEGIN
++  IF coalesce(p_scope,'') = '' OR coalesce(p_port,'') = '' OR p_content IS NULL OR jsonb_typeof(p_content) <> 'object' OR p_members IS NULL THEN RAISE EXCEPTION 'SHAPE_INVALID: args'; END IF;
++  IF p_horizon_public IS NULL OR p_horizon_internal IS NULL THEN RAISE EXCEPTION 'HORIZON_MISSING'; END IF;     -- toda vista liberable (pública e interna)
++  IF p_retention_until IS NULL THEN RAISE EXCEPTION 'RETENTION_MISSING'; END IF;
++  IF p_margin_ms IS NULL OR p_margin_ms < 0 THEN RAISE EXCEPTION 'MARGIN_INVALID'; END IF;
++  IF p_retention_until < greatest(p_horizon_public, p_horizon_internal) + p_margin_ms * interval '1 millisecond' OR p_retention_until <= t0 THEN RAISE EXCEPTION 'RETENTION_SHORT'; END IF;
++  IF p_fx_policy IS NULL OR p_fx_policy NOT IN ('NO_CONVERSION_USD','FX_BRANCH') THEN RAISE EXCEPTION 'SHAPE_INVALID: fx_policy'; END IF;   -- RA-R1: NULL = desconocido, NOT IN no lo rechaza solo; rechazo explícito antes de clasificar
++  fx := c1_ra1.fx_scan(p_content);
++  IF p_fx_policy = 'NO_CONVERSION_USD' AND fx THEN RAISE EXCEPTION 'FX_CONVERSION_PRESENT'; END IF;
++  IF p_received_kind = 'SERVER' THEN
++    IF p_original_received_at IS NOT NULL OR p_evidence_ref IS NOT NULL THEN RAISE EXCEPTION 'CLIENT_TIME_FORBIDDEN'; END IF;
++    recv := t0; imp := NULL;
++  ELSIF p_received_kind = 'IMPORTED_HISTORICAL' THEN
++    imp := t0; recv := NULL;                                   -- desconocido ⇒ NULL; importación ≠ recepción
++    IF p_original_received_at IS NOT NULL THEN IF coalesce(p_evidence_ref,'') = '' THEN RAISE EXCEPTION 'SHAPE_INVALID: evidencia de recepción'; END IF; recv := p_original_received_at; END IF;
++  ELSE RAISE EXCEPTION 'SHAPE_INVALID: received.kind'; END IF;
++  PERFORM pg_advisory_xact_lock(hashtextextended('scope:' || p_scope, 0));     -- serializa publicaciones del scope hasta el commit
++  FOREACH mk IN ARRAY p_members LOOP
++    SELECT * INTO o FROM c1_ra1.objects x WHERE x.key = mk;
++    IF NOT FOUND THEN RAISE EXCEPTION 'DEPENDENCY_MISSING: %', mk; END IF;
++    IF o.digest <> c1_ra1.sha(o.content) THEN RAISE EXCEPTION 'DEPENDENCY_CORRUPT: %', mk; END IF;
++    man := man || jsonb_build_array(jsonb_build_object('key', o.key, 'digest', o.digest));
++  END LOOP;
++  SELECT * INTO h FROM c1_ra1.head_state(p_scope);
++  IF p_expect_seq IS NOT NULL AND p_expect_seq <> h.seq THEN RAISE EXCEPTION 'CONFLICT: cabeza=%', h.seq; END IF;
++  rid := 'R' || lpad(nextval('c1_ra1.rev_seq')::text, 6, '0'); s := nextval('c1_ra1.ledger_seq');
++  INSERT INTO c1_ra1.revisions VALUES (rid, p_scope, p_port, p_content, c1_ra1.sha(p_content), man, c1_ra1.sha(jsonb_build_object('man', man, 'port', p_port, 'scope', p_scope)),
++    p_horizon_public, p_horizon_internal, p_retention_until, p_margin_ms, CASE WHEN fx THEN 'FX_BRANCH' ELSE 'NO_CONVERSION_USD' END, p_received_kind, recv, imp, t0);
++  INSERT INTO c1_ra1.ledger(seq, scope, event, revision_id, at) VALUES (s, p_scope, 'PUBLISH', rid, t0);
++  RETURN QUERY SELECT rid, s;
++END $$;
++
++CREATE FUNCTION c1_ra1.append_event(p_scope text, p_revision_id text, p_event text) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE h record; s bigint;
++BEGIN
++  PERFORM pg_advisory_xact_lock(hashtextextended('scope:' || p_scope, 0));
++  SELECT * INTO h FROM c1_ra1.head_state(p_scope);
++  IF h.revision_id IS NULL THEN RAISE EXCEPTION 'NOT_FOUND: %', p_scope; END IF;
++  IF p_revision_id IS NOT NULL AND p_revision_id <> h.revision_id THEN RAISE EXCEPTION 'NOT_HEAD: %', p_revision_id; END IF;
++  IF NOT h.valid AND p_event <> 'INVALIDATE' THEN RAISE EXCEPTION 'REVISION_INVALIDATED'; END IF;
++  s := nextval('c1_ra1.ledger_seq'); INSERT INTO c1_ra1.ledger(seq, scope, event, revision_id) VALUES (s, p_scope, p_event, h.revision_id); RETURN QUERY SELECT s, h.revision_id;
++END $$;
++CREATE FUNCTION c1_ra1.set_active(p_scope text, p_revision_id text, p_active boolean) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++  SELECT * FROM c1_ra1.append_event(p_scope, p_revision_id, CASE WHEN p_active THEN 'ACTIVATE' ELSE 'DEACTIVATE' END) $$;
++CREATE FUNCTION c1_ra1.invalidate(p_scope text) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++  SELECT * FROM c1_ra1.append_event(p_scope, NULL, 'INVALIDATE') $$;
++
++-- Lectura (el lector NO atesta ni escribe).
++CREATE FUNCTION c1_ra1.pin(p_scope text) RETURNS TABLE(status text, revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE h record; r c1_ra1.revisions; st text;
++BEGIN
++  SELECT * INTO h FROM c1_ra1.head_state(p_scope); IF h.revision_id IS NULL THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::text, 0::bigint; RETURN; END IF;
++  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = h.revision_id;
++  IF NOT h.valid OR NOT h.active THEN st := 'REVISION_MISSING'; ELSE st := c1_ra1.usable(r, clock_timestamp(), NULL, NULL, false); END IF;
++  RETURN QUERY SELECT st, CASE WHEN st = 'OK' THEN h.revision_id END, h.seq;
++END $$;
++CREATE FUNCTION c1_ra1.read(p_scope text, p_revision_id text) RETURNS TABLE(status text, revision jsonb) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE r c1_ra1.revisions; st text;
++BEGIN
++  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = p_revision_id;
++  IF NOT FOUND THEN RETURN QUERY SELECT 'REVISION_MISSING'::text, NULL::jsonb; RETURN; END IF;
++  IF r.scope <> p_scope THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::jsonb; RETURN; END IF;
++  st := c1_ra1.usable(r, clock_timestamp(), NULL, NULL, false);
++  RETURN QUERY SELECT st, CASE WHEN st = 'OK' THEN to_jsonb(r) END;
++END $$;
++-- Comprobación final (ÚLTIMA espera): el token por sí solo no basta.
++CREATE FUNCTION c1_ra1.current(p_scope text, p_revision_id text, p_seq bigint, p_deliver_public timestamptz DEFAULT NULL, p_deliver_internal timestamptz DEFAULT NULL, p_check_deliver boolean DEFAULT false)
++RETURNS TABLE(status text, revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
++DECLARE h record; r c1_ra1.revisions; st text;
++BEGIN
++  IF p_revision_id IS NULL OR p_seq IS NULL THEN RETURN QUERY SELECT 'SHAPE_INVALID'::text, NULL::text, NULL::bigint; RETURN; END IF;
++  SELECT * INTO h FROM c1_ra1.head_state(p_scope); IF h.revision_id IS NULL THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::text, 0::bigint; RETURN; END IF;
++  IF h.seq <> p_seq OR h.revision_id <> p_revision_id THEN RETURN QUERY SELECT 'DRIFT'::text, h.revision_id, h.seq; RETURN; END IF;
++  IF NOT h.valid OR NOT h.active THEN RETURN QUERY SELECT 'REVISION_MISSING'::text, h.revision_id, h.seq; RETURN; END IF;
++  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = h.revision_id;
++  st := c1_ra1.usable(r, clock_timestamp(), p_deliver_public, p_deliver_internal, p_check_deliver);
++  RETURN QUERY SELECT st, h.revision_id, h.seq;
++END $$;
++
++REVOKE ALL ON FUNCTION c1_ra1.put_object(text,text,text,jsonb), c1_ra1.publish(text,text,jsonb,text[],timestamptz,timestamptz,timestamptz,bigint,text,text,timestamptz,text,bigint),
++  c1_ra1.append_event(text,text,text), c1_ra1.set_active(text,text,boolean), c1_ra1.invalidate(text),
++  c1_ra1.pin(text), c1_ra1.read(text,text), c1_ra1.current(text,text,bigint,timestamptz,timestamptz,boolean) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION c1_ra1.put_object(text,text,text,jsonb), c1_ra1.publish(text,text,jsonb,text[],timestamptz,timestamptz,timestamptz,bigint,text,text,timestamptz,text,bigint),
++  c1_ra1.set_active(text,text,boolean), c1_ra1.invalidate(text) TO c1_publisher;
++GRANT EXECUTE ON FUNCTION c1_ra1.pin(text), c1_ra1.read(text,text), c1_ra1.current(text,text,bigint,timestamptz,timestamptz,boolean) TO c1_reader;
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/sql/01-schema-ra1-v1.sql.inert core1-revision-authority-v1.1/sql/01-schema-ra1-v1.sql.inert
+--- core1-revision-authority-v1/sql/01-schema-ra1-v1.sql.inert	2026-10-28 14:48:12.045905887 +0000
++++ core1-revision-authority-v1.1/sql/01-schema-ra1-v1.sql.inert	1970-01-01 00:00:00.000000000 +0000
+@@ -1,187 +0,0 @@
+--- RA-1 v1 — AUTORIDAD DE REVISIÓN — CANDIDATO SQL INERTE (CS-2). NO EJECUTADO en ningún entorno real.
+--- Solo se ejecuta en el laboratorio PostgreSQL local, nuevo y aislado del mandato (tests/lab/run_lab.js), con datos sintéticos.
+--- Sin BEGIN/COMMIT (lo envuelve quien ejecuta). Requiere los roles c1_owner (no operativo, propietario), c1_publisher y c1_reader
+--- creados antes por el bootstrap (cluster-level, fuera de este archivo). Se ejecuta como c1_owner (SET ROLE c1_owner), NO como superusuario.
+--- No promete defensa contra superusuario / administrador del SO. No toca catálogos públicos del kernel. No implementa FX.
+-CREATE SCHEMA c1_ra1;
+-REVOKE ALL ON SCHEMA c1_ra1 FROM PUBLIC;
+-GRANT USAGE ON SCHEMA c1_ra1 TO c1_publisher, c1_reader;   -- USAGE sin CREATE: nadie operativo crea objetos
+-
+-CREATE SEQUENCE c1_ra1.rev_seq;      -- no transaccional ⇒ ids no reutilizables, huecos permitidos
+-CREATE SEQUENCE c1_ra1.ledger_seq;   -- monótona; huecos permitidos
+-
+-CREATE TABLE c1_ra1.objects (
+-  key text PRIMARY KEY, kind text NOT NULL, content jsonb NOT NULL, digest text NOT NULL,
+-  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+-  CONSTRAINT objects_digest_ck CHECK (digest = encode(sha256(convert_to(content::text, 'UTF8')), 'hex')));
+-CREATE TABLE c1_ra1.revisions (
+-  revision_id text PRIMARY KEY, scope text NOT NULL, port text NOT NULL, content jsonb NOT NULL, content_digest text NOT NULL,
+-  members jsonb NOT NULL, manifest_digest text NOT NULL,
+-  horizon_public timestamptz NOT NULL, horizon_internal timestamptz NOT NULL, retention_until timestamptz NOT NULL, margin_ms bigint NOT NULL,
+-  fx_class text NOT NULL, received_kind text NOT NULL, received_at timestamptz, imported_at timestamptz, attested_at timestamptz NOT NULL,
+-  CONSTRAINT rev_margin_ck CHECK (margin_ms >= 0),
+-  CONSTRAINT rev_retention_ck CHECK (retention_until >= greatest(horizon_public, horizon_internal) + margin_ms * interval '1 millisecond'),
+-  CONSTRAINT rev_fx_ck CHECK (fx_class IN ('NO_CONVERSION_USD','FX_BRANCH')),
+-  CONSTRAINT rev_received_ck CHECK ((received_kind = 'SERVER' AND received_at IS NOT NULL AND imported_at IS NULL)
+-                                 OR (received_kind = 'IMPORTED_HISTORICAL' AND imported_at IS NOT NULL)));
+-CREATE TABLE c1_ra1.ledger (
+-  seq bigint PRIMARY KEY, scope text NOT NULL, event text NOT NULL CHECK (event IN ('PUBLISH','ACTIVATE','DEACTIVATE','INVALIDATE')),
+-  revision_id text NOT NULL REFERENCES c1_ra1.revisions(revision_id), at timestamptz NOT NULL DEFAULT clock_timestamp());
+-CREATE INDEX ledger_scope_seq ON c1_ra1.ledger (scope, seq DESC);
+-REVOKE ALL ON TABLE c1_ra1.objects, c1_ra1.revisions, c1_ra1.ledger FROM PUBLIC;
+-REVOKE ALL ON SEQUENCE c1_ra1.rev_seq, c1_ra1.ledger_seq FROM PUBLIC;   -- ningún rol operativo recibe privilegio de tabla
+-
+--- Append-only incluso para el propietario: UPDATE/DELETE/TRUNCATE rechazados por disparador de sentencia (también sobre tablas vacías).
+-CREATE FUNCTION c1_ra1.deny_mutation() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+-BEGIN RAISE EXCEPTION 'IMMUTABLE_STORE: % sobre %', TG_OP, TG_TABLE_NAME USING ERRCODE = 'P0001'; END $$;
+-CREATE TRIGGER objects_ro BEFORE UPDATE OR DELETE ON c1_ra1.objects FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+-CREATE TRIGGER revisions_ro BEFORE UPDATE OR DELETE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+-CREATE TRIGGER ledger_ro BEFORE UPDATE OR DELETE ON c1_ra1.ledger FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+-CREATE TRIGGER objects_nt BEFORE TRUNCATE ON c1_ra1.objects FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+-CREATE TRIGGER revisions_nt BEFORE TRUNCATE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+-CREATE TRIGGER ledger_nt BEFORE TRUNCATE ON c1_ra1.ledger FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+-
+--- Auxiliares internos (sin EXECUTE para roles operativos).
+-CREATE FUNCTION c1_ra1.sha(j jsonb) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, pg_temp AS $$ SELECT encode(sha256(convert_to(j::text, 'UTF8')), 'hex') $$;
+-CREATE FUNCTION c1_ra1.fx_scan(j jsonb) RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE k text; v jsonb; e jsonb;
+-BEGIN
+-  IF jsonb_typeof(j) = 'array' THEN FOR e IN SELECT jsonb_array_elements(j) LOOP IF c1_ra1.fx_scan(e) THEN RETURN true; END IF; END LOOP; RETURN false; END IF;
+-  IF jsonb_typeof(j) = 'object' THEN
+-    FOR k, v IN SELECT * FROM jsonb_each(j) LOOP
+-      IF k ~* '(^|_)(dop|fx|exchange|equivalent)(_|$)' THEN RETURN true; END IF;
+-      IF k = 'currency' AND v <> to_jsonb('USD'::text) THEN RETURN true; END IF;
+-      IF c1_ra1.fx_scan(v) THEN RETURN true; END IF;
+-    END LOOP; END IF;
+-  RETURN false;
+-END $$;
+-CREATE FUNCTION c1_ra1.head_state(p_scope text) RETURNS TABLE(revision_id text, active boolean, valid boolean, seq bigint) LANGUAGE plpgsql STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE rid text; pseq bigint; hseq bigint; last_ev text; inv boolean;
+-BEGIN
+-  SELECT l.revision_id, l.seq INTO rid, pseq FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.event = 'PUBLISH' ORDER BY l.seq DESC LIMIT 1;
+-  IF rid IS NULL THEN RETURN QUERY SELECT NULL::text, false, false, 0::bigint; RETURN; END IF;
+-  SELECT max(l.seq) INTO hseq FROM c1_ra1.ledger l WHERE l.scope = p_scope;
+-  SELECT EXISTS (SELECT 1 FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.seq > pseq AND l.event = 'INVALIDATE') INTO inv;
+-  SELECT l.event INTO last_ev FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.seq > pseq AND l.event IN ('ACTIVATE','DEACTIVATE') ORDER BY l.seq DESC LIMIT 1;
+-  RETURN QUERY SELECT rid, (NOT inv AND coalesce(last_ev = 'ACTIVATE', false)), NOT inv, hseq;
+-END $$;
+--- Integridad + retención + horizonte de TODA vista liberable. Devuelve estado interno.
+-CREATE FUNCTION c1_ra1.usable(r c1_ra1.revisions, t timestamptz, dp timestamptz, di timestamptz, check_deliver boolean) RETURNS text LANGUAGE plpgsql STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE m jsonb; o c1_ra1.objects;
+-BEGIN
+-  IF r.revision_id IS NULL THEN RETURN 'REVISION_MISSING'; END IF;
+-  IF r.content IS NULL OR r.content_digest <> c1_ra1.sha(r.content) THEN RETURN 'REVISION_MISSING'; END IF;
+-  FOR m IN SELECT jsonb_array_elements(r.members) LOOP
+-    SELECT * INTO o FROM c1_ra1.objects x WHERE x.key = m->>'key';
+-    IF NOT FOUND OR o.digest <> (m->>'digest') OR o.digest <> c1_ra1.sha(o.content) THEN RETURN 'REVISION_MISSING'; END IF;
+-  END LOOP;
+-  IF t >= r.retention_until THEN RETURN 'REVISION_MISSING'; END IF;                    -- límite superior exclusivo
+-  IF check_deliver THEN
+-    IF dp IS NULL OR di IS NULL THEN RETURN 'SHAPE_INVALID'; END IF;
+-    IF dp > r.horizon_public OR di > r.horizon_internal OR dp > r.retention_until OR di > r.retention_until THEN RETURN 'REVISION_MISSING'; END IF;
+-  END IF;
+-  RETURN 'OK';
+-END $$;
+-REVOKE ALL ON FUNCTION c1_ra1.sha(jsonb), c1_ra1.fx_scan(jsonb), c1_ra1.head_state(text), c1_ra1.usable(c1_ra1.revisions, timestamptz, timestamptz, timestamptz, boolean), c1_ra1.deny_mutation() FROM PUBLIC;
+-
+--- Interfaz controlada (única vía de escritura): SECURITY DEFINER, propietario c1_owner, search_path fijo.
+-CREATE FUNCTION c1_ra1.put_object(p_kind text, p_id text, p_rev text, p_content jsonb) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE k text; d text; ex c1_ra1.objects;
+-BEGIN
+-  IF coalesce(p_kind,'') = '' OR coalesce(p_id,'') = '' OR coalesce(p_rev,'') = '' OR p_content IS NULL THEN RAISE EXCEPTION 'SHAPE_INVALID: object key'; END IF;
+-  k := p_kind || ':' || p_id || '@' || p_rev; d := c1_ra1.sha(p_content);
+-  PERFORM pg_advisory_xact_lock(hashtextextended('obj:' || k, 0));
+-  SELECT * INTO ex FROM c1_ra1.objects WHERE key = k;
+-  IF FOUND THEN IF ex.digest <> d THEN RAISE EXCEPTION 'IMMUTABLE_OBJECT: %', k; END IF; RETURN k; END IF;
+-  INSERT INTO c1_ra1.objects(key, kind, content, digest) VALUES (k, p_kind, p_content, d); RETURN k;
+-END $$;
+-
+-CREATE FUNCTION c1_ra1.publish(p_scope text, p_port text, p_content jsonb, p_members text[], p_horizon_public timestamptz, p_horizon_internal timestamptz,
+-  p_retention_until timestamptz, p_margin_ms bigint, p_fx_policy text, p_received_kind text, p_original_received_at timestamptz, p_evidence_ref text, p_expect_seq bigint)
+-RETURNS TABLE(revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE t0 timestamptz := clock_timestamp(); man jsonb := '[]'::jsonb; mk text; o c1_ra1.objects; fx boolean; rid text; s bigint; recv timestamptz; imp timestamptz; h record;
+-BEGIN
+-  IF coalesce(p_scope,'') = '' OR coalesce(p_port,'') = '' OR p_content IS NULL OR jsonb_typeof(p_content) <> 'object' OR p_members IS NULL THEN RAISE EXCEPTION 'SHAPE_INVALID: args'; END IF;
+-  IF p_horizon_public IS NULL OR p_horizon_internal IS NULL THEN RAISE EXCEPTION 'HORIZON_MISSING'; END IF;     -- toda vista liberable (pública e interna)
+-  IF p_retention_until IS NULL THEN RAISE EXCEPTION 'RETENTION_MISSING'; END IF;
+-  IF p_margin_ms IS NULL OR p_margin_ms < 0 THEN RAISE EXCEPTION 'MARGIN_INVALID'; END IF;
+-  IF p_retention_until < greatest(p_horizon_public, p_horizon_internal) + p_margin_ms * interval '1 millisecond' OR p_retention_until <= t0 THEN RAISE EXCEPTION 'RETENTION_SHORT'; END IF;
+-  IF p_fx_policy NOT IN ('NO_CONVERSION_USD','FX_BRANCH') THEN RAISE EXCEPTION 'SHAPE_INVALID: fx_policy'; END IF;
+-  fx := c1_ra1.fx_scan(p_content);
+-  IF p_fx_policy = 'NO_CONVERSION_USD' AND fx THEN RAISE EXCEPTION 'FX_CONVERSION_PRESENT'; END IF;
+-  IF p_received_kind = 'SERVER' THEN
+-    IF p_original_received_at IS NOT NULL OR p_evidence_ref IS NOT NULL THEN RAISE EXCEPTION 'CLIENT_TIME_FORBIDDEN'; END IF;
+-    recv := t0; imp := NULL;
+-  ELSIF p_received_kind = 'IMPORTED_HISTORICAL' THEN
+-    imp := t0; recv := NULL;                                   -- desconocido ⇒ NULL; importación ≠ recepción
+-    IF p_original_received_at IS NOT NULL THEN IF coalesce(p_evidence_ref,'') = '' THEN RAISE EXCEPTION 'SHAPE_INVALID: evidencia de recepción'; END IF; recv := p_original_received_at; END IF;
+-  ELSE RAISE EXCEPTION 'SHAPE_INVALID: received.kind'; END IF;
+-  PERFORM pg_advisory_xact_lock(hashtextextended('scope:' || p_scope, 0));     -- serializa publicaciones del scope hasta el commit
+-  FOREACH mk IN ARRAY p_members LOOP
+-    SELECT * INTO o FROM c1_ra1.objects x WHERE x.key = mk;
+-    IF NOT FOUND THEN RAISE EXCEPTION 'DEPENDENCY_MISSING: %', mk; END IF;
+-    IF o.digest <> c1_ra1.sha(o.content) THEN RAISE EXCEPTION 'DEPENDENCY_CORRUPT: %', mk; END IF;
+-    man := man || jsonb_build_array(jsonb_build_object('key', o.key, 'digest', o.digest));
+-  END LOOP;
+-  SELECT * INTO h FROM c1_ra1.head_state(p_scope);
+-  IF p_expect_seq IS NOT NULL AND p_expect_seq <> h.seq THEN RAISE EXCEPTION 'CONFLICT: cabeza=%', h.seq; END IF;
+-  rid := 'R' || lpad(nextval('c1_ra1.rev_seq')::text, 6, '0'); s := nextval('c1_ra1.ledger_seq');
+-  INSERT INTO c1_ra1.revisions VALUES (rid, p_scope, p_port, p_content, c1_ra1.sha(p_content), man, c1_ra1.sha(jsonb_build_object('man', man, 'port', p_port, 'scope', p_scope)),
+-    p_horizon_public, p_horizon_internal, p_retention_until, p_margin_ms, CASE WHEN fx THEN 'FX_BRANCH' ELSE 'NO_CONVERSION_USD' END, p_received_kind, recv, imp, t0);
+-  INSERT INTO c1_ra1.ledger(seq, scope, event, revision_id, at) VALUES (s, p_scope, 'PUBLISH', rid, t0);
+-  RETURN QUERY SELECT rid, s;
+-END $$;
+-
+-CREATE FUNCTION c1_ra1.append_event(p_scope text, p_revision_id text, p_event text) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE h record; s bigint;
+-BEGIN
+-  PERFORM pg_advisory_xact_lock(hashtextextended('scope:' || p_scope, 0));
+-  SELECT * INTO h FROM c1_ra1.head_state(p_scope);
+-  IF h.revision_id IS NULL THEN RAISE EXCEPTION 'NOT_FOUND: %', p_scope; END IF;
+-  IF p_revision_id IS NOT NULL AND p_revision_id <> h.revision_id THEN RAISE EXCEPTION 'NOT_HEAD: %', p_revision_id; END IF;
+-  IF NOT h.valid AND p_event <> 'INVALIDATE' THEN RAISE EXCEPTION 'REVISION_INVALIDATED'; END IF;
+-  s := nextval('c1_ra1.ledger_seq'); INSERT INTO c1_ra1.ledger(seq, scope, event, revision_id) VALUES (s, p_scope, p_event, h.revision_id); RETURN QUERY SELECT s, h.revision_id;
+-END $$;
+-CREATE FUNCTION c1_ra1.set_active(p_scope text, p_revision_id text, p_active boolean) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-  SELECT * FROM c1_ra1.append_event(p_scope, p_revision_id, CASE WHEN p_active THEN 'ACTIVATE' ELSE 'DEACTIVATE' END) $$;
+-CREATE FUNCTION c1_ra1.invalidate(p_scope text) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-  SELECT * FROM c1_ra1.append_event(p_scope, NULL, 'INVALIDATE') $$;
+-
+--- Lectura (el lector NO atesta ni escribe).
+-CREATE FUNCTION c1_ra1.pin(p_scope text) RETURNS TABLE(status text, revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE h record; r c1_ra1.revisions; st text;
+-BEGIN
+-  SELECT * INTO h FROM c1_ra1.head_state(p_scope); IF h.revision_id IS NULL THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::text, 0::bigint; RETURN; END IF;
+-  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = h.revision_id;
+-  IF NOT h.valid OR NOT h.active THEN st := 'REVISION_MISSING'; ELSE st := c1_ra1.usable(r, clock_timestamp(), NULL, NULL, false); END IF;
+-  RETURN QUERY SELECT st, CASE WHEN st = 'OK' THEN h.revision_id END, h.seq;
+-END $$;
+-CREATE FUNCTION c1_ra1.read(p_scope text, p_revision_id text) RETURNS TABLE(status text, revision jsonb) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE r c1_ra1.revisions; st text;
+-BEGIN
+-  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = p_revision_id;
+-  IF NOT FOUND THEN RETURN QUERY SELECT 'REVISION_MISSING'::text, NULL::jsonb; RETURN; END IF;
+-  IF r.scope <> p_scope THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::jsonb; RETURN; END IF;
+-  st := c1_ra1.usable(r, clock_timestamp(), NULL, NULL, false);
+-  RETURN QUERY SELECT st, CASE WHEN st = 'OK' THEN to_jsonb(r) END;
+-END $$;
+--- Comprobación final (ÚLTIMA espera): el token por sí solo no basta.
+-CREATE FUNCTION c1_ra1.current(p_scope text, p_revision_id text, p_seq bigint, p_deliver_public timestamptz DEFAULT NULL, p_deliver_internal timestamptz DEFAULT NULL, p_check_deliver boolean DEFAULT false)
+-RETURNS TABLE(status text, revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+-DECLARE h record; r c1_ra1.revisions; st text;
+-BEGIN
+-  IF p_revision_id IS NULL OR p_seq IS NULL THEN RETURN QUERY SELECT 'SHAPE_INVALID'::text, NULL::text, NULL::bigint; RETURN; END IF;
+-  SELECT * INTO h FROM c1_ra1.head_state(p_scope); IF h.revision_id IS NULL THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::text, 0::bigint; RETURN; END IF;
+-  IF h.seq <> p_seq OR h.revision_id <> p_revision_id THEN RETURN QUERY SELECT 'DRIFT'::text, h.revision_id, h.seq; RETURN; END IF;
+-  IF NOT h.valid OR NOT h.active THEN RETURN QUERY SELECT 'REVISION_MISSING'::text, h.revision_id, h.seq; RETURN; END IF;
+-  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = h.revision_id;
+-  st := c1_ra1.usable(r, clock_timestamp(), p_deliver_public, p_deliver_internal, p_check_deliver);
+-  RETURN QUERY SELECT st, h.revision_id, h.seq;
+-END $$;
+-
+-REVOKE ALL ON FUNCTION c1_ra1.put_object(text,text,text,jsonb), c1_ra1.publish(text,text,jsonb,text[],timestamptz,timestamptz,timestamptz,bigint,text,text,timestamptz,text,bigint),
+-  c1_ra1.append_event(text,text,text), c1_ra1.set_active(text,text,boolean), c1_ra1.invalidate(text),
+-  c1_ra1.pin(text), c1_ra1.read(text,text), c1_ra1.current(text,text,bigint,timestamptz,timestamptz,boolean) FROM PUBLIC;
+-GRANT EXECUTE ON FUNCTION c1_ra1.put_object(text,text,text,jsonb), c1_ra1.publish(text,text,jsonb,text[],timestamptz,timestamptz,timestamptz,bigint,text,text,timestamptz,text,bigint),
+-  c1_ra1.set_active(text,text,boolean), c1_ra1.invalidate(text) TO c1_publisher;
+-GRANT EXECUTE ON FUNCTION c1_ra1.pin(text), c1_ra1.read(text,text), c1_ra1.current(text,text,bigint,timestamptz,timestamptz,boolean) TO c1_reader;
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/sql/02-rollback-ra1-v1.1.sql.inert core1-revision-authority-v1.1/sql/02-rollback-ra1-v1.1.sql.inert
+--- core1-revision-authority-v1/sql/02-rollback-ra1-v1.1.sql.inert	1970-01-01 00:00:00.000000000 +0000
++++ core1-revision-authority-v1.1/sql/02-rollback-ra1-v1.1.sql.inert	2026-10-28 14:50:54.776649296 +0000
+@@ -0,0 +1,2 @@
++-- RA-1 v1.1 — reversa del candidato (solo laboratorio aislado). Ejecutar como c1_owner. Destruye únicamente el esquema c1_ra1.
++DROP SCHEMA c1_ra1 CASCADE;
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/sql/02-rollback-ra1-v1.sql.inert core1-revision-authority-v1.1/sql/02-rollback-ra1-v1.sql.inert
+--- core1-revision-authority-v1/sql/02-rollback-ra1-v1.sql.inert	2026-10-28 14:48:12.046779122 +0000
++++ core1-revision-authority-v1.1/sql/02-rollback-ra1-v1.sql.inert	1970-01-01 00:00:00.000000000 +0000
+@@ -1,2 +0,0 @@
+--- RA-1 v1 — reversa del candidato (solo laboratorio aislado). Ejecutar como c1_owner. Destruye únicamente el esquema c1_ra1.
+-DROP SCHEMA c1_ra1 CASCADE;
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/tests/lab/lifecycle.js core1-revision-authority-v1.1/tests/lab/lifecycle.js
+--- core1-revision-authority-v1/tests/lab/lifecycle.js	1970-01-01 00:00:00.000000000 +0000
++++ core1-revision-authority-v1.1/tests/lab/lifecycle.js	2026-10-28 14:52:31.115796663 +0000
+@@ -0,0 +1,57 @@
++'use strict';
++// RA-R3 — ciclo de vida y limpieza de la instancia PostgreSQL PROPIA del laboratorio (RA-1 v1.1). Lógica pura con dependencias inyectadas (probada en tests/run_lifecycle_tests.js).
++// Principio: una parada DESCONOCIDA no es una parada CONFIRMADA. Solo se borra el directorio si (a) nunca se intentó arrancar, o (b) el PID de la instancia propia fue ACREDITADO
++// (leído de su postmaster.pid, entero > 1 y /proc/<pid>/cmdline contiene su propio directorio de datos) y se observó que dejó de existir. Cualquier otro caso RETIENE el directorio y
++// declara STOP/cleanup pendiente (exit 5). Nunca se busca ni se mata por nombre/patrón; solo `pg_ctl -D <directorio propio>` y lectura de /proc/<pid> del PID acreditado.
++const path = require('path');
++const EXIT_CLEANUP_PENDING = 5;
++
++// Tras un intento de arranque (haya devuelto éxito o no): acreditar el PID propio. Devuelve {pid, accredited, reason}.
++function accreditPid(state, deps) {
++  let txt; try { txt = deps.readFile(path.join(state.dataDir, 'postmaster.pid')); } catch (_) { return { pid: null, accredited: false, reason: 'PID_READ_FAILED' }; }
++  const pid = Number(String(txt).split('\n')[0]);
++  if (!Number.isInteger(pid) || pid <= 1) return { pid: null, accredited: false, reason: 'PID_INVALID' };
++  const cmd = deps.cmdline(pid);
++  if (cmd === null || cmd === undefined || !String(cmd).includes(state.dataDir)) return { pid, accredited: false, reason: 'PID_NOT_OWN_INSTANCE' };
++  return { pid, accredited: true, reason: null };
++}
++
++// Sondeo tri-estado: false = ya no existe (ausente o zombi); true = sigue vivo tras agotar el tiempo; null = no se pudo determinar.
++function aliveAfterStop(pid, deps, tries = 50) {
++  for (let i = 0; i < tries; i++) {
++    const st = deps.procState(pid);
++    if (st === 'GONE' || st === 'ZOMBIE') return false;
++    if (st === 'UNKNOWN') return null;
++    deps.sleep(200);
++  }
++  return true;
++}
++
++// state: { dir, dataDir, markerPath, safePrefix, startAttempted, startStatus, acc }
++// deps:  { run(cmd,args)->{status}, readFile, cmdline, procState, sleep, exists, rmDir }
++function finalizeCleanup(state, deps) {
++  const ev = { start_attempted: !!state.startAttempted, pid_accredited: !!(state.acc && state.acc.accredited), pid_reason: state.acc ? state.acc.reason : null, stop_attempted: false, stop_status: null, pid_alive_after_stop: null, stop_confirmed: false, cleanup_status: null, lab_dir_removed: false, retained_dir: null };
++  const stopOwn = () => { ev.stop_attempted = true; const r = deps.run('pg_ctl', ['-D', state.dataDir, '-m', 'fast', '-w', 'stop']); ev.stop_status = r.status; };   // solo la instancia propia, por su directorio de datos
++  let removable = false;
++  if (!state.startAttempted) { ev.cleanup_status = 'NOT_STARTED_REMOVABLE'; removable = true; }
++  else if (state.acc && state.acc.accredited) {
++    stopOwn(); ev.pid_alive_after_stop = aliveAfterStop(state.acc.pid, deps); ev.stop_confirmed = ev.pid_alive_after_stop === false;
++    ev.cleanup_status = ev.stop_confirmed ? 'STOP_CONFIRMED' : (ev.pid_alive_after_stop === true ? 'STOP_PENDING_PID_STILL_ALIVE' : 'STOP_PENDING_STATE_UNKNOWN');
++    removable = ev.stop_confirmed;
++  } else {   // PID no acreditado: intento acotado de parada por directorio propio, pero NO se afirma parada ni se borra
++    stopOwn(); ev.cleanup_status = 'STOP_PENDING_' + ((state.acc && state.acc.reason) || 'PID_NOT_ACCREDITED'); removable = false;
++  }
++  const safeDir = !!state.dir && String(state.dir).startsWith(state.safePrefix) && deps.exists(state.markerPath);
++  if (removable && safeDir) { deps.rmDir(state.dir); ev.lab_dir_removed = !deps.exists(state.dir); }
++  else if (removable && !safeDir) ev.cleanup_status = 'REMOVAL_REFUSED_UNSAFE_PATH';
++  if (!ev.lab_dir_removed) ev.retained_dir = state.dir || null;
++  return ev;
++}
++
++// Código de salida del laboratorio. 4 = gate de aislamiento (NO EJECUTADO); 5 = limpieza pendiente (residuo propio retenido); 1 = otras fallas.
++function exitCodeFor({ error, mainFails, survivors, rollbackOk, cleanup }) {
++  if (cleanup && !cleanup.lab_dir_removed && cleanup.retained_dir) return EXIT_CLEANUP_PENDING;
++  if (error) return /GATE/.test(error) ? 4 : 1;
++  return mainFails || survivors || !rollbackOk || (cleanup && (cleanup.pid_alive_after_stop !== false && cleanup.start_attempted)) || !(cleanup && cleanup.lab_dir_removed) ? 1 : 0;
++}
++module.exports = Object.freeze({ accreditPid, aliveAfterStop, finalizeCleanup, exitCodeFor, EXIT_CLEANUP_PENDING });
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/tests/lab/run_lab.js core1-revision-authority-v1.1/tests/lab/run_lab.js
+--- core1-revision-authority-v1/tests/lab/run_lab.js	2026-10-28 14:48:12.048250869 +0000
++++ core1-revision-authority-v1.1/tests/lab/run_lab.js	2026-10-28 15:06:24.489073529 +0000
+@@ -1,12 +1,15 @@
+ 'use strict';
+-// CS-2 B — laboratorio PostgreSQL LOCAL, NUEVO y AISLADO para probar SOLO el SQL candidato RA-1 con datos/roles sintéticos.
++// CS-2 B (RA-1 v1.1: RA-R1 FX/política NULL, RA-R2 límite S02, RA-R3 limpieza) — laboratorio PostgreSQL LOCAL, NUEVO y AISLADO para probar SOLO el SQL candidato RA-1 con datos/roles sintéticos.
+ // Aislamiento: directorio temporal nuevo propio del mandato, socket unix privado (0700), sin TCP, sin variables PG*/URL heredadas,
+ // cada conexión indica explícitamente socket/puerto/rol/base de la instancia creada; verificación de identidad antes de todo DDL.
+ // No instala paquetes, no crea cuentas del SO, no busca credenciales ni hosts alternativos, no usa Supabase/VPS. Limpieza: solo PID y directorio creados.
+ const fs = require('fs'); const os = require('os'); const path = require('path'); const cp = require('child_process');
+ const BIN = '/usr/lib/postgresql/16/bin'; const OSUSER = 'ubuntu'; const PORT = '54329'; const MARKER = 'C1-RA1-CS2-MANDATE-DG-CORE1-RA1-CS2-ISOLATED-20261026';
+-const HERE = __dirname; const SQLDIR = path.join(HERE, '..', '..', 'sql'); const EVID = path.join(HERE, 'evidence');
+-const SCHEMA_SQL = fs.readFileSync(path.join(SQLDIR, '01-schema-ra1-v1.sql.inert'), 'utf8');
++const LC = require('./lifecycle'); const V = require('../../model/fx_vectors'); const { fxScan } = require('../../model/ra1');
++const HERE = __dirname; const SQLDIR = path.join(HERE, '..', '..', 'sql'); const EVID = process.env.RA1_LAB_EVID || path.join(HERE, 'evidence');
++// Modo del laboratorio: 'full' (por defecto) o 'lifecycle' (solo ciclo de vida de la instancia propia, con fallo inyectado opcional RA1_LAB_FAULT; ignorado en modo full).
++const MODE = process.env.RA1_LAB_MODE === 'lifecycle' ? 'lifecycle' : 'full'; const FAULT = MODE === 'lifecycle' ? (process.env.RA1_LAB_FAULT || null) : null;
++const SCHEMA_SQL = fs.readFileSync(path.join(SQLDIR, '01-schema-ra1-v1.1.sql.inert'), 'utf8');
+ const log = []; const L = (s) => { log.push(s); console.log(s); };
+ const sh = (cmd, args, o = {}) => cp.spawnSync(cmd, args, Object.assign({ encoding: 'utf8' }, o));
+ const asUser = (cmd, args) => sh('runuser', ['-u', OSUSER, '--', 'env', '-i', 'PATH=/usr/bin:/bin', 'LANG=C', cmd, ...args]);
+@@ -34,7 +37,7 @@
+   const P = (sql) => psql({ role: 'c1_publisher', db, sql }); const R = (sql) => psql({ role: 'c1_reader', db, sql });
+   const okq = (r, re) => { if (r.code !== 0) throw new Error('exit ' + r.code + ': ' + r.err.trim().slice(0, 170)); const o = r.out.trim(); if (re !== undefined && !(re instanceof RegExp ? re.test(o) : o === re)) throw new Error('salida ' + JSON.stringify(o.slice(0, 170)) + ' ≠ ' + re); return o; };
+   const errq = (r, re) => { if (r.code === 0) throw new Error('debía fallar'); if (!re.test(r.err)) throw new Error('error inesperado: ' + r.err.trim().slice(0, 170)); };
+-  const pubArgs = (scope, o = {}) => `'${scope}','rates',${o.content || `'{"currency":"USD","rows":[{"adult":100}],"deposit":{"currency":"USD","pct":30}}'::jsonb`},${o.members || "array['doc:D1@1','map:M1@1']"},${o.hp || "clock_timestamp()+interval '1 hour'"},${o.hi || "clock_timestamp()+interval '90 minutes'"},${o.ret || "clock_timestamp()+interval '3 hours'"},${o.margin === undefined ? 60000 : o.margin},'${o.fx || 'NO_CONVERSION_USD'}','${o.kind || 'SERVER'}',${o.orig || 'null'},${o.ev || 'null'},${o.expect || 'null'}`;
++  const pubArgs = (scope, o = {}) => `'${scope}','rates',${o.content || `'{"currency":"USD","rows":[{"adult":100}],"deposit":{"currency":"USD","pct":30}}'::jsonb`},${o.members || "array['doc:D1@1','map:M1@1']"},${o.hp || "clock_timestamp()+interval '1 hour'"},${o.hi || "clock_timestamp()+interval '90 minutes'"},${o.ret || "clock_timestamp()+interval '3 hours'"},${o.margin === undefined ? 60000 : o.margin},${o.fxRaw !== undefined ? o.fxRaw : "'" + (o.fx || 'NO_CONVERSION_USD') + "'"},'${o.kind || 'SERVER'}',${o.orig || 'null'},${o.ev || 'null'},${o.expect || 'null'}`;
+   const pubSql = (scope, o) => `select revision_id||'|'||seq from c1_ra1.publish(${pubArgs(scope, o)});`;
+   const pubAct = (scope, o) => `select revision_id as rid from c1_ra1.publish(${pubArgs(scope, o)}) \\gset\nselect seq as aq from c1_ra1.set_active('${scope}', :'rid', true) \\gset\nselect :'rid';`;
+   const tok = async (scope, o) => { okq(await P(pubAct(scope, o))); const p = okq(await R(`select status||'|'||coalesce(revision_id,'')||'|'||seq from c1_ra1.pin('${scope}');`), /^OK\|R\d+\|\d+$/); const [, rid, seq] = p.split('|'); return { rid, seq: Number(seq) }; };
+@@ -111,6 +114,14 @@
+     okq(await R(`select pg_sleep(4.3);`)); if ((await cur('S-X1', t)) !== 'REVISION_MISSING') throw new Error('vencida debe ser REVISION_MISSING (no DRIFT: token coincide)');
+     okq(await R(`select status from c1_ra1.pin('S-X1');`), 'REVISION_MISSING'); okq(await R(`select status from c1_ra1.read('S-X1','${t.rid}');`), 'REVISION_MISSING');
+   });
++  await T('AC3d_RA-R2_limite_exacto_de_retencion_con_tiempo_explicito_antes_igual_despues', async () => {
++    const rid = okq(await P(pubSql('S-B1'))).split('|')[0];   // fila sintética; tiempo EXPLÍCITO tomado de la propia fila (sin reloj real); rol de laboratorio c1_owner (dueño no operativo) sobre el auxiliar interno usable()
++    const u = async (expr) => okq(await B(db, `set role c1_owner; select c1_ra1.usable(r, ${expr}, null, null, false) from c1_ra1.revisions r where r.revision_id = '${rid}';`));
++    const exp = [["r.retention_until - interval '1 hour'", 'OK'], ["r.retention_until - interval '1 microsecond'", 'OK'], ['r.retention_until', 'REVISION_MISSING'], ["r.retention_until + interval '1 microsecond'", 'REVISION_MISSING'], ["r.retention_until + interval '1 hour'", 'REVISION_MISSING']];
++    for (const [expr, want] of exp) { const got = await u(expr); if (got !== want) throw new Error(`usable(${expr}) = ${got} ≠ ${want}`); }
++    errq(await R(`select c1_ra1.usable(null::c1_ra1.revisions, now(), null, null, false);`), /permission denied for function usable/); errq(await P(`select c1_ra1.usable(null::c1_ra1.revisions, now(), null, null, false);`), /permission denied for function usable/);   // sin API pública: el lector/publicador no eligen el reloj
++    okq(await B(db, `select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='c1_ra1' and p.proname='usable' and has_function_privilege('c1_reader',p.oid,'EXECUTE');`), '0');
++  });
+   // AC5
+   await T('AC5_recepcion_por_servidor_historico_desconocido_importacion_separada_y_valores_de_cliente', async () => {
+     const a = okq(await P(pubSql('S-T1'))).split('|')[0]; okq(await R(`select ((revision->>'received_at') is not null)::text||((revision->>'imported_at') is null)::text||(revision->>'received_kind') from c1_ra1.read('S-T1','${a}');`), 'truetrueSERVER');
+@@ -125,6 +136,25 @@
+     const a = okq(await P(pubSql('S-F4'))).split('|')[0]; okq(await R(`select revision->>'fx_class' from c1_ra1.read('S-F4','${a}');`), 'NO_CONVERSION_USD');
+     const b = okq(await P(pubSql('S-F5', { content: `'{"currency":"USD","deposit":{"currency":"DOP","min":5000}}'::jsonb`, fx: 'FX_BRANCH' }))).split('|')[0]; okq(await R(`select revision->>'fx_class' from c1_ra1.read('S-F5','${b}');`), 'FX_BRANCH'); errq(await P(pubSql('S-F6', { fx: 'OTRA' })), /SHAPE_INVALID/);
+   });
++  await T('AC8b_RA-R1_clasificacion_FX_pareada_con_el_modelo_vectores_compartidos_y_paridad_de_normalizacion', async () => {
++    const vecs = [...V.CONTENT_VECTORS, ...V.LIMIT_VECTORS];   // a) fx_scan directo (rol bootstrap) = resultado esperado del modelo para CADA vector (incluye límites declarados)
++    const got = okq(await B(db, `select string_agg(c1_ra1.fx_scan(c)::text, ',' order by n) from jsonb_array_elements($j$${JSON.stringify(vecs.map((v) => v.content))}$j$::jsonb) with ordinality as t(c, n);`)); const want = vecs.map((v) => String(v.expect_fx)).join(',');
++    if (got !== want) { const g = got.split(','); const bad = vecs.filter((v, i) => g[i] !== String(v.expect_fx)).map((v) => v.id); throw new Error('fx_scan SQL ≠ modelo en: ' + bad.join(';')); }
++    const keys = V.fuzzKeys(); const exp = keys.map((k) => String(fxScan({ [k]: 'USD' })) + String(fxScan({ [k]: 'EUR' }))).join(',');   // b) paridad de normalización con claves pseudoaleatorias deterministas (incluye no-ASCII)
++    const gotF = okq(await B(db, `select string_agg(c1_ra1.fx_scan(jsonb_build_object(k, 'USD'))::text || c1_ra1.fx_scan(jsonb_build_object(k, 'EUR'))::text, ',' order by n) from jsonb_array_elements_text($j$${JSON.stringify(keys)}$j$::jsonb) with ordinality as t(k, n);`));
++    if (gotF !== exp) { const a = gotF.split(','); const b = exp.split(','); const bad = keys.filter((k, i) => a[i] !== b[i]).slice(0, 5).map((k) => JSON.stringify(k)); throw new Error('paridad de normalización rota en ' + bad.join(';')); }
++    if (!exp.includes('truetrue') || !exp.includes('falsefalse')) throw new Error('el fuzz no ejercita ambas clases');
++    let i = 0;   // c) por la interfaz del publicador: conversión ⇒ FX_CONVERSION_PRESENT con NO_CONVERSION_USD y FX_BRANCH la clasifica; USD genuino ⇒ NO_CONVERSION_USD
++    for (const v of V.CONTENT_VECTORS) { i++; const content = `$j$${JSON.stringify(v.content)}$j$::jsonb`;
++      if (v.expect_fx) { errq(await P(pubSql('S-FXV' + i, { content })), /FX_CONVERSION_PRESENT/); const r = okq(await P(pubSql('S-FXVB' + i, { content, fx: 'FX_BRANCH' }))).split('|')[0]; okq(await R(`select revision->>'fx_class' from c1_ra1.read('S-FXVB${i}','${r}');`), 'FX_BRANCH'); }
++      else { const r = okq(await P(pubSql('S-FXV' + i, { content }))).split('|')[0]; okq(await R(`select revision->>'fx_class' from c1_ra1.read('S-FXV${i}','${r}');`), 'NO_CONVERSION_USD'); } }
++  });
++  await T('AC8c_RA-R1_politica_NULL_vacia_o_desconocida_se_rechaza_explicitamente_sin_decision_FX', async () => {
++    const contents = [`'{"currency":"USD","rows":[{"adult":100}]}'::jsonb`, `'{"currency":"USD","deposit":{"currency":"DOP","min":5000}}'::jsonb`, `'{"currency":"USD","compare":{"exchangeRate":60.2}}'::jsonb`]; let n = 0;
++    for (const content of contents) for (const v of V.POLICY_VECTORS.filter((x) => x.sql)) { n++; const raw = v.policy === null || v.policy === undefined ? 'null::text' : `'${v.policy}'`; errq(await P(pubSql('S-POL' + n, { content, fxRaw: raw })), /SHAPE_INVALID: fx_policy/); }
++    errq(await P(`select * from c1_ra1.publish('S-POLT','rates','{"currency":"USD"}'::jsonb,array[]::text[],clock_timestamp()+interval '1 hour',clock_timestamp()+interval '1 hour',clock_timestamp()+interval '3 hours',0,null::text,'SERVER',null,null,null);`), /SHAPE_INVALID: fx_policy/);
++    okq(await B(db, `select count(*) from c1_ra1.revisions where scope like 'S-POL%';`), '0');
++  });
+   // AC7
+   await T('AC7_lectura_exacta_scope_distinto_ausente_forma', async () => {
+     const a = okq(await P(pubSql('S-R1'))).split('|')[0]; okq(await R(`select status from c1_ra1.read('S-R1','${a}');`), 'OK'); okq(await R(`select status from c1_ra1.read('S-OTRO','${a}');`), 'NOT_FOUND'); okq(await R(`select status from c1_ra1.read('S-R1','R999999');`), 'REVISION_MISSING');
+@@ -166,7 +196,7 @@
+ 
+ const MUTANTS = [
+   ['S01_sin_horizonte_obligatorio', [["IF p_horizon_public IS NULL OR p_horizon_internal IS NULL THEN RAISE EXCEPTION 'HORIZON_MISSING'; END IF;", ""]]],
+-  ['S02_retencion_inclusiva', [["IF t >= r.retention_until", "IF t > r.retention_until"]], 'Igualdad exacta de instantes no reproducible con clock_timestamp(); el límite exclusivo se prueba en el modelo (M04) y la expiración real en AC3b.'],
++  ['S02_retencion_inclusiva', [["IF t >= r.retention_until", "IF t > r.retention_until"]]],   // RA-R2: ya NO equivalente; lo detecta AC3d con tiempo explícito
+   ['S03_sin_disparador_UPDATE_en_ledger', [["CREATE TRIGGER ledger_ro BEFORE UPDATE OR DELETE ON c1_ra1.ledger FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();", ""]]],
+   ['S04_sin_disparador_TRUNCATE_en_revisions', [["CREATE TRIGGER revisions_nt BEFORE TRUNCATE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();", ""]], 'Equivalente observable: TRUNCATE de revisions solo es posible junto con ledger (la clave foránea lo impide por separado) y ledger conserva su propio disparador TRUNCATE; el de revisions es defensa en profundidad.'],
+   ['S05_publicador_con_SELECT_en_ledger', [], null, "GRANT SELECT ON c1_ra1.ledger TO c1_publisher;"],
+@@ -183,56 +213,83 @@
+   ['S16_sin_control_retencion_corta', [["IF p_retention_until < greatest(p_horizon_public, p_horizon_internal) + p_margin_ms * interval '1 millisecond' OR p_retention_until <= t0 THEN RAISE EXCEPTION 'RETENTION_SHORT'; END IF;", ""]]],
+   ['S17_publicador_con_CREATE_en_esquema', [], null, "GRANT CREATE ON SCHEMA c1_ra1 TO c1_publisher;"],
+   ['S18_publicador_miembro_de_propietario', [], null, "RESET ROLE; GRANT c1_owner TO c1_publisher;"],
++  // RA-R1 (nuevos): clasificación FX y política NULL
++  ['S19_politica_NULL_sin_rechazo_defecto_original', [["IF p_fx_policy IS NULL OR p_fx_policy NOT IN", "IF p_fx_policy NOT IN"]]],
++  ['S20_fx_scan_solo_patron_snake_defecto_original', [["IF position('exchange' in lk) > 0 OR position('equivalent' in lk) > 0 OR 'dop' = ANY(w) OR 'fx' = ANY(w) THEN", "IF k ~* '(^|_)(dop|fx|exchange|equivalent)(_|$)' THEN"]]],
++  ['S21_fx_sin_particion_por_mayusculas', [["translate(regexp_replace(regexp_replace(k, '([a-z0-9])([A-Z])', '\\1 \\2', 'g'), '([A-Z]+)([A-Z][a-z])', '\\1 \\2', 'g'), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'", "translate(k, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"]]],
++  ['S22_moneda_solo_clave_exacta_currency', [["IF 'currency' = ANY(w) AND v <>", "IF k = 'currency' AND v <>"]]],
++  ['S23_moneda_distinta_de_USD_ignorada', [["IF 'currency' = ANY(w) AND v <> to_jsonb('USD'::text) THEN RETURN true; END IF;", ""]]],
++  ['S24_fx_palabra_fx_ignorada', [[" OR 'fx' = ANY(w) THEN", " THEN"]]],
+ ];
+ 
++function realDeps(fault) {   // dependencias REALES (instancia propia). Fallos inyectables solo en modo lifecycle (variable RA1_LAB_FAULT).
++  const procState = (pid) => { let txt; try { txt = fs.readFileSync('/proc/' + pid + '/stat', 'utf8'); } catch (e) { return e.code === 'ENOENT' || e.code === 'ESRCH' ? 'GONE' : 'UNKNOWN'; } const st = txt.split(') ')[1]; return st && st[0] === 'Z' ? 'ZOMBIE' : 'ALIVE'; };
++  const d = {
++    run: (cmd, args) => { const r = asUser(BIN + '/' + cmd, args); return { status: r.status }; },
++    readFile: (p) => fs.readFileSync(p, 'utf8'),
++    cmdline: (pid) => { try { return fs.readFileSync('/proc/' + pid + '/cmdline', 'utf8').replace(/\0/g, ' '); } catch (_) { return null; } },
++    procState, sleep: (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms), exists: (p) => fs.existsSync(p), rmDir: (p) => fs.rmSync(p, { recursive: true, force: true }),
++  };
++  if (fault === 'pidread') d.readFile = (p) => { if (/postmaster\.pid$/.test(p)) throw new Error('INJECTED: lectura de postmaster.pid falla'); return fs.readFileSync(p, 'utf8'); };
++  if (fault === 'procunknown') d.procState = () => 'UNKNOWN';
++  if (fault === 'stopnoop') { const real = d.run; d.run = (cmd, args) => (args.includes('stop') ? { status: 0 } : real(cmd, args)); }   // «parada» que no detiene nada ni lo dice
++  return d;
++}
++
+ async function main() {
+-  const t0 = Date.now(); const ev = { mandate_marker: MARKER, started_utc: new Date().toISOString(), host_note: 'laboratorio local nuevo; sin red; sin Supabase/VPS' };
+-  const v = asUser(BIN + '/postgres', ['--version']); ev.postgres_version = v.stdout.trim(); L('PostgreSQL: ' + ev.postgres_version);
++  fs.mkdirSync(EVID, { recursive: true });
++  const t0 = Date.now(); const ev = { version: 'RA-1 v1.1', mode: MODE, fault_injected: FAULT, mandate_marker: MARKER, started_utc: new Date().toISOString(), host_note: 'laboratorio local nuevo; sin red; sin Supabase/VPS' };
++  const v = asUser(BIN + '/postgres', ['--version']); ev.postgres_version = v.stdout.trim(); L('PostgreSQL: ' + ev.postgres_version + ' | modo=' + MODE + (FAULT ? ' fallo_inyectado=' + FAULT : ''));
+   if (asUser('id', ['-u']).stdout.trim() === '0' || asUser('id', ['-u']).status !== 0) { L('GATE: usuario no-root inexistente o ejecución como root'); process.exit(4); }
+   const pgenv = Object.keys(process.env).filter((k) => /^PG/.test(k)); ev.pg_env_vars_present = pgenv.length; if (pgenv.length) { L('GATE: variables PG* heredadas presentes (no se usarán): ' + pgenv.join(',')); }
+-  // directorio nuevo y propio
+   DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'c1-ra1-lab-')); sh('chown', [OSUSER + ':' + OSUSER, DIR]); fs.chmodSync(DIR, 0o700); fs.writeFileSync(path.join(DIR, 'MANDATE.marker'), MARKER + '\n'); fs.mkdirSync(path.join(DIR, 'sock'), { mode: 0o700 }); sh('chown', [OSUSER + ':' + OSUSER, path.join(DIR, 'sock'), path.join(DIR, 'MANDATE.marker')]); SOCK = path.join(DIR, 'sock');
+   ev.lab_dir = DIR; L('Directorio nuevo del mandato: ' + DIR);
+-  let started = false;
++  const deps = realDeps(FAULT); const st = { dir: DIR, dataDir: path.join(DIR, 'data'), markerPath: path.join(DIR, 'MANDATE.marker'), safePrefix: path.join(os.tmpdir(), 'c1-ra1-lab-'), startAttempted: false, startStatus: null, acc: null };
+   try {
+-    const ini = asUser(BIN + '/initdb', ['-D', path.join(DIR, 'data'), '-U', 'c1_bootstrap', '-A', 'trust', '--locale=C', '--encoding=UTF8', '--no-sync']); if (ini.status !== 0) throw new Error('initdb falló: ' + ini.stderr.slice(0, 200));
+-    const st = asUser(BIN + '/pg_ctl', ['-D', path.join(DIR, 'data'), '-l', path.join(DIR, 'postgres.log'), '-w', '-o', `-c listen_addresses='' -c unix_socket_directories='${SOCK}' -c unix_socket_permissions=0700 -c port=${PORT} -c fsync=off -c log_connections=on -c log_statement=none`, 'start']); if (st.status !== 0) throw new Error('pg_ctl start falló: ' + st.stderr.slice(0, 200));
+-    started = true; PID = Number(fs.readFileSync(path.join(DIR, 'data', 'postmaster.pid'), 'utf8').split('\n')[0]); ev.pid = PID;
++    const iniArgs = ['-D', st.dataDir, '-U', 'c1_bootstrap', '-A', 'trust', '--locale=C', '--encoding=UTF8', '--no-sync']; if (FAULT === 'initfail') iniArgs.push('--opcion-inexistente-inyectada');
++    const ini = asUser(BIN + '/initdb', iniArgs); if (ini.status !== 0) throw new Error('initdb falló: ' + ini.stderr.slice(0, 200));
++    const extra = FAULT === 'startfail' ? ' -c parametro_inexistente_inyectado=1' : '';
++    st.startAttempted = true;   // desde aquí puede existir una instancia propia, aunque pg_ctl devuelva error
++    const start = asUser(BIN + '/pg_ctl', ['-D', st.dataDir, '-l', path.join(DIR, 'postgres.log'), '-w', '-t', '20', '-o', `-c listen_addresses='' -c unix_socket_directories='${SOCK}' -c unix_socket_permissions=0700 -c port=${PORT} -c fsync=off -c log_connections=on -c log_statement=none${extra}`, 'start']); st.startStatus = start.status;
++    st.acc = LC.accreditPid(st, deps); PID = st.acc.pid; ev.pid = PID; ev.pid_accredited = st.acc.accredited; ev.pid_reason = st.acc.reason; L(`PID de la instancia propia: ${PID} acreditado=${st.acc.accredited}${st.acc.reason ? ' (' + st.acc.reason + ')' : ''}`);
++    if (start.status !== 0) throw new Error('pg_ctl start falló: ' + start.stderr.slice(0, 200));
++    if (!st.acc.accredited) throw new Error('PID de la instancia propia no acreditado (' + st.acc.reason + ')');
+     const before = await gate('postgres', 'antes-de-DDL'); EXPECT = { sysid: before.system_identifier }; ev.identity_before = before; L('Identidad verificada (antes): ' + JSON.stringify(before));
++    if (FAULT === 'gatefail') { EXPECT.sysid = 'INJECTED-SYSID-MISMATCH'; await gate('postgres', 'fallo-de-gate-inyectado'); }
++    if (MODE === 'lifecycle') { ev.identity_after = await gate('postgres', 'final'); L('Modo lifecycle: sin suites SQL.'); }
++    else {
+     ev.catalog_before = (await B('postgres', `select string_agg(nspname,',' order by nspname) from pg_namespace where nspname not like 'pg\\_%' and nspname<>'information_schema';`)).out.trim();
+-    // roles sintéticos (nivel clúster de la instancia nueva) y base desechable con marca
+     const boot = `create role c1_owner nologin; create role c1_publisher login; create role c1_reader login;`; let r = await B('postgres', boot); if (r.code !== 0) throw new Error('roles: ' + r.err);
+     const mkdb = async (name) => { await gate('postgres', 'crear-' + name); let x = await B('postgres', `create database ${name} owner c1_bootstrap; comment on database ${name} is '${MARKER}'; grant create on database ${name} to c1_owner; revoke temporary on database ${name} from public;`); if (x.code !== 0) throw new Error(name + ': ' + x.err); await gate(name, 'base-' + name); };
+     const apply = async (name, sql) => { await gate(name, 'ddl-' + name); const x = await B(name, `set role c1_owner;\nbegin;\n${sql}\ncommit;`); if (x.code !== 0) throw new Error('DDL en ' + name + ': ' + x.err.trim().slice(0, 300)); };
+     const MAIN = 'c1_disposable_main'; await mkdb(MAIN); await apply(MAIN, SCHEMA_SQL); ev.identity_ddl = await gate(MAIN, 'tras-DDL');
+     L('Suite principal ...'); const main = await suite(MAIN); ev.suite_main = main; for (const [k, vv] of Object.entries(main)) L(k + ' ' + vv);
+-    // reversa del candidato
+-    const rb = fs.readFileSync(path.join(SQLDIR, '02-rollback-ra1-v1.sql.inert'), 'utf8'); await gate(MAIN, 'reversa'); let x = await B(MAIN, `set role c1_owner;\nbegin;\n${rb}\ncommit;`); ev.rollback_script = x.code === 0 ? 'PASS' : 'FAIL ' + x.err.slice(0, 120);
++    const rb = fs.readFileSync(path.join(SQLDIR, '02-rollback-ra1-v1.1.sql.inert'), 'utf8'); await gate(MAIN, 'reversa'); let x = await B(MAIN, `set role c1_owner;\nbegin;\n${rb}\ncommit;`); ev.rollback_script = x.code === 0 ? 'PASS' : 'FAIL ' + x.err.slice(0, 120);
+     ev.after_rollback_schema = (await B(MAIN, `select count(*) from pg_namespace where nspname='c1_ra1';`)).out.trim(); L('Reversa: ' + ev.rollback_script + ' (esquemas c1_ra1 restantes: ' + ev.after_rollback_schema + ')');
+-    // mutaciones SQL en bases desechables separadas
+     ev.sql_mutants = {}; let i = 0;
+     for (const [name, reps, equiv, append] of MUTANTS) {
+       let s = SCHEMA_SQL; let okRep = true; for (const [n, rr] of reps) { if (s.split(n).length !== 2) { okRep = false; break; } s = s.replace(n, () => rr); } if (append) s += '\n' + append;
+-      if (!okRep) { ev.sql_mutants[name] = 'NEEDLE_STALE'; continue; }
++      if (!okRep) { ev.sql_mutants[name] = 'NEEDLE_STALE'; L(name + ' NEEDLE_STALE'); continue; }
+       const db = 'c1_disposable_mut' + (++i); await mkdb(db); await apply(db, s); const res = await suite(db); const fails = Object.entries(res).filter(([, vv]) => vv !== 'PASS').map(([k]) => k);
+       ev.sql_mutants[name] = fails.length ? 'KILLED by ' + fails.join(',') : (equiv ? 'EQUIVALENT_DECLARED: ' + equiv : 'SURVIVED'); L(name + ' ' + ev.sql_mutants[name]);
+       await B('postgres', `drop database ${db};`);
++      await B('postgres', `revoke c1_owner from c1_publisher; revoke c1_owner from c1_reader; revoke c1_publisher from c1_reader;`);   // los roles son del clúster: un mutante de membresía (S18) no debe contaminar a los siguientes
+     }
+-    ev.catalog_after_main = null;
+     ev.identity_after = await gate('postgres', 'final'); L('Identidad verificada (después): ' + JSON.stringify(ev.identity_after));
++    }
+   } catch (e) { ev.error = String(e.message).slice(0, 400); L('ERROR/GATE: ' + ev.error); }
+   finally {
+-    // limpieza limitada al PID y directorio creados
+-    if (started && PID) { const stp = asUser(BIN + '/pg_ctl', ['-D', path.join(DIR, 'data'), '-m', 'fast', '-w', 'stop']); ev.stop_status = stp.status; let alive = true; for (let k = 0; k < 50 && alive; k++) { let stt = null; try { stt = fs.readFileSync('/proc/' + PID + '/stat', 'utf8').split(') ')[1][0]; } catch (_) { stt = null; } alive = stt !== null && stt !== 'Z'; if (alive) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200); } ev.pid_alive_after_stop = alive; L(`Parada: pg_ctl=${stp.status}; PID ${PID} vivo=${alive}`); }
+-    try { fs.copyFileSync(path.join(DIR, 'postgres.log'), path.join(EVID, 'postgres-lab.log')); } catch (_) {}
+-    const confirmedStop = !ev.pid_alive_after_stop;
+-    if (DIR && /^\/tmp\/c1-ra1-lab-/.test(DIR) && fs.existsSync(path.join(DIR, 'MANDATE.marker')) && (confirmedStop || !started)) { fs.rmSync(DIR, { recursive: true, force: true }); ev.lab_dir_removed = !fs.existsSync(DIR); } else ev.lab_dir_removed = false;
+-    L('Directorio del laboratorio eliminado: ' + ev.lab_dir_removed);
++    // RA-R3: parada desconocida ≠ parada confirmada. Solo la instancia y el directorio propios; el directorio se elimina únicamente con parada observada (o si nunca se intentó arrancar).
++    try { fs.copyFileSync(path.join(DIR, 'postgres.log'), path.join(EVID, 'postgres-lab.log')); } catch (_) {}   // ANTES de limpiar: el directorio puede eliminarse
++    const cl = LC.finalizeCleanup(st, deps); ev.cleanup = cl; ev.stop_status = cl.stop_status; ev.pid_alive_after_stop = cl.pid_alive_after_stop; ev.lab_dir_removed = cl.lab_dir_removed;
++    L(`Limpieza: estado=${cl.cleanup_status}; pg_ctl stop=${cl.stop_status}; PID ${PID} vivo=${cl.pid_alive_after_stop}; parada confirmada=${cl.stop_confirmed}; directorio eliminado=${cl.lab_dir_removed}${cl.retained_dir ? ' ; DIRECTORIO RETENIDO (limpieza pendiente): ' + cl.retained_dir : ''}`);
+   }
+   const mainFails = Object.entries(ev.suite_main || {}).filter(([, v]) => v !== 'PASS'); const mut = Object.values(ev.sql_mutants || {}); const survivors = mut.filter((x) => x === 'SURVIVED' || x === 'NEEDLE_STALE');
+-  ev.summary = { suite_main_total: Object.keys(ev.suite_main || {}).length, suite_main_fail: mainFails.length, mutants_total: mut.length, killed: mut.filter((x) => /^KILLED/.test(x)).length, equivalent: mut.filter((x) => /^EQUIVALENT/.test(x)).length, survivors: survivors.length, rollback: ev.rollback_script, error: ev.error || null, elapsed_s: Math.round((Date.now() - t0) / 1000) };
+-  fs.writeFileSync(path.join(EVID, 'lab-run.json'), JSON.stringify(ev, null, 2) + '\n'); fs.writeFileSync(path.join(EVID, 'lab-run.log'), log.join('\n') + '\n');
+-  L('RESUMEN LAB: ' + JSON.stringify(ev.summary));
+-  if (ev.error) process.exit(/GATE/.test(ev.error) ? 4 : 1); process.exit(mainFails.length || survivors.length || ev.rollback_script !== 'PASS' || ev.pid_alive_after_stop || !ev.lab_dir_removed ? 1 : 0);
++  ev.summary = { mode: MODE, fault_injected: FAULT, suite_main_total: Object.keys(ev.suite_main || {}).length, suite_main_fail: mainFails.length, mutants_total: mut.length, killed: mut.filter((x) => /^KILLED/.test(x)).length, equivalent: mut.filter((x) => /^EQUIVALENT/.test(x)).length, survivors: survivors.length, rollback: ev.rollback_script || null, error: ev.error || null, cleanup_status: ev.cleanup.cleanup_status, cleanup_pending: !ev.cleanup.lab_dir_removed, elapsed_s: Math.round((Date.now() - t0) / 1000) };
++  const code = MODE === 'lifecycle' ? (ev.cleanup && !ev.cleanup.lab_dir_removed && ev.cleanup.retained_dir ? LC.EXIT_CLEANUP_PENDING : (ev.error ? (/GATE/.test(ev.error) ? 4 : 1) : (ev.cleanup.stop_confirmed && ev.cleanup.lab_dir_removed ? 0 : 1)))
++    : LC.exitCodeFor({ error: ev.error, mainFails: mainFails.length, survivors: survivors.length, rollbackOk: ev.rollback_script === 'PASS', cleanup: ev.cleanup });
++  ev.exit_code = code; fs.mkdirSync(EVID, { recursive: true }); fs.writeFileSync(path.join(EVID, 'lab-run.json'), JSON.stringify(ev, null, 2) + '\n'); fs.writeFileSync(path.join(EVID, 'lab-run.log'), log.join('\n') + '\n');
++  L('RESUMEN LAB: ' + JSON.stringify(ev.summary) + ' exit=' + code);
++  process.exit(code);
+ }
+ main().catch((e) => { console.error(e); process.exit(1); });
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/tests/lab/run_lifecycle_faults.js core1-revision-authority-v1.1/tests/lab/run_lifecycle_faults.js
+--- core1-revision-authority-v1/tests/lab/run_lifecycle_faults.js	1970-01-01 00:00:00.000000000 +0000
++++ core1-revision-authority-v1.1/tests/lab/run_lifecycle_faults.js	2026-10-28 14:55:46.168543996 +0000
+@@ -0,0 +1,52 @@
++'use strict';
++// RA-R3 — fallos REALES inyectados sobre la instancia PostgreSQL PROPIA (modo lifecycle de run_lab.js): control normal, rechazo seguro y fallos de lectura de PID / parada / arranque / inicialización / gate.
++// Solo instancias y directorios creados por esta ejecución (ruta tomada del JSON de cada corrida, con prefijo y marca del mandato). Sin pkill/killall ni búsqueda por nombre: el único proceso que se toca es el
++// PID acreditado de la instancia propia (vía `pg_ctl -D <directorio propio> stop`). Los residuos retenidos a propósito se limpian AL FINAL por este arnés, con parada observada, y se registra.
++const fs = require('fs'); const os = require('os'); const path = require('path'); const cp = require('child_process');
++const BIN = '/usr/lib/postgresql/16/bin'; const OSUSER = 'ubuntu'; const LAB = path.join(__dirname, 'run_lab.js'); const OUT = process.env.RA1_FAULTS_OUT || path.join(__dirname, 'evidence', 'lifecycle-faults');
++const PREFIX = path.join(os.tmpdir(), 'c1-ra1-lab-'); const sh = (c, a, o = {}) => cp.spawnSync(c, a, Object.assign({ encoding: 'utf8' }, o)); const asUser = (c, a) => sh('runuser', ['-u', OSUSER, '--', 'env', '-i', 'PATH=/usr/bin:/bin', 'LANG=C', c, ...a]);
++const alive = (pid) => { try { const st = fs.readFileSync('/proc/' + pid + '/stat', 'utf8').split(') ')[1][0]; return st !== 'Z'; } catch (_) { return false; } };
++const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
++const CASES = [   // nombre, fallo, salida esperada, estado esperado, ¿directorio retenido?, ¿proceso propio sigue vivo al salir el laboratorio?
++  ['C0_control_limpieza_normal', null, 0, 'STOP_CONFIRMED', false, false],
++  ['F1_arranque_ok_lectura_de_PID_falla', 'pidread', 5, 'STOP_PENDING_PID_READ_FAILED', true, null],
++  ['F2_parada_no_confirmada_la_orden_no_detiene', 'stopnoop', 5, 'STOP_PENDING_PID_STILL_ALIVE', true, true],
++  ['F3_estado_del_proceso_desconocido', 'procunknown', 5, 'STOP_PENDING_STATE_UNKNOWN', true, null],
++  ['F4_arranque_falla_sin_PID', 'startfail', 5, 'STOP_PENDING_PID_READ_FAILED', true, null],
++  ['F5_inicializacion_falla_antes_de_arrancar', 'initfail', 1, 'NOT_STARTED_REMOVABLE', false, false],
++  ['F6_fallo_de_gate_de_identidad', 'gatefail', 4, 'STOP_CONFIRMED', false, false],
++];
++function residueCleanup(dir) {   // limpieza externa de un residuo PROPIO retenido a propósito; exige prefijo, marca, PID leído de su postmaster.pid con cmdline propio y parada observada
++  const r = { dir, steps: [] }; const data = path.join(dir, 'data');
++  if (!dir.startsWith(PREFIX) || !fs.existsSync(path.join(dir, 'MANDATE.marker'))) { r.result = 'REFUSED_NOT_OWN'; return r; }
++  let pid = null; try { pid = Number(fs.readFileSync(path.join(data, 'postmaster.pid'), 'utf8').split('\n')[0]); } catch (_) {}
++  r.pid_file_present = pid !== null; if (pid && alive(pid)) {
++    const cmd = (() => { try { return fs.readFileSync('/proc/' + pid + '/cmdline', 'utf8').replace(/\0/g, ' '); } catch (_) { return ''; } })(); if (!cmd.includes(data)) { r.result = 'REFUSED_PID_NOT_OWN'; return r; }
++    r.alive_before_stop = true; const st = asUser(BIN + '/pg_ctl', ['-D', data, '-m', 'fast', '-w', 'stop']); r.stop_status = st.status; for (let i = 0; i < 50 && alive(pid); i++) sleep(200); r.alive_after_stop = alive(pid); if (r.alive_after_stop) { r.result = 'STOP_NOT_CONFIRMED_DIR_KEPT'; return r; }
++  } else r.alive_before_stop = false;
++  fs.rmSync(dir, { recursive: true, force: true }); r.result = fs.existsSync(dir) ? 'DIR_NOT_REMOVED' : 'CLEANED_BY_HARNESS'; return r;
++}
++fs.mkdirSync(OUT, { recursive: true }); const report = { cases: {}, started_utc: new Date().toISOString() }; let bad = 0; const created = [];
++for (const [name, fault, wantExit, wantStatus, wantRetained, wantAliveAtExit] of CASES) {
++  const ev_dir = path.join(OUT, name); fs.mkdirSync(ev_dir, { recursive: true });
++  const r = sh(process.execPath, [LAB], { env: Object.assign({}, process.env, { RA1_LAB_MODE: 'lifecycle', RA1_LAB_EVID: ev_dir }, fault ? { RA1_LAB_FAULT: fault } : {}) });
++  let ev = null; try { ev = JSON.parse(fs.readFileSync(path.join(ev_dir, 'lab-run.json'), 'utf8')); } catch (_) {}
++  const c = { exit: r.status, want_exit: wantExit, checks: {} }; const chk = (k, ok) => { c.checks[k] = ok ? 'PASS' : 'FAIL'; if (!ok) bad++; };
++  chk('exit_code', r.status === wantExit); chk('json_present', !!ev);
++  if (ev) {
++    const cl = ev.cleanup; c.cleanup_status = cl.cleanup_status; c.lab_dir_removed = cl.lab_dir_removed; c.stop_confirmed = cl.stop_confirmed; c.pid_alive_after_stop = cl.pid_alive_after_stop; c.stop_attempted = cl.stop_attempted;
++    chk('cleanup_status', cl.cleanup_status === wantStatus); chk('retention', wantRetained ? (cl.lab_dir_removed === false && fs.existsSync(ev.lab_dir)) : (cl.lab_dir_removed === true && !fs.existsSync(ev.lab_dir)));
++    chk('no_afirma_limpieza_si_retiene', wantRetained ? (cl.stop_confirmed === false && /pendiente|PENDING/i.test(cl.cleanup_status + (r.stdout.match(/RETENIDO \(limpieza pendiente\)/) ? 'PENDING' : ''))) : true);
++    chk('stdout_declara_directorio_retenido_si_corresponde', wantRetained ? /DIRECTORIO RETENIDO \(limpieza pendiente\)/.test(r.stdout) : !/DIRECTORIO RETENIDO/.test(r.stdout));
++    if (wantAliveAtExit !== null && ev.pid) { c.process_alive_at_exit = alive(ev.pid); chk('estado_real_del_proceso_al_salir', c.process_alive_at_exit === wantAliveAtExit); }
++    if (fault === 'startfail') chk('arranque_sin_pid', ev.pid === null || ev.pid === undefined);
++    if (fault === 'initfail') chk('sin_pg_ctl', cl.stop_attempted === false && !ev.pid);
++    if (wantRetained) { c.residue_cleanup = residueCleanup(ev.lab_dir); chk('residuo_propio_limpiado_con_parada_observada', c.residue_cleanup.result === 'CLEANED_BY_HARNESS'); }
++    created.push(ev.lab_dir); c.lab_dir = '<SCRATCH>/' + path.basename(ev.lab_dir);
++  }
++  report.cases[name] = c; console.log(name, JSON.stringify({ exit: c.exit, want: wantExit, status: c.cleanup_status, retained: c.lab_dir_removed === false, checks: c.checks, residue: c.residue_cleanup && c.residue_cleanup.result }));
++}
++// estado final: ningún directorio propio de esta ejecución queda
++const left = created.filter((d) => fs.existsSync(d)); report.leftover_own_dirs = left.length; report.finished_utc = new Date().toISOString(); report.failures = bad;
++fs.writeFileSync(path.join(OUT, 'lifecycle-faults.json'), JSON.stringify(report, null, 2) + '\n'); console.log(`FALLOS INYECTADOS: casos=${CASES.length} fallos=${bad} directorios propios restantes=${left.length}`);
++process.exit(bad || left.length ? 1 : 0);
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/tests/run_fault_injection_lifecycle.js core1-revision-authority-v1.1/tests/run_fault_injection_lifecycle.js
+--- core1-revision-authority-v1/tests/run_fault_injection_lifecycle.js	1970-01-01 00:00:00.000000000 +0000
++++ core1-revision-authority-v1.1/tests/run_fault_injection_lifecycle.js	2026-10-28 14:53:25.876461509 +0000
+@@ -0,0 +1,24 @@
++'use strict';
++// RA-R3 — mutantes de la lógica de limpieza (tests/lab/lifecycle.js). Cada mutante cambia UNA propiedad en una copia temporal; tests/run_lifecycle_tests.js debe fallar (exit≠0).
++// Control positivo: el módulo sin mutar pasa (exit 0). Sin equivalentes declarados.
++const fs = require('fs'); const os = require('os'); const path = require('path'); const cp = require('child_process');
++const SRC = fs.readFileSync(path.join(__dirname, 'lab', 'lifecycle.js'), 'utf8'); const TEST = path.join(__dirname, 'run_lifecycle_tests.js');
++const M = [
++  ['LM01_desconocido_cuenta_como_parada_confirmada_defecto_original', [["ev.stop_confirmed = ev.pid_alive_after_stop === false;", "ev.stop_confirmed = !ev.pid_alive_after_stop;"]]],
++  ['LM02_pid_no_acreditado_permite_borrar', [["|| 'PID_NOT_ACCREDITED'); removable = false;", "|| 'PID_NOT_ACCREDITED'); removable = true;"]]],
++  ['LM03_sin_identidad_de_la_instancia_propia', [["|| !String(cmd).includes(state.dataDir)", ""]]],
++  ['LM04_estado_desconocido_se_toma_por_ausente', [["if (st === 'UNKNOWN') return null;", "if (st === 'UNKNOWN') return false;"]]],
++  ['LM05_sin_intento_de_parada_propia_si_pid_no_acreditado', [["NO se afirma parada ni se borra\n    stopOwn(); ", "NO se afirma parada ni se borra\n    "]]],
++  ['LM06_borrado_sin_comprobar_prefijo_propio', [["String(state.dir).startsWith(state.safePrefix) && ", ""]]],
++  ['LM07_borrado_sin_marca_del_mandato', [["&& deps.exists(state.markerPath)", ""]]],
++  ['LM08_limpieza_pendiente_no_cambia_el_exit', [["if (cleanup && !cleanup.lab_dir_removed && cleanup.retained_dir) return EXIT_CLEANUP_PENDING;", ""]]],
++  ['LM09_arranque_fallido_se_trata_como_no_arrancado', [["if (!state.startAttempted) {", "if (!state.startAttempted || state.startStatus !== 0) {"]]],
++  ['LM10_pid_cero_o_uno_se_acepta', [["pid <= 1", "pid < 0"]]],
++];
++const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ra1-lcm-')); const run = (file) => cp.spawnSync(process.execPath, [TEST], { env: Object.assign({}, process.env, { RA1_LIFECYCLE: file }), encoding: 'utf8' });
++const base = path.join(dir, 'base.js'); fs.writeFileSync(base, SRC); const ctl = run(base); const out = { control_positivo_exit: ctl.status, mutants: {} }; let bad = 0;
++if (ctl.status !== 0) { console.log('CONTROL POSITIVO FALLA'); process.exit(3); }
++for (const [name, reps] of M) { let s = SRC; let ok = true; for (const [n, r] of reps) { if (s.split(n).length !== 2) { ok = false; break; } s = s.replace(n, () => r); } if (!ok) { out.mutants[name] = 'NEEDLE_STALE'; bad++; continue; } const f = path.join(dir, name + '.js'); fs.writeFileSync(f, s); const r = run(f); out.mutants[name] = r.status !== 0 ? 'KILLED' : 'SURVIVED'; if (out.mutants[name] === 'SURVIVED') bad++; }
++fs.rmSync(dir, { recursive: true, force: true });
++for (const [k, v] of Object.entries(out.mutants)) console.log(k, v);
++const c = Object.values(out.mutants); console.log(`MUTANTES LIFECYCLE: killed=${c.filter((x) => x === 'KILLED').length} survivors/stale=${bad} de ${c.length}; control_positivo_exit=${ctl.status}`); process.exit(bad ? 1 : 0);
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/tests/run_fault_injection_model.js core1-revision-authority-v1.1/tests/run_fault_injection_model.js
+--- core1-revision-authority-v1/tests/run_fault_injection_model.js	2026-10-28 14:48:12.048250869 +0000
++++ core1-revision-authority-v1.1/tests/run_fault_injection_model.js	2026-10-28 14:52:31.113439951 +0000
+@@ -1,5 +1,5 @@
+ 'use strict';
+-// Inyección de fallos del modelo RA-1 (CS-2 A). Cada mutante cambia UNA propiedad del modelo en una copia temporal; el arnés de AC debe fallar (exit≠0).
++// Inyección de fallos del modelo RA-1 v1.1 (CS-2 A + RA-R1/RA-R2). Cada mutante cambia UNA propiedad del modelo en una copia temporal; el arnés de AC debe fallar (exit≠0).
+ // Control positivo: el modelo sin mutar pasa (exit 0). Propagación de exit code: spawnSync.status. Equivalentes declarados con razón.
+ const fs = require('fs'); const os = require('os'); const path = require('path'); const cp = require('child_process');
+ const SRC = fs.readFileSync(path.join(__dirname, '..', 'model', 'ra1.js'), 'utf8'); const TEST = path.join(__dirname, 'run_ra1_model_tests.js');
+@@ -29,8 +29,15 @@
+  ['M23_dependencia_corrupta_al_publicar', [["if (o.digest !== sha(o.content)) throw new AuthorityError('DEPENDENCY_CORRUPT', o.key);", ""]]],
+  ['M24_current_no_exige_activa', [["if (!h.valid || !h.active) return { status: 'REVISION_MISSING', revision_id: h.revision_id, seq: h.seq };", ""]]],
+  ['M25_retencion_vs_horizonte_en_uso', [["if (ms(rec.horizon.public) > ms(rec.retention_until) || ms(rec.horizon.internal) > ms(rec.retention_until)) return 'REVISION_MISSING';", ""]]],
++ ['M26_fx_sin_subcadena_exchange_equivalent', [["if (lk.includes('exchange') || lk.includes('equivalent')) return true; ", ""]]],
++ ['M27_fx_sin_particion_por_mayusculas', [[".replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')", ""]]],
++ ['M28_politica_ausente_o_null_sin_rechazo', [["if (!['NO_CONVERSION_USD', 'FX_BRANCH'].includes(a.fx_policy)) throw new AuthorityError('SHAPE_INVALID', 'fx_policy');", ""]]],
++ ['M29_moneda_distinta_de_USD_ignorada', [["(fxWords(k).includes('currency') && v[k] !== 'USD') || ", ""]]],
++ ['M30_moneda_solo_clave_exacta_currency', [["fxWords(k).includes('currency')", "k === 'currency'"]]],
++ ['M31_fx_palabra_fx_ignorada', [["return w.includes('dop') || w.includes('fx');", "return w.includes('dop');"]]],
++ ['M32_pin_retencion_inclusiva_por_reloj_desplazado', [["const st = !h.valid || !h.active ? 'REVISION_MISSING' : usable(rec, now());", "const st = !h.valid || !h.active ? 'REVISION_MISSING' : usable(rec, now() - 1);"]]],
+ ];
+-const EQUIV = { M25_retencion_vs_horizonte_en_uso: 'Redundante con RETENTION_SHORT en publicación: sin operación de rol que altere horizonte/retención tras publicar; solo el simulador admin alteraría contenido/objetos, no esos campos.', M24_current_no_exige_activa: 'Equivalente observable: current exige coincidencia exacta de cabeza (seq) y los eventos de desactivación/invalidación avanzan seq ⇒ DRIFT antes; el token solo se obtiene de pin() (que sí exige activa).' };
++const EQUIV = { M25_retencion_vs_horizonte_en_uso: 'Redundante con RETENTION_SHORT en publicación: sin operación de rol que altere horizonte/retención tras publicar; solo el simulador admin alteraría contenido/objetos, no esos campos.', };   // v1.1: M24 se detecta (AC1d); el texto de equivalencia obsoleto de v1 se elimina
+ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ra1-mut-')); const run = (file) => cp.spawnSync(process.execPath, [TEST], { env: Object.assign({}, process.env, { RA1_MODEL: file }), encoding: 'utf8' });
+ const base = path.join(dir, 'base.js'); fs.writeFileSync(base, SRC); const ctl = run(base);
+ const out = { control_positivo_exit: ctl.status, mutants: {} }; let bad = 0;
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/tests/run_lifecycle_tests.js core1-revision-authority-v1.1/tests/run_lifecycle_tests.js
+--- core1-revision-authority-v1/tests/run_lifecycle_tests.js	1970-01-01 00:00:00.000000000 +0000
++++ core1-revision-authority-v1.1/tests/run_lifecycle_tests.js	2026-10-28 14:53:06.720268385 +0000
+@@ -0,0 +1,34 @@
++'use strict';
++// RA-R3 — pruebas de la lógica de limpieza (tests/lab/lifecycle.js) con dependencias INYECTADAS y fallos inyectados. Sin PostgreSQL, sin red, sin procesos reales.
++// Los fallos REALES (instancia propia) se prueban aparte en tests/lab/run_lifecycle_faults.js. PASS aquí prueba la lógica de decisión, no el laboratorio.
++const assert = require('assert'); const L = require(process.env.RA1_LIFECYCLE || './lab/lifecycle');
++const DIR = '/tmp/c1-ra1-lab-FAKE'; const DATA = DIR + '/data'; const MARK = DIR + '/MANDATE.marker'; const PREFIX = '/tmp/c1-ra1-lab-';
++const results = {}; const t = (n, f) => { try { f(); results[n] = 'PASS'; } catch (e) { results[n] = 'FAIL ' + String(e.message).split('\n')[0].slice(0, 240); } };
++function world(o = {}) {   // mundo falso determinista; registra TODA invocación
++  const w = { calls: [], removed: [], fs: new Set([DIR, MARK, DATA + '/postmaster.pid']), states: o.states || ['GONE'] };
++  w.deps = {
++    run: (cmd, args) => { w.calls.push([cmd, ...args].join(' ')); return { status: o.stopStatus === undefined ? 0 : o.stopStatus }; },
++    readFile: (p) => { if (o.pidReadFails || !w.fs.has(p)) throw new Error('ENOENT'); return o.pidText === undefined ? '4242\n/data\n' : o.pidText; },
++    cmdline: (pid) => (o.cmdline === undefined ? 'postgres\0-D\0' + DATA : o.cmdline),
++    procState: () => (w.states.length > 1 ? w.states.shift() : w.states[0]), sleep: () => {}, exists: (p) => w.fs.has(p) && !w.removed.includes(p), rmDir: (p) => { w.removed.push(p); },
++  };
++  w.state = Object.assign({ dir: DIR, dataDir: DATA, markerPath: MARK, safePrefix: PREFIX, startAttempted: true, startStatus: 0 }, o.state || {});
++  if (o.accredit !== false) w.state.acc = L.accreditPid(w.state, w.deps); else w.state.acc = o.acc;
++  return w;
++}
++const fin = (w) => L.finalizeCleanup(w.state, w.deps);
++t('L01_control_normal_pid_acreditado_parada_observada_directorio_propio_eliminado', () => { const w = world({ states: ['ALIVE', 'ALIVE', 'GONE'] }); const e = fin(w); assert.strictEqual(w.state.acc.accredited, true); assert.strictEqual(e.stop_confirmed, true); assert.strictEqual(e.pid_alive_after_stop, false); assert.strictEqual(e.cleanup_status, 'STOP_CONFIRMED'); assert.deepStrictEqual(w.removed, [DIR]); assert.strictEqual(e.lab_dir_removed, true); assert.ok(w.calls.every((c) => /^pg_ctl -D \/tmp\/c1-ra1-lab-FAKE\/data /.test(c)), 'solo pg_ctl sobre el directorio propio'); });
++t('L02_RAR3_arranque_ok_y_lectura_de_PID_falla_no_borra_ni_afirma_limpieza', () => { const w = world({ pidReadFails: true }); const e = fin(w); assert.strictEqual(w.state.acc.reason, 'PID_READ_FAILED'); assert.strictEqual(e.stop_confirmed, false); assert.strictEqual(e.lab_dir_removed, false); assert.deepStrictEqual(w.removed, []); assert.match(e.cleanup_status, /^STOP_PENDING_PID_READ_FAILED$/); assert.strictEqual(e.retained_dir, DIR); assert.strictEqual(e.stop_attempted, true, 'intento acotado de parada por directorio propio'); assert.strictEqual(L.exitCodeFor({ error: null, mainFails: 0, survivors: 0, rollbackOk: true, cleanup: e }), 5); });
++t('L03_pid_con_texto_invalido_o_menor_que_2_no_se_acredita', () => { for (const txt of ['', 'abc\n', '0\n', '1\n', '-5\n', '12.5\n']) { const w = world({ pidText: txt }); const e = fin(w); assert.strictEqual(w.state.acc.accredited, false, JSON.stringify(txt)); assert.strictEqual(e.lab_dir_removed, false); assert.deepStrictEqual(w.removed, []); } });
++t('L04_pid_que_no_es_de_la_instancia_propia_no_se_acredita_ni_se_borra', () => { const w = world({ cmdline: 'otro-proceso\0-x' }); const e = fin(w); assert.strictEqual(w.state.acc.reason, 'PID_NOT_OWN_INSTANCE'); assert.strictEqual(e.lab_dir_removed, false); assert.strictEqual(e.stop_confirmed, false); const w2 = world({ cmdline: null }); assert.strictEqual(fin(w2).lab_dir_removed, false); });
++t('L05_parada_no_confirmada_pid_sigue_vivo_retiene_y_exit_5', () => { const w = world({ states: ['ALIVE'], stopStatus: 1 }); const e = fin(w); assert.strictEqual(e.pid_alive_after_stop, true); assert.strictEqual(e.stop_confirmed, false); assert.strictEqual(e.cleanup_status, 'STOP_PENDING_PID_STILL_ALIVE'); assert.deepStrictEqual(w.removed, []); assert.strictEqual(L.exitCodeFor({ error: null, mainFails: 0, survivors: 0, rollbackOk: true, cleanup: e }), 5); });
++t('L06_estado_del_proceso_desconocido_NO_es_parada_confirmada', () => { const w = world({ states: ['UNKNOWN'] }); const e = fin(w); assert.strictEqual(e.pid_alive_after_stop, null); assert.strictEqual(e.stop_confirmed, false); assert.strictEqual(e.cleanup_status, 'STOP_PENDING_STATE_UNKNOWN'); assert.deepStrictEqual(w.removed, []); });
++t('L07_inicializacion_falla_antes_de_arrancar_no_hay_proceso_se_elimina_el_directorio_propio_sin_pg_ctl', () => { const w = world({ accredit: false, acc: null, state: { startAttempted: false, startStatus: null } }); const e = fin(w); assert.strictEqual(e.cleanup_status, 'NOT_STARTED_REMOVABLE'); assert.deepStrictEqual(w.removed, [DIR]); assert.strictEqual(w.calls.length, 0, 'no se invoca pg_ctl'); assert.strictEqual(L.exitCodeFor({ error: 'initdb falló', mainFails: 0, survivors: 0, rollbackOk: false, cleanup: e }), 1); });
++t('L08_arranque_devuelve_error_sin_postmaster_pid_se_retiene_no_se_borra', () => { const w = world({ pidReadFails: true, state: { startStatus: 1 } }); const e = fin(w); assert.strictEqual(e.lab_dir_removed, false); assert.deepStrictEqual(w.removed, []); assert.strictEqual(e.cleanup_status, 'STOP_PENDING_PID_READ_FAILED'); });
++t('L09_pg_ctl_stop_devuelve_error_pero_el_pid_acreditado_desaparecio_se_confirma_por_observacion', () => { const w = world({ stopStatus: 1, states: ['GONE'] }); const e = fin(w); assert.strictEqual(e.stop_status, 1); assert.strictEqual(e.stop_confirmed, true); assert.deepStrictEqual(w.removed, [DIR]); });
++t('L10_ruta_fuera_del_prefijo_propio_o_sin_marca_nunca_se_borra_aunque_la_parada_este_confirmada', () => { const w = world({ state: { dir: '/home/otro/dir' } }); const e = fin(w); assert.strictEqual(e.stop_confirmed, true); assert.deepStrictEqual(w.removed, []); assert.strictEqual(e.cleanup_status, 'REMOVAL_REFUSED_UNSAFE_PATH'); const w2 = world({}); w2.fs.delete(MARK); const e2 = fin(w2); assert.deepStrictEqual(w2.removed, []); assert.strictEqual(e2.cleanup_status, 'REMOVAL_REFUSED_UNSAFE_PATH'); });
++t('L11_codigos_de_salida_limpieza_pendiente_5_gate_4_exito_0_control_positivo', () => { const ok = { lab_dir_removed: true, retained_dir: null, pid_alive_after_stop: false, start_attempted: true }; const ret = { lab_dir_removed: false, retained_dir: DIR, pid_alive_after_stop: true, start_attempted: true }; assert.strictEqual(L.exitCodeFor({ error: null, mainFails: 0, survivors: 0, rollbackOk: true, cleanup: ok }), 0); assert.strictEqual(L.exitCodeFor({ error: 'GATE x', mainFails: 0, survivors: 0, rollbackOk: false, cleanup: ok }), 4); assert.strictEqual(L.exitCodeFor({ error: 'GATE x', mainFails: 0, survivors: 0, rollbackOk: false, cleanup: ret }), 5, 'limpieza pendiente tiene precedencia'); assert.strictEqual(L.exitCodeFor({ error: null, mainFails: 1, survivors: 0, rollbackOk: true, cleanup: ok }), 1); });
++t('L12_control_positivo_el_arnes_detecta_un_fallo_real', () => { assert.throws(() => assert.strictEqual(1, 2)); });
++const names = Object.keys(results).sort(); const bad = names.filter((k) => results[k] !== 'PASS'); for (const k of names) console.log(k, results[k]);
++console.log(`RA-R3 CICLO DE VIDA (lógica con dependencias inyectadas): ${names.length - bad.length}/${names.length} PASS; failing=${JSON.stringify(bad)}`);
++if (names.length !== 12) { console.log('COUNT MISMATCH ' + names.length); process.exit(2); } process.exit(bad.length ? 1 : 0);
+diff -ruN '--exclude=evidence' '--exclude=MANIFEST.sha256' '--exclude=DELTA-v1-to-v1.1.patch' core1-revision-authority-v1/tests/run_ra1_model_tests.js core1-revision-authority-v1.1/tests/run_ra1_model_tests.js
+--- core1-revision-authority-v1/tests/run_ra1_model_tests.js	2026-10-28 14:48:12.048250869 +0000
++++ core1-revision-authority-v1.1/tests/run_ra1_model_tests.js	2026-10-28 14:51:46.584760620 +0000
+@@ -1,9 +1,9 @@
+ 'use strict';
+-// RA-1 modelo de referencia — AC1…AC10 (mandato CS-2 A). Cada AC: observable, positivo, negativo; mutaciones en run_fault_injection_model.js.
++// RA-1 v1.1 modelo de referencia — AC1…AC10 + RA-R1/RA-R2 (mandato CS-2 A). Cada AC: observable, positivo, negativo; mutaciones en run_fault_injection_model.js.
+ // Sin base de datos, sin red, sin sleep; reloj inyectado. PASS prueba el MODELO aislado; no acredita ningún vínculo.
+ const assert = require('assert'); const cp = require('child_process'); const path = require('path');
+ const { createAuthority, fxScan } = require(process.env.RA1_MODEL || '../model/ra1'); const F = require('../model/fixtures');
+-const EXPECTED = 26; const results = {}; const pending = [];
++const V = require('../model/fx_vectors'); const EXPECTED = 30; const results = {}; const pending = [];
+ const t = (n, fn) => { try { fn(); results[n] = 'PASS'; } catch (e) { results[n] = 'FAIL ' + String(e.message).split('\n')[0].slice(0, 260); } };
+ const throwsCode = (fn, code) => { try { fn(); } catch (e) { assert.strictEqual(e.code, code, 'código esperado ' + code + ' fue ' + e.code); return; } assert.fail('debía lanzar ' + code); };
+ const mk = (t0 = F.T0) => { const c = F.clockAt(t0); return { c, A: F.seeded(createAuthority, c) }; };
+@@ -24,6 +24,7 @@
+ t('AC3b_retencion_vence_en_la_ultima_espera_y_limite_superior_exclusivo', () => { const m = published(); const e = { revision_id: m.pin.revision_id, seq: m.pin.seq }; m.c.set('2026-10-26T14:59:59Z'); assert.strictEqual(m.A.current('reader', 'S-1|rates', e).status, 'OK'); m.c.set('2026-10-26T15:00:00Z'); assert.strictEqual(m.A.current('reader', 'S-1|rates', e).status, 'REVISION_MISSING'); });
+ t('AC3c_en_el_gate_todo_resultado_liberable_esta_cubierto_y_uno_que_excede_se_rechaza', () => { const m = published(); const e = { revision_id: m.pin.revision_id, seq: m.pin.seq }; for (const ti of ['2026-10-26T12:00:00Z', '2026-10-26T12:59:59Z']) { m.c.set(ti); assert.strictEqual(m.A.current('reader', 'S-1|rates', e, { public: '2026-10-26T13:00:00Z', internal: '2026-10-26T13:30:00Z' }).status, 'OK', ti); } assert.strictEqual(m.A.current('reader', 'S-1|rates', e, { public: '2026-10-26T13:00:01Z', internal: '2026-10-26T13:30:00Z' }).status, 'REVISION_MISSING'); assert.strictEqual(m.A.current('reader', 'S-1|rates', e, { public: '2026-10-26T13:00:00Z', internal: '2026-10-26T13:30:01Z' }).status, 'REVISION_MISSING'); assert.strictEqual(m.A.current('reader', 'S-1|rates', e, { public: 'no-es-fecha', internal: '2026-10-26T13:30:00Z' }).status, 'SHAPE_INVALID'); });
+ t('AC3d_token_igual_no_basta_current_exige_deliver_verificable_si_se_pide', () => { const m = published(); const e = { revision_id: m.pin.revision_id, seq: m.pin.seq }; assert.strictEqual(m.A.current('reader', 'S-1|rates', e, { public: null, internal: '2026-10-26T13:30:00Z' }).status, 'SHAPE_INVALID'); });
++t('AC3e_RA-R2_limite_de_retencion_con_tiempo_explicito_antes_igual_despues', () => { const m = published(); const e = { revision_id: m.pin.revision_id, seq: m.pin.seq }; const ret = Date.parse('2026-10-26T15:00:00Z'); for (const [dt, want] of [[-1000, 'OK'], [-1, 'OK'], [0, 'REVISION_MISSING'], [1, 'REVISION_MISSING'], [1000, 'REVISION_MISSING']]) { m.c.set(new Date(ret + dt).toISOString()); assert.strictEqual(m.A.current('reader', 'S-1|rates', e).status, want, 'current dt=' + dt + 'ms'); assert.strictEqual(m.A.pin('reader', 'S-1|rates').status === 'OK' ? 'OK' : 'REVISION_MISSING', want, 'pin dt=' + dt + 'ms'); } });
+ // AC4 — horizonte de TODA vista liberable (pública e interna)
+ t('AC4a_publicar_sin_horizonte_de_la_vista_interna_o_publica_falla', () => { const m = mk(); throwsCode(() => m.A.publish('publisher', F.pubArgs({ horizon: { public: '2026-10-26T13:00:00Z' } })), 'HORIZON_MISSING'); throwsCode(() => m.A.publish('publisher', F.pubArgs({ horizon: { internal: '2026-10-26T13:00:00Z' } })), 'HORIZON_MISSING'); throwsCode(() => m.A.publish('publisher', F.pubArgs({ horizon: undefined })), 'HORIZON_MISSING'); });
+ t('AC4b_horizonte_mas_margen_que_excede_la_retencion_se_rechaza_igual_es_aceptable', () => { const m = mk(); throwsCode(() => m.A.publish('publisher', F.pubArgs({ horizon: { public: '2026-10-26T13:00:00Z', internal: '2026-10-26T14:59:30Z' } })), 'RETENTION_SHORT'); const ok = m.A.publish('publisher', F.pubArgs({ horizon: { public: '2026-10-26T13:00:00Z', internal: '2026-10-26T14:59:00Z' } })); assert.ok(ok.revision_id); throwsCode(() => m.A.publish('publisher', F.pubArgs({ retention_until: '2026-10-26T11:00:00Z', horizon: { public: '2026-10-26T10:00:00Z', internal: '2026-10-26T10:30:00Z' } })), 'RETENTION_SHORT'); });
+@@ -38,6 +39,8 @@
+ t('AC7_lectura_exacta_scope_distinto_NOT_FOUND_ausente_REVISION_MISSING_forma_SHAPE_INVALID', () => { const m = publishedNoActive(); const id = m.A.read('reader', 'S-1|rates', 'R000001'); assert.strictEqual(id.status, 'OK'); assert.strictEqual(m.A.read('reader', 'S-2|otro', 'R000001').status, 'NOT_FOUND'); assert.strictEqual(m.A.read('reader', 'S-1|rates', 'R999999').status, 'REVISION_MISSING'); assert.strictEqual(m.A.current('reader', 'S-1|rates', { revision_id: 1, seq: 'x' }).status, 'SHAPE_INVALID'); assert.strictEqual(m.A.current('reader', 'S-X', { revision_id: 'R1', seq: 1 }).status, 'NOT_FOUND'); });
+ // AC8 — rama FX: se clasifica o rechaza; no se aprueba ni implementa FX
+ t('AC8_fixtures_con_conversion_se_rechazan_en_NO_CONVERSION_USD_y_se_clasifican_FX_BRANCH', () => { const m = mk(); throwsCode(() => m.A.publish('publisher', F.pubArgs({ content: F.contentDepositDOP() })), 'FX_CONVERSION_PRESENT'); throwsCode(() => m.A.publish('publisher', F.pubArgs({ content: F.contentCompareFx() })), 'FX_CONVERSION_PRESENT'); const ok = m.A.publish('publisher', F.pubArgs()); assert.strictEqual(m.A.read('reader', 'S-1|rates', ok.revision_id).revision.fx_class, 'NO_CONVERSION_USD'); const fx = m.A.publish('publisher', F.pubArgs({ scope: 'S-F|rates', content: F.contentDepositDOP(), fx_policy: 'FX_BRANCH' })); assert.strictEqual(m.A.read('reader', 'S-F|rates', fx.revision_id).revision.fx_class, 'FX_BRANCH'); assert.ok(fxScan({ a: [{ equivalent_dop: 1 }] }) && !fxScan({ a: [{ currency: 'USD' }] })); });
++t('AC8b_RA-R1_clasificacion_FX_pareada_vectores_compartidos_con_SQL', () => { for (const v of V.CONTENT_VECTORS) { assert.strictEqual(fxScan(v.content), v.expect_fx, 'fxScan ' + v.id); const m = mk(); if (v.expect_fx) { throwsCode(() => m.A.publish('publisher', F.pubArgs({ content: v.content })), 'FX_CONVERSION_PRESENT'); const p = m.A.publish('publisher', F.pubArgs({ content: v.content, fx_policy: 'FX_BRANCH' })); assert.strictEqual(m.A.read('reader', 'S-1|rates', p.revision_id).revision.fx_class, 'FX_BRANCH', v.id); } else { const p = m.A.publish('publisher', F.pubArgs({ content: v.content })); assert.strictEqual(m.A.read('reader', 'S-1|rates', p.revision_id).revision.fx_class, 'NO_CONVERSION_USD', v.id); } } for (const v of V.LIMIT_VECTORS) assert.strictEqual(fxScan(v.content), v.expect_fx, 'límite declarado ' + v.id); const keys = V.fuzzKeys(); assert.ok(keys.length > 300); const { fxKeyNorm } = require(process.env.RA1_MODEL || '../model/ra1'); assert.strictEqual(fxKeyNorm('ExchangeRate'), 'exchange rate'); assert.strictEqual(fxKeyNorm('FXRate'), 'fx rate'); assert.strictEqual(fxKeyNorm('amountDOP'), 'amount dop'); });
++t('AC8c_RA-R1_politica_ausente_null_vacia_o_desconocida_se_rechaza_explicitamente_sin_decision_FX', () => { const m = mk(); for (const content of [F.contentUSD(), F.contentDepositDOP(), F.contentCompareFx()]) for (const v of V.POLICY_VECTORS) { const a = F.pubArgs({ content }); if (v.policy === undefined) delete a.fx_policy; else a.fx_policy = v.policy; throwsCode(() => m.A.publish('publisher', a), 'SHAPE_INVALID'); } assert.strictEqual(m.A.admin.counters().revisions, 0, 'ningún rechazo deja revisión'); });
+ // AC9 — roles: el lector no atesta; el publicador no puede reescribir ni borrar; sin operaciones de modificación del contenido publicado
+ t('AC9_permisos_por_rol_lector_no_publica_publicador_no_lee_ni_altera_y_no_hay_operacion_de_update', () => { const m = mk(); throwsCode(() => m.A.publish('reader', F.pubArgs()), 'PERMISSION_DENIED'); throwsCode(() => m.A.setActive('reader', 'S-1|rates', 'R1', true), 'PERMISSION_DENIED'); throwsCode(() => m.A.invalidate('reader', 'S-1|rates'), 'PERMISSION_DENIED'); throwsCode(() => m.A.putObject('reader', { kind: 'doc', id: 'x', rev: '1', content: {} }), 'PERMISSION_DENIED'); const pub = m.A.publish('publisher', F.pubArgs()); throwsCode(() => m.A.pin('publisher', 'S-1|rates'), 'PERMISSION_DENIED'); throwsCode(() => m.A.current('publisher', 'S-1|rates', { revision_id: pub.revision_id, seq: pub.seq }), 'PERMISSION_DENIED'); assert.deepStrictEqual(Object.keys(m.A).sort(), ['admin', 'current', 'invalidate', 'pin', 'publish', 'putObject', 'read', 'setActive']); });
+ t('AC9b_lo_publicado_no_cambia_por_reescritura_de_la_entrada_del_publicador', () => { const m = mk(); const a = F.pubArgs(); const p = m.A.publish('publisher', a); a.content.rows[0].adult = 999; a.horizon.public = '2099-01-01T00:00:00Z'; const r = m.A.read('reader', 'S-1|rates', p.revision_id).revision; assert.strictEqual(r.content.rows[0].adult, 100); assert.strictEqual(r.horizon.public, '2026-10-26T13:00:00Z'); r.content.rows[0].adult = 5; assert.strictEqual(m.A.read('reader', 'S-1|rates', p.revision_id).revision.content.rows[0].adult, 100); });
+@@ -45,6 +48,7 @@
+ t('AC10a_carpetas_congeladas_sin_diferencias_respecto_de_la_base_fc3cdb3', () => { const root = path.join(__dirname, '..', '..'); const dirs = ['kernel', 'kernel-v2', 'kernel-v2.0.1', 'kernel-v2.0.2', 'kernel-v2.0.3', 'kernel-v2.0.4', 'kernel-v2.0.5', 'kernel-v2.0.6', 'core1-price', 'core1-producer', 'core1-producer-v1.1', 'core1-physical-adapter-v1', 'kernel-probes']; const r = cp.spawnSync('git', ['diff', '--stat', 'fc3cdb37da41b506784f4274ad1c9778d901e433', '--', ...dirs], { cwd: root, encoding: 'utf8' }); assert.strictEqual(r.status, 0, 'git diff falló: ' + r.stderr); assert.strictEqual(r.stdout.trim(), '', 'carpetas congeladas modificadas:\n' + r.stdout); });
+ t('AC10b_el_modelo_no_importa_red_ni_bd_ni_otras_carpetas', () => { const src = require('fs').readFileSync(path.join(__dirname, '..', 'model', 'ra1.js'), 'utf8'); assert.ok(!/require\((?!'crypto')/.test(src), 'solo puede requerir crypto'); assert.ok(!/(fetch|http|net\.|pg|supabase|child_process|fs\.)/.test(src.replace(/\/\/.*$/gm, '').replace(/'[^']*'/g, "''")), 'sin red/BD/FS'); });
+ t('AC10c_fixtures_son_sinteticos_sin_PII_ni_secretos_ni_cifras_comerciales_conocidas', () => { const src = require('fs').readFileSync(path.join(__dirname, '..', 'model', 'fixtures.js'), 'utf8'); assert.ok(!/[A-Za-z0-9._-]+@[A-Za-z0-9-]+\.[a-z]{2,}|eyJ|MIDOSI|c8f575bc|Viva|Wyndham/i.test(src)); });
++t('AC10d_v1_congelada_sin_diferencias_respecto_de_4224e66_y_ra1_v11_no_importa_v1', () => { const root = path.join(__dirname, '..', '..'); const r = cp.spawnSync('git', ['diff', '--stat', '4224e6634f2129ba8ac60864d7a0195eaa7ee4e7', '--', 'core1-revision-authority-v1'], { cwd: root, encoding: 'utf8' }); assert.strictEqual(r.status, 0, 'git diff falló: ' + r.stderr); assert.strictEqual(r.stdout.trim(), '', 'RA-1 v1 modificada:\n' + r.stdout); });
+ t('AC_control_positivo_el_arnes_detecta_un_fallo_real', () => { assert.throws(() => assert.strictEqual(1, 2)); });
+ // Conteo
+ const names = Object.keys(results).sort(); const bad = names.filter((k) => results[k] !== 'PASS');

@@ -1,0 +1,8 @@
+2026-10-28 15:11:15.997 UTC [26034] LOG:  starting PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit
+2026-10-28 15:11:15.998 UTC [26034] LOG:  listening on Unix socket "/tmp/c1-ra1-lab-FYLFc0/sock/.s.PGSQL.54329"
+2026-10-28 15:11:16.000 UTC [26037] LOG:  database system was shut down at 2026-10-28 15:11:15 UTC
+2026-10-28 15:11:16.004 UTC [26034] LOG:  database system is ready to accept connections
+2026-10-28 15:11:16.091 UTC [26043] LOG:  connection received: host=[local]
+2026-10-28 15:11:16.092 UTC [26043] LOG:  connection authorized: user=c1_bootstrap database=postgres application_name=psql
+2026-10-28 15:11:16.120 UTC [26046] LOG:  connection received: host=[local]
+2026-10-28 15:11:16.121 UTC [26046] LOG:  connection authorized: user=c1_bootstrap database=postgres application_name=psql

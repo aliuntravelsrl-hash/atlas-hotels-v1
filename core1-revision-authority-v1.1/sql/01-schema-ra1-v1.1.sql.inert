@@ -1,0 +1,193 @@
+-- RA-1 v1.1 — AUTORIDAD DE REVISIÓN — CANDIDATO SQL INERTE (CS-2). NO EJECUTADO en ningún entorno real.
+-- Solo se ejecuta en el laboratorio PostgreSQL local, nuevo y aislado del mandato (tests/lab/run_lab.js), con datos sintéticos.
+-- Sin BEGIN/COMMIT (lo envuelve quien ejecuta). Requiere los roles c1_owner (no operativo, propietario), c1_publisher y c1_reader
+-- creados antes por el bootstrap (cluster-level, fuera de este archivo). Se ejecuta como c1_owner (SET ROLE c1_owner), NO como superusuario.
+-- No promete defensa contra superusuario / administrador del SO. No toca catálogos públicos del kernel. No implementa FX.
+CREATE SCHEMA c1_ra1;
+REVOKE ALL ON SCHEMA c1_ra1 FROM PUBLIC;
+GRANT USAGE ON SCHEMA c1_ra1 TO c1_publisher, c1_reader;   -- USAGE sin CREATE: nadie operativo crea objetos
+
+CREATE SEQUENCE c1_ra1.rev_seq;      -- no transaccional ⇒ ids no reutilizables, huecos permitidos
+CREATE SEQUENCE c1_ra1.ledger_seq;   -- monótona; huecos permitidos
+
+CREATE TABLE c1_ra1.objects (
+  key text PRIMARY KEY, kind text NOT NULL, content jsonb NOT NULL, digest text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  CONSTRAINT objects_digest_ck CHECK (digest = encode(sha256(convert_to(content::text, 'UTF8')), 'hex')));
+CREATE TABLE c1_ra1.revisions (
+  revision_id text PRIMARY KEY, scope text NOT NULL, port text NOT NULL, content jsonb NOT NULL, content_digest text NOT NULL,
+  members jsonb NOT NULL, manifest_digest text NOT NULL,
+  horizon_public timestamptz NOT NULL, horizon_internal timestamptz NOT NULL, retention_until timestamptz NOT NULL, margin_ms bigint NOT NULL,
+  fx_class text NOT NULL, received_kind text NOT NULL, received_at timestamptz, imported_at timestamptz, attested_at timestamptz NOT NULL,
+  CONSTRAINT rev_margin_ck CHECK (margin_ms >= 0),
+  CONSTRAINT rev_retention_ck CHECK (retention_until >= greatest(horizon_public, horizon_internal) + margin_ms * interval '1 millisecond'),
+  CONSTRAINT rev_fx_ck CHECK (fx_class IN ('NO_CONVERSION_USD','FX_BRANCH')),
+  CONSTRAINT rev_received_ck CHECK ((received_kind = 'SERVER' AND received_at IS NOT NULL AND imported_at IS NULL)
+                                 OR (received_kind = 'IMPORTED_HISTORICAL' AND imported_at IS NOT NULL)));
+CREATE TABLE c1_ra1.ledger (
+  seq bigint PRIMARY KEY, scope text NOT NULL, event text NOT NULL CHECK (event IN ('PUBLISH','ACTIVATE','DEACTIVATE','INVALIDATE')),
+  revision_id text NOT NULL REFERENCES c1_ra1.revisions(revision_id), at timestamptz NOT NULL DEFAULT clock_timestamp());
+CREATE INDEX ledger_scope_seq ON c1_ra1.ledger (scope, seq DESC);
+REVOKE ALL ON TABLE c1_ra1.objects, c1_ra1.revisions, c1_ra1.ledger FROM PUBLIC;
+REVOKE ALL ON SEQUENCE c1_ra1.rev_seq, c1_ra1.ledger_seq FROM PUBLIC;   -- ningún rol operativo recibe privilegio de tabla
+
+-- Append-only incluso para el propietario: UPDATE/DELETE/TRUNCATE rechazados por disparador de sentencia (también sobre tablas vacías).
+CREATE FUNCTION c1_ra1.deny_mutation() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN RAISE EXCEPTION 'IMMUTABLE_STORE: % sobre %', TG_OP, TG_TABLE_NAME USING ERRCODE = 'P0001'; END $$;
+CREATE TRIGGER objects_ro BEFORE UPDATE OR DELETE ON c1_ra1.objects FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+CREATE TRIGGER revisions_ro BEFORE UPDATE OR DELETE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+CREATE TRIGGER ledger_ro BEFORE UPDATE OR DELETE ON c1_ra1.ledger FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+CREATE TRIGGER objects_nt BEFORE TRUNCATE ON c1_ra1.objects FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+CREATE TRIGGER revisions_nt BEFORE TRUNCATE ON c1_ra1.revisions FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+CREATE TRIGGER ledger_nt BEFORE TRUNCATE ON c1_ra1.ledger FOR EACH STATEMENT EXECUTE FUNCTION c1_ra1.deny_mutation();
+
+-- Auxiliares internos (sin EXECUTE para roles operativos).
+CREATE FUNCTION c1_ra1.sha(j jsonb) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, pg_temp AS $$ SELECT encode(sha256(convert_to(j::text, 'UTF8')), 'hex') $$;
+-- RA-R1: clasificación FX fail-closed. Normalización admitida IDÉNTICA a model/ra1.js (fxKeyNorm/fxWords/fxScan): partir por mayúsculas (camelCase, PascalCase, siglas) y por todo
+-- carácter fuera de [A-Za-z0-9]; minúsculas SOLO ASCII. Conversión si la clave en minúsculas contiene «exchange» o «equivalent», o alguna palabra es «dop» o «fx», o si una palabra «currency» tiene valor ≠ "USD".
+-- Límite declarado: sin separador ni mayúsculas internas («fxrate»), otros idiomas/sinónimos y valores de cadena fuera de claves de moneda NO se infieren. No implementa ni aprueba FX.
+CREATE FUNCTION c1_ra1.fx_key_norm(k text) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, pg_temp AS $$
+  SELECT translate(regexp_replace(regexp_replace(k, '([a-z0-9])([A-Z])', '\1 \2', 'g'), '([A-Z]+)([A-Z][a-z])', '\1 \2', 'g'), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') $$;
+CREATE FUNCTION c1_ra1.fx_scan(j jsonb) RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE k text; v jsonb; e jsonb; lk text; w text[];
+BEGIN
+  IF jsonb_typeof(j) = 'array' THEN FOR e IN SELECT jsonb_array_elements(j) LOOP IF c1_ra1.fx_scan(e) THEN RETURN true; END IF; END LOOP; RETURN false; END IF;
+  IF jsonb_typeof(j) = 'object' THEN
+    FOR k, v IN SELECT * FROM jsonb_each(j) LOOP
+      lk := translate(k, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'); w := regexp_split_to_array(c1_ra1.fx_key_norm(k), '[^a-z0-9]+');
+      IF position('exchange' in lk) > 0 OR position('equivalent' in lk) > 0 OR 'dop' = ANY(w) OR 'fx' = ANY(w) THEN RETURN true; END IF;
+      IF 'currency' = ANY(w) AND v <> to_jsonb('USD'::text) THEN RETURN true; END IF;
+      IF c1_ra1.fx_scan(v) THEN RETURN true; END IF;
+    END LOOP; END IF;
+  RETURN false;
+END $$;
+CREATE FUNCTION c1_ra1.head_state(p_scope text) RETURNS TABLE(revision_id text, active boolean, valid boolean, seq bigint) LANGUAGE plpgsql STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE rid text; pseq bigint; hseq bigint; last_ev text; inv boolean;
+BEGIN
+  SELECT l.revision_id, l.seq INTO rid, pseq FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.event = 'PUBLISH' ORDER BY l.seq DESC LIMIT 1;
+  IF rid IS NULL THEN RETURN QUERY SELECT NULL::text, false, false, 0::bigint; RETURN; END IF;
+  SELECT max(l.seq) INTO hseq FROM c1_ra1.ledger l WHERE l.scope = p_scope;
+  SELECT EXISTS (SELECT 1 FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.seq > pseq AND l.event = 'INVALIDATE') INTO inv;
+  SELECT l.event INTO last_ev FROM c1_ra1.ledger l WHERE l.scope = p_scope AND l.seq > pseq AND l.event IN ('ACTIVATE','DEACTIVATE') ORDER BY l.seq DESC LIMIT 1;
+  RETURN QUERY SELECT rid, (NOT inv AND coalesce(last_ev = 'ACTIVATE', false)), NOT inv, hseq;
+END $$;
+-- Integridad + retención + horizonte de TODA vista liberable. Devuelve estado interno.
+CREATE FUNCTION c1_ra1.usable(r c1_ra1.revisions, t timestamptz, dp timestamptz, di timestamptz, check_deliver boolean) RETURNS text LANGUAGE plpgsql STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE m jsonb; o c1_ra1.objects;
+BEGIN
+  IF r.revision_id IS NULL THEN RETURN 'REVISION_MISSING'; END IF;
+  IF r.content IS NULL OR r.content_digest <> c1_ra1.sha(r.content) THEN RETURN 'REVISION_MISSING'; END IF;
+  FOR m IN SELECT jsonb_array_elements(r.members) LOOP
+    SELECT * INTO o FROM c1_ra1.objects x WHERE x.key = m->>'key';
+    IF NOT FOUND OR o.digest <> (m->>'digest') OR o.digest <> c1_ra1.sha(o.content) THEN RETURN 'REVISION_MISSING'; END IF;
+  END LOOP;
+  IF t >= r.retention_until THEN RETURN 'REVISION_MISSING'; END IF;                    -- límite superior exclusivo
+  IF check_deliver THEN
+    IF dp IS NULL OR di IS NULL THEN RETURN 'SHAPE_INVALID'; END IF;
+    IF dp > r.horizon_public OR di > r.horizon_internal OR dp > r.retention_until OR di > r.retention_until THEN RETURN 'REVISION_MISSING'; END IF;
+  END IF;
+  RETURN 'OK';
+END $$;
+REVOKE ALL ON FUNCTION c1_ra1.sha(jsonb), c1_ra1.fx_key_norm(text), c1_ra1.fx_scan(jsonb), c1_ra1.head_state(text), c1_ra1.usable(c1_ra1.revisions, timestamptz, timestamptz, timestamptz, boolean), c1_ra1.deny_mutation() FROM PUBLIC;
+
+-- Interfaz controlada (única vía de escritura): SECURITY DEFINER, propietario c1_owner, search_path fijo.
+CREATE FUNCTION c1_ra1.put_object(p_kind text, p_id text, p_rev text, p_content jsonb) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE k text; d text; ex c1_ra1.objects;
+BEGIN
+  IF coalesce(p_kind,'') = '' OR coalesce(p_id,'') = '' OR coalesce(p_rev,'') = '' OR p_content IS NULL THEN RAISE EXCEPTION 'SHAPE_INVALID: object key'; END IF;
+  k := p_kind || ':' || p_id || '@' || p_rev; d := c1_ra1.sha(p_content);
+  PERFORM pg_advisory_xact_lock(hashtextextended('obj:' || k, 0));
+  SELECT * INTO ex FROM c1_ra1.objects WHERE key = k;
+  IF FOUND THEN IF ex.digest <> d THEN RAISE EXCEPTION 'IMMUTABLE_OBJECT: %', k; END IF; RETURN k; END IF;
+  INSERT INTO c1_ra1.objects(key, kind, content, digest) VALUES (k, p_kind, p_content, d); RETURN k;
+END $$;
+
+CREATE FUNCTION c1_ra1.publish(p_scope text, p_port text, p_content jsonb, p_members text[], p_horizon_public timestamptz, p_horizon_internal timestamptz,
+  p_retention_until timestamptz, p_margin_ms bigint, p_fx_policy text, p_received_kind text, p_original_received_at timestamptz, p_evidence_ref text, p_expect_seq bigint)
+RETURNS TABLE(revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE t0 timestamptz := clock_timestamp(); man jsonb := '[]'::jsonb; mk text; o c1_ra1.objects; fx boolean; rid text; s bigint; recv timestamptz; imp timestamptz; h record;
+BEGIN
+  IF coalesce(p_scope,'') = '' OR coalesce(p_port,'') = '' OR p_content IS NULL OR jsonb_typeof(p_content) <> 'object' OR p_members IS NULL THEN RAISE EXCEPTION 'SHAPE_INVALID: args'; END IF;
+  IF p_horizon_public IS NULL OR p_horizon_internal IS NULL THEN RAISE EXCEPTION 'HORIZON_MISSING'; END IF;     -- toda vista liberable (pública e interna)
+  IF p_retention_until IS NULL THEN RAISE EXCEPTION 'RETENTION_MISSING'; END IF;
+  IF p_margin_ms IS NULL OR p_margin_ms < 0 THEN RAISE EXCEPTION 'MARGIN_INVALID'; END IF;
+  IF p_retention_until < greatest(p_horizon_public, p_horizon_internal) + p_margin_ms * interval '1 millisecond' OR p_retention_until <= t0 THEN RAISE EXCEPTION 'RETENTION_SHORT'; END IF;
+  IF p_fx_policy IS NULL OR p_fx_policy NOT IN ('NO_CONVERSION_USD','FX_BRANCH') THEN RAISE EXCEPTION 'SHAPE_INVALID: fx_policy'; END IF;   -- RA-R1: NULL = desconocido, NOT IN no lo rechaza solo; rechazo explícito antes de clasificar
+  fx := c1_ra1.fx_scan(p_content);
+  IF p_fx_policy = 'NO_CONVERSION_USD' AND fx THEN RAISE EXCEPTION 'FX_CONVERSION_PRESENT'; END IF;
+  IF p_received_kind = 'SERVER' THEN
+    IF p_original_received_at IS NOT NULL OR p_evidence_ref IS NOT NULL THEN RAISE EXCEPTION 'CLIENT_TIME_FORBIDDEN'; END IF;
+    recv := t0; imp := NULL;
+  ELSIF p_received_kind = 'IMPORTED_HISTORICAL' THEN
+    imp := t0; recv := NULL;                                   -- desconocido ⇒ NULL; importación ≠ recepción
+    IF p_original_received_at IS NOT NULL THEN IF coalesce(p_evidence_ref,'') = '' THEN RAISE EXCEPTION 'SHAPE_INVALID: evidencia de recepción'; END IF; recv := p_original_received_at; END IF;
+  ELSE RAISE EXCEPTION 'SHAPE_INVALID: received.kind'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('scope:' || p_scope, 0));     -- serializa publicaciones del scope hasta el commit
+  FOREACH mk IN ARRAY p_members LOOP
+    SELECT * INTO o FROM c1_ra1.objects x WHERE x.key = mk;
+    IF NOT FOUND THEN RAISE EXCEPTION 'DEPENDENCY_MISSING: %', mk; END IF;
+    IF o.digest <> c1_ra1.sha(o.content) THEN RAISE EXCEPTION 'DEPENDENCY_CORRUPT: %', mk; END IF;
+    man := man || jsonb_build_array(jsonb_build_object('key', o.key, 'digest', o.digest));
+  END LOOP;
+  SELECT * INTO h FROM c1_ra1.head_state(p_scope);
+  IF p_expect_seq IS NOT NULL AND p_expect_seq <> h.seq THEN RAISE EXCEPTION 'CONFLICT: cabeza=%', h.seq; END IF;
+  rid := 'R' || lpad(nextval('c1_ra1.rev_seq')::text, 6, '0'); s := nextval('c1_ra1.ledger_seq');
+  INSERT INTO c1_ra1.revisions VALUES (rid, p_scope, p_port, p_content, c1_ra1.sha(p_content), man, c1_ra1.sha(jsonb_build_object('man', man, 'port', p_port, 'scope', p_scope)),
+    p_horizon_public, p_horizon_internal, p_retention_until, p_margin_ms, CASE WHEN fx THEN 'FX_BRANCH' ELSE 'NO_CONVERSION_USD' END, p_received_kind, recv, imp, t0);
+  INSERT INTO c1_ra1.ledger(seq, scope, event, revision_id, at) VALUES (s, p_scope, 'PUBLISH', rid, t0);
+  RETURN QUERY SELECT rid, s;
+END $$;
+
+CREATE FUNCTION c1_ra1.append_event(p_scope text, p_revision_id text, p_event text) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE h record; s bigint;
+BEGIN
+  PERFORM pg_advisory_xact_lock(hashtextextended('scope:' || p_scope, 0));
+  SELECT * INTO h FROM c1_ra1.head_state(p_scope);
+  IF h.revision_id IS NULL THEN RAISE EXCEPTION 'NOT_FOUND: %', p_scope; END IF;
+  IF p_revision_id IS NOT NULL AND p_revision_id <> h.revision_id THEN RAISE EXCEPTION 'NOT_HEAD: %', p_revision_id; END IF;
+  IF NOT h.valid AND p_event <> 'INVALIDATE' THEN RAISE EXCEPTION 'REVISION_INVALIDATED'; END IF;
+  s := nextval('c1_ra1.ledger_seq'); INSERT INTO c1_ra1.ledger(seq, scope, event, revision_id) VALUES (s, p_scope, p_event, h.revision_id); RETURN QUERY SELECT s, h.revision_id;
+END $$;
+CREATE FUNCTION c1_ra1.set_active(p_scope text, p_revision_id text, p_active boolean) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+  SELECT * FROM c1_ra1.append_event(p_scope, p_revision_id, CASE WHEN p_active THEN 'ACTIVATE' ELSE 'DEACTIVATE' END) $$;
+CREATE FUNCTION c1_ra1.invalidate(p_scope text) RETURNS TABLE(seq bigint, revision_id text) LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+  SELECT * FROM c1_ra1.append_event(p_scope, NULL, 'INVALIDATE') $$;
+
+-- Lectura (el lector NO atesta ni escribe).
+CREATE FUNCTION c1_ra1.pin(p_scope text) RETURNS TABLE(status text, revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE h record; r c1_ra1.revisions; st text;
+BEGIN
+  SELECT * INTO h FROM c1_ra1.head_state(p_scope); IF h.revision_id IS NULL THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::text, 0::bigint; RETURN; END IF;
+  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = h.revision_id;
+  IF NOT h.valid OR NOT h.active THEN st := 'REVISION_MISSING'; ELSE st := c1_ra1.usable(r, clock_timestamp(), NULL, NULL, false); END IF;
+  RETURN QUERY SELECT st, CASE WHEN st = 'OK' THEN h.revision_id END, h.seq;
+END $$;
+CREATE FUNCTION c1_ra1.read(p_scope text, p_revision_id text) RETURNS TABLE(status text, revision jsonb) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE r c1_ra1.revisions; st text;
+BEGIN
+  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = p_revision_id;
+  IF NOT FOUND THEN RETURN QUERY SELECT 'REVISION_MISSING'::text, NULL::jsonb; RETURN; END IF;
+  IF r.scope <> p_scope THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::jsonb; RETURN; END IF;
+  st := c1_ra1.usable(r, clock_timestamp(), NULL, NULL, false);
+  RETURN QUERY SELECT st, CASE WHEN st = 'OK' THEN to_jsonb(r) END;
+END $$;
+-- Comprobación final (ÚLTIMA espera): el token por sí solo no basta.
+CREATE FUNCTION c1_ra1.current(p_scope text, p_revision_id text, p_seq bigint, p_deliver_public timestamptz DEFAULT NULL, p_deliver_internal timestamptz DEFAULT NULL, p_check_deliver boolean DEFAULT false)
+RETURNS TABLE(status text, revision_id text, seq bigint) LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = pg_catalog, c1_ra1, pg_temp AS $$
+DECLARE h record; r c1_ra1.revisions; st text;
+BEGIN
+  IF p_revision_id IS NULL OR p_seq IS NULL THEN RETURN QUERY SELECT 'SHAPE_INVALID'::text, NULL::text, NULL::bigint; RETURN; END IF;
+  SELECT * INTO h FROM c1_ra1.head_state(p_scope); IF h.revision_id IS NULL THEN RETURN QUERY SELECT 'NOT_FOUND'::text, NULL::text, 0::bigint; RETURN; END IF;
+  IF h.seq <> p_seq OR h.revision_id <> p_revision_id THEN RETURN QUERY SELECT 'DRIFT'::text, h.revision_id, h.seq; RETURN; END IF;
+  IF NOT h.valid OR NOT h.active THEN RETURN QUERY SELECT 'REVISION_MISSING'::text, h.revision_id, h.seq; RETURN; END IF;
+  SELECT * INTO r FROM c1_ra1.revisions x WHERE x.revision_id = h.revision_id;
+  st := c1_ra1.usable(r, clock_timestamp(), p_deliver_public, p_deliver_internal, p_check_deliver);
+  RETURN QUERY SELECT st, h.revision_id, h.seq;
+END $$;
+
+REVOKE ALL ON FUNCTION c1_ra1.put_object(text,text,text,jsonb), c1_ra1.publish(text,text,jsonb,text[],timestamptz,timestamptz,timestamptz,bigint,text,text,timestamptz,text,bigint),
+  c1_ra1.append_event(text,text,text), c1_ra1.set_active(text,text,boolean), c1_ra1.invalidate(text),
+  c1_ra1.pin(text), c1_ra1.read(text,text), c1_ra1.current(text,text,bigint,timestamptz,timestamptz,boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION c1_ra1.put_object(text,text,text,jsonb), c1_ra1.publish(text,text,jsonb,text[],timestamptz,timestamptz,timestamptz,bigint,text,text,timestamptz,text,bigint),
+  c1_ra1.set_active(text,text,boolean), c1_ra1.invalidate(text) TO c1_publisher;
+GRANT EXECUTE ON FUNCTION c1_ra1.pin(text), c1_ra1.read(text,text), c1_ra1.current(text,text,bigint,timestamptz,timestamptz,boolean) TO c1_reader;
