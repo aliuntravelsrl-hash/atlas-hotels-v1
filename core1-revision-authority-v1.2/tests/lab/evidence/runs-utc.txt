@@ -1,0 +1,6 @@
+lab(full) started 2026-10-28T15:42:55Z exit=0
+model 2026-10-28T15:47:30Z exit=0
+model-mutants 2026-10-28T15:47:33Z exit=0
+lifecycle 2026-10-28T15:47:33Z exit=0
+lifecycle-mutants 2026-10-28T15:47:34Z exit=0
+lifecycle-real-faults 2026-10-28T15:47:55Z exit=0

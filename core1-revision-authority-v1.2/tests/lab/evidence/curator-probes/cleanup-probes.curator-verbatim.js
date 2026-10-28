@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('assert');const L=require('./core1-revision-authority-v1.1/tests/lab/lifecycle');
+const D='/tmp/c1-ra1-lab-CUR-SYN/data',DIR='/tmp/c1-ra1-lab-CUR-SYN';
+const calls=[];
+const deps={run:(cmd,args)=>(calls.push({cmd,args}),{status:0}),exists:()=>true,rmDir:()=>{throw Error('unexpected removal')},procState:()=> 'UNKNOWN',sleep:()=>{}};
+const state={dir:DIR,dataDir:D,markerPath:DIR+'/MANDATE.marker',safePrefix:'/tmp/c1-ra1-lab-',startAttempted:true,acc:{pid:7788,accredited:false,reason:'PID_NOT_OWN_INSTANCE'}};
+const out=L.finalizeCleanup(state,deps);
+assert.equal(out.lab_dir_removed,false);assert.equal(calls.length,1);assert.ok(calls[0].args.includes('stop'));
+const acc=L.accreditPid({dataDir:D},{readFile:()=> '7788\n',cmdline:()=> 'postgres\0-D\0'+D+'-foreign'});
+assert.equal(acc.accredited,true);
+console.log(JSON.stringify({layer:'injected-dependencies-only-no-real-processes',unaccreditedPID:{reason:state.acc.reason,stopCalls:calls.length,removed:out.lab_dir_removed},substringIdentity:{expected:D,observed:D+'-foreign',accredited:acc.accredited}},null,2));

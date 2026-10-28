@@ -1,0 +1,6 @@
+PostgreSQL: postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) | modo=lifecycle fallo_inyectado=stopnoop
+Directorio nuevo del mandato: /tmp/c1-ra1-lab-5a9d9U
+PID de la instancia propia: 20400 acreditado=true
+Identidad verificada (antes): {"data_directory":"/tmp/c1-ra1-lab-5a9d9U/data","database":"postgres","system_identifier":"7701745906628759463","listen_addresses":"","socket_directory":"/tmp/c1-ra1-lab-5a9d9U/sock","socket_permissions":"0700","marker_ok":null}
+Modo lifecycle: sin suites SQL.
+Limpieza: estado=STOP_PENDING_PID_STILL_ALIVE; pg_ctl stop=0; PID 20400 vivo=true; parada confirmada=false; directorio eliminado=false ; DIRECTORIO RETENIDO (limpieza pendiente): /tmp/c1-ra1-lab-5a9d9U
