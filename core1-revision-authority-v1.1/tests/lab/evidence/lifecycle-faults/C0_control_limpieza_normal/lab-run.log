@@ -1,0 +1,6 @@
+PostgreSQL: postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) | modo=lifecycle
+Directorio nuevo del mandato: /tmp/c1-ra1-lab-Z4m813
+PID de la instancia propia: 25793 acreditado=true
+Identidad verificada (antes): {"data_directory":"/tmp/c1-ra1-lab-Z4m813/data","database":"postgres","system_identifier":"7701736471002973368","listen_addresses":"","socket_directory":"/tmp/c1-ra1-lab-Z4m813/sock","socket_permissions":"0700","marker_ok":null}
+Modo lifecycle: sin suites SQL.
+Limpieza: estado=STOP_CONFIRMED; pg_ctl stop=0; PID 25793 vivo=false; parada confirmada=true; directorio eliminado=true

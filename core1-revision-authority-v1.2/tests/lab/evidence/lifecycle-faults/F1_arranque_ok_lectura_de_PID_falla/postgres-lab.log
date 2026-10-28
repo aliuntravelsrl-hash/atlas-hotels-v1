@@ -1,0 +1,4 @@
+2026-10-28 15:47:36.335 UTC [20358] LOG:  starting PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit
+2026-10-28 15:47:36.335 UTC [20358] LOG:  listening on Unix socket "/tmp/c1-ra1-lab-GKtaaz/sock/.s.PGSQL.54329"
+2026-10-28 15:47:36.337 UTC [20361] LOG:  database system was shut down at 2026-10-28 15:47:36 UTC
+2026-10-28 15:47:36.341 UTC [20358] LOG:  database system is ready to accept connections
