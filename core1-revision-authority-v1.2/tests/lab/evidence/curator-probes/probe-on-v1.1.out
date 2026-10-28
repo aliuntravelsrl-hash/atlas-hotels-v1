@@ -1,0 +1,14 @@
+{
+  "layer": "injected-dependencies-only-no-real-processes",
+  "unaccreditedPID": {
+    "reason": "PID_NOT_OWN_INSTANCE",
+    "stopCalls": 1,
+    "removed": false
+  },
+  "substringIdentity": {
+    "expected": "/tmp/c1-ra1-lab-CUR-SYN/data",
+    "observed": "/tmp/c1-ra1-lab-CUR-SYN/data-foreign",
+    "accredited": true
+  }
+}
+exit(v1.1)=0

@@ -1,0 +1,2 @@
+-- RA-1 v1 — reversa del candidato (solo laboratorio aislado). Ejecutar como c1_owner. Destruye únicamente el esquema c1_ra1.
+DROP SCHEMA c1_ra1 CASCADE;

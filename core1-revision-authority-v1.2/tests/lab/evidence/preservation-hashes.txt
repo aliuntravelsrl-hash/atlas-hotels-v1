@@ -1,0 +1,21 @@
+# preservacion por hashes (sha256) — 2026-10-28T15:48:07Z
+v1.1 b2bebc0c2c2ac679ba1d466f88b47bcbd1f7da3275c497d9c016c8c6fd19fb6a  v1.2 b2bebc0c2c2ac679ba1d466f88b47bcbd1f7da3275c497d9c016c8c6fd19fb6a  model/ra1.js
+v1.1 4a67a953aa2ca4920d443262817930ae6274f8ad96a8226844ad32367f6adfa2  v1.2 4a67a953aa2ca4920d443262817930ae6274f8ad96a8226844ad32367f6adfa2  model/fx_vectors.js
+v1.1 5215d4a802587ac951b0328cd36f29e24141f97d1c863207fea0e226c06cc044  v1.2 5215d4a802587ac951b0328cd36f29e24141f97d1c863207fea0e226c06cc044  model/fixtures.js
+v1.1 9cb380411d2f8655a23de183b3bb6ded92e29240dabed437de2560885f33c110  v1.2 9cb380411d2f8655a23de183b3bb6ded92e29240dabed437de2560885f33c110  sql/01-schema
+v1.1 113f148b056b0bcc5cca39488cce0e9cd2ff7b9d7d1df8d0632d24a2207f1364  v1.2 113f148b056b0bcc5cca39488cce0e9cd2ff7b9d7d1df8d0632d24a2207f1364  sql/02-rollback (sin diferencias salvo nombre de archivo)
+tree v1   : HEAD=6280473eaaaab1b5546e1b9652663df2a9b4dc44 4224e66=6280473eaaaab1b5546e1b9652663df2a9b4dc44
+tree v1.1 : HEAD=678983f3be5c014d16c982e2738ef1b808325347 ff565fb=678983f3be5c014d16c982e2738ef1b808325347
+tree kernel : HEAD=f15b8ea95596 base_fc3cdb3=f15b8ea95596
+tree kernel-v2 : HEAD=facd19cd1c6c base_fc3cdb3=facd19cd1c6c
+tree kernel-v2.0.1 : HEAD=245144b43102 base_fc3cdb3=245144b43102
+tree kernel-v2.0.2 : HEAD=cf0e3bfbb9e9 base_fc3cdb3=cf0e3bfbb9e9
+tree kernel-v2.0.3 : HEAD=24a2faea19e0 base_fc3cdb3=24a2faea19e0
+tree kernel-v2.0.4 : HEAD=88328032a786 base_fc3cdb3=88328032a786
+tree kernel-v2.0.5 : HEAD=791e022fc91f base_fc3cdb3=791e022fc91f
+tree kernel-v2.0.6 : HEAD=b92d8491a5d6 base_fc3cdb3=b92d8491a5d6
+tree core1-price : HEAD=16b98bc89fbd base_fc3cdb3=16b98bc89fbd
+tree core1-producer : HEAD=b1dbdb427a0e base_fc3cdb3=b1dbdb427a0e
+tree core1-producer-v1.1 : HEAD=5b9b2cf679f8 base_fc3cdb3=5b9b2cf679f8
+tree core1-physical-adapter-v1 : HEAD=a7e4452d7772 base_fc3cdb3=a7e4452d7772
+tree kernel-probes : HEAD=34ee4d848435 base_fc3cdb3=34ee4d848435

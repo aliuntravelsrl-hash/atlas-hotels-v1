@@ -1,0 +1,6 @@
+lab(full) 2026-10-28T15:10:56Z exit=0 (ver lab-run.json)
+model 2026-10-28T15:10:56Z exit=0
+model-mutants 2026-10-28T15:10:59Z exit=0
+lifecycle 2026-10-28T15:10:59Z exit=0
+lifecycle-mutants 2026-10-28T15:10:59Z exit=0
+lifecycle-real-faults 2026-10-28T15:11:16Z exit=0

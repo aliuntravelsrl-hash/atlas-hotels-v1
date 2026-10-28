@@ -1,0 +1,176 @@
+{
+  "cases": {
+    "C0_control_limpieza_normal": {
+      "exit": 0,
+      "want_exit": 0,
+      "checks": {
+        "exit_code": "PASS",
+        "json_present": "PASS",
+        "cleanup_status": "PASS",
+        "retention": "PASS",
+        "no_afirma_limpieza_si_retiene": "PASS",
+        "stdout_declara_directorio_retenido_si_corresponde": "PASS",
+        "estado_real_del_proceso_al_salir": "PASS"
+      },
+      "cleanup_status": "STOP_CONFIRMED",
+      "lab_dir_removed": true,
+      "stop_confirmed": true,
+      "pid_alive_after_stop": false,
+      "stop_attempted": true,
+      "process_alive_at_exit": false,
+      "lab_dir": "<SCRATCH>/c1-ra1-lab-Z4m813"
+    },
+    "F1_arranque_ok_lectura_de_PID_falla": {
+      "exit": 5,
+      "want_exit": 5,
+      "checks": {
+        "exit_code": "PASS",
+        "json_present": "PASS",
+        "cleanup_status": "PASS",
+        "retention": "PASS",
+        "no_afirma_limpieza_si_retiene": "PASS",
+        "stdout_declara_directorio_retenido_si_corresponde": "PASS",
+        "residuo_propio_limpiado_con_parada_observada": "PASS"
+      },
+      "cleanup_status": "STOP_PENDING_PID_READ_FAILED",
+      "lab_dir_removed": false,
+      "stop_confirmed": false,
+      "pid_alive_after_stop": null,
+      "stop_attempted": true,
+      "residue_cleanup": {
+        "dir": "/tmp/c1-ra1-lab-0p8Ukp",
+        "steps": [],
+        "pid_file_present": false,
+        "alive_before_stop": false,
+        "result": "CLEANED_BY_HARNESS"
+      },
+      "lab_dir": "<SCRATCH>/c1-ra1-lab-0p8Ukp"
+    },
+    "F2_parada_no_confirmada_la_orden_no_detiene": {
+      "exit": 5,
+      "want_exit": 5,
+      "checks": {
+        "exit_code": "PASS",
+        "json_present": "PASS",
+        "cleanup_status": "PASS",
+        "retention": "PASS",
+        "no_afirma_limpieza_si_retiene": "PASS",
+        "stdout_declara_directorio_retenido_si_corresponde": "PASS",
+        "estado_real_del_proceso_al_salir": "PASS",
+        "residuo_propio_limpiado_con_parada_observada": "PASS"
+      },
+      "cleanup_status": "STOP_PENDING_PID_STILL_ALIVE",
+      "lab_dir_removed": false,
+      "stop_confirmed": false,
+      "pid_alive_after_stop": true,
+      "stop_attempted": true,
+      "process_alive_at_exit": true,
+      "residue_cleanup": {
+        "dir": "/tmp/c1-ra1-lab-4pbz9w",
+        "steps": [],
+        "pid_file_present": true,
+        "alive_before_stop": true,
+        "stop_status": 0,
+        "alive_after_stop": false,
+        "result": "CLEANED_BY_HARNESS"
+      },
+      "lab_dir": "<SCRATCH>/c1-ra1-lab-4pbz9w"
+    },
+    "F3_estado_del_proceso_desconocido": {
+      "exit": 5,
+      "want_exit": 5,
+      "checks": {
+        "exit_code": "PASS",
+        "json_present": "PASS",
+        "cleanup_status": "PASS",
+        "retention": "PASS",
+        "no_afirma_limpieza_si_retiene": "PASS",
+        "stdout_declara_directorio_retenido_si_corresponde": "PASS",
+        "residuo_propio_limpiado_con_parada_observada": "PASS"
+      },
+      "cleanup_status": "STOP_PENDING_STATE_UNKNOWN",
+      "lab_dir_removed": false,
+      "stop_confirmed": false,
+      "pid_alive_after_stop": null,
+      "stop_attempted": true,
+      "residue_cleanup": {
+        "dir": "/tmp/c1-ra1-lab-Q15LVt",
+        "steps": [],
+        "pid_file_present": false,
+        "alive_before_stop": false,
+        "result": "CLEANED_BY_HARNESS"
+      },
+      "lab_dir": "<SCRATCH>/c1-ra1-lab-Q15LVt"
+    },
+    "F4_arranque_falla_sin_PID": {
+      "exit": 5,
+      "want_exit": 5,
+      "checks": {
+        "exit_code": "PASS",
+        "json_present": "PASS",
+        "cleanup_status": "PASS",
+        "retention": "PASS",
+        "no_afirma_limpieza_si_retiene": "PASS",
+        "stdout_declara_directorio_retenido_si_corresponde": "PASS",
+        "arranque_sin_pid": "PASS",
+        "residuo_propio_limpiado_con_parada_observada": "PASS"
+      },
+      "cleanup_status": "STOP_PENDING_PID_READ_FAILED",
+      "lab_dir_removed": false,
+      "stop_confirmed": false,
+      "pid_alive_after_stop": null,
+      "stop_attempted": true,
+      "residue_cleanup": {
+        "dir": "/tmp/c1-ra1-lab-1ez3Xc",
+        "steps": [],
+        "pid_file_present": false,
+        "alive_before_stop": false,
+        "result": "CLEANED_BY_HARNESS"
+      },
+      "lab_dir": "<SCRATCH>/c1-ra1-lab-1ez3Xc"
+    },
+    "F5_inicializacion_falla_antes_de_arrancar": {
+      "exit": 1,
+      "want_exit": 1,
+      "checks": {
+        "exit_code": "PASS",
+        "json_present": "PASS",
+        "cleanup_status": "PASS",
+        "retention": "PASS",
+        "no_afirma_limpieza_si_retiene": "PASS",
+        "stdout_declara_directorio_retenido_si_corresponde": "PASS",
+        "sin_pg_ctl": "PASS"
+      },
+      "cleanup_status": "NOT_STARTED_REMOVABLE",
+      "lab_dir_removed": true,
+      "stop_confirmed": false,
+      "pid_alive_after_stop": null,
+      "stop_attempted": false,
+      "lab_dir": "<SCRATCH>/c1-ra1-lab-u64ihV"
+    },
+    "F6_fallo_de_gate_de_identidad": {
+      "exit": 4,
+      "want_exit": 4,
+      "checks": {
+        "exit_code": "PASS",
+        "json_present": "PASS",
+        "cleanup_status": "PASS",
+        "retention": "PASS",
+        "no_afirma_limpieza_si_retiene": "PASS",
+        "stdout_declara_directorio_retenido_si_corresponde": "PASS",
+        "estado_real_del_proceso_al_salir": "PASS"
+      },
+      "cleanup_status": "STOP_CONFIRMED",
+      "lab_dir_removed": true,
+      "stop_confirmed": true,
+      "pid_alive_after_stop": false,
+      "stop_attempted": true,
+      "process_alive_at_exit": false,
+      "lab_dir": "<SCRATCH>/c1-ra1-lab-FYLFc0"
+    }
+  },
+  "started_utc": "2026-10-28T15:10:59.646Z",
+  "leftover_own_dirs": 0,
+  "finished_utc": "2026-10-28T15:11:16.268Z",
+  "failures": 0
+}

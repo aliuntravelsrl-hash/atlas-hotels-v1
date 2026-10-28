@@ -1,0 +1,33 @@
+M01_drift_no_compara_cabeza KILLED 
+M02_objeto_mutable KILLED 
+M03_horizonte_interno_ignorado KILLED 
+M04_retencion_inclusiva KILLED 
+M05_margen_ignorado KILLED 
+M06_entrega_interna_sin_control KILLED 
+M07_importacion_se_toma_por_recepcion KILLED 
+M08_valor_de_cliente_aceptado KILLED 
+M09_sin_rollback_de_revisiones KILLED 
+M10_contador_de_ids_retrocede KILLED 
+M11_fx_no_se_rechaza KILLED 
+M12_permisos_abiertos KILLED 
+M13_lectura_sin_copia KILLED 
+M14_publicacion_sin_copia_de_entrada KILLED 
+M15_dependencias_sin_verificar_en_uso KILLED 
+M16_contenido_sin_verificar KILLED 
+M17_lectura_ignora_scope KILLED 
+M18_sin_conflicto_optimista KILLED 
+M19_pin_no_exige_activa KILLED 
+M20_id_de_revision_reutilizable KILLED 
+M21_historico_sin_evidencia KILLED 
+M22_current_ignora_entrega KILLED 
+M23_dependencia_corrupta_al_publicar KILLED 
+M24_current_no_exige_activa KILLED 
+M25_retencion_vs_horizonte_en_uso EQUIVALENT_DECLARED — Redundante con RETENTION_SHORT en publicación: sin operación de rol que altere horizonte/retención tras publicar; solo el simulador admin alteraría contenido/objetos, no esos campos.
+M26_fx_sin_subcadena_exchange_equivalent KILLED 
+M27_fx_sin_particion_por_mayusculas KILLED 
+M28_politica_ausente_o_null_sin_rechazo KILLED 
+M29_moneda_distinta_de_USD_ignorada KILLED 
+M30_moneda_solo_clave_exacta_currency KILLED 
+M31_fx_palabra_fx_ignorada KILLED 
+M32_pin_retencion_inclusiva_por_reloj_desplazado KILLED 
+MUTANTES: killed=31 equivalentes=1 survivors/stale=0 de 32; control_positivo_exit=0
